@@ -8,7 +8,11 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional
-
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+            
+console = Console()
 from .tokens import Tokenizer
 # from .parser import Parser  # Not yet implemented
 # from .backends import get_backend  # Ignoring backend for now
@@ -78,8 +82,13 @@ class A7Compiler:
                     repr(token.value) if token.value else ""
                 )
             
+            code_panel = Panel(
+                source_code,
+                title=f"Source: {input_path}",
+                border_style="blue"
+            )
+            console.print(code_panel)
             console.print(table)
-            
             # Skip actual code generation for now
             target_code = "// Tokenization complete - no code generation yet\n"
             
