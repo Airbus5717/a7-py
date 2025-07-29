@@ -1,0 +1,35 @@
+main :: fn() {
+    value :: 1
+    match value {
+        case 1: {
+            print("Value is 1\n")
+        }
+        case 2: {
+            print("Value is 2\n")
+        }
+        case 3, 4, 5: {
+            print("Value is 3, 4, or 5\n")
+        }
+        case 6..10: {
+            print("Value is between 6 and 10\n")
+        }
+        else: {
+            print("Value is unknown\n")
+        }
+    }
+    
+    // Match with fallthrough
+    letter := 'A'
+    match letter {
+        case 'A': {
+            print("Letter A")
+            fall  // Explicit fallthrough
+        }
+        case 'B': {
+            print(" or B\n")
+        }
+        else: {
+            print("Other letter\n")
+        }
+    }
+}

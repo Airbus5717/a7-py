@@ -1,0 +1,127 @@
+// Advanced control flow demonstration
+
+main :: fn() {
+    // Break and continue in loops
+    print("=== Break and Continue ===\n")
+    for i := 0; i < 10; i += 1 {
+        if i == 3 {
+            continue  // Skip when i is 3
+        }
+        if i == 7 {
+            break     // Stop when i is 7
+        }
+        printf("i = {}\n", i)
+    }
+    
+    // Labeled break and continue
+    print("\n=== Labeled Break ===\n")
+    outer: for i := 0; i < 3; i += 1 {
+        for j := 0; j < 3; j += 1 {
+            if i == 1 and j == 1 {
+                break outer  // Break from outer loop
+            }
+            printf("({}, {})\n", i, j)
+        }
+    }
+    
+    // Infinite loop with break
+    print("\n=== Infinite Loop ===\n")
+    counter := 0
+    for {
+        counter += 1
+        printf("Counter: {}\n", counter)
+        if counter >= 3 {
+            break
+        }
+    }
+    
+    // While loop with complex condition
+    print("\n=== While Loop ===\n")
+    running := true
+    count := 0
+    while running and count < 5 {
+        printf("While iteration: {}\n", count)
+        count += 1
+        if count == 3 {
+            running = false
+        }
+    }
+    
+    // Nested control structures
+    print("\n=== Nested Control ===\n")
+    for x := 1; x <= 3; x += 1 {
+        for y := 1; y <= 3; y += 1 {
+            if x == y {
+                printf("Diagonal: ({}, {})\n", x, y)
+            } else if x + y == 4 {
+                printf("Anti-diagonal: ({}, {})\n", x, y)
+            } else {
+                printf("Other: ({}, {})\n", x, y)
+            }
+        }
+    }
+    
+    // Match with complex patterns
+    print("\n=== Match Patterns ===\n")
+    for value := 0; value <= 15; value += 1 {
+        match value {
+            case 0: {
+                print("Zero\n")
+            }
+            case 1, 2, 3: {
+                print("Small number\n")
+            }
+            case 4..10: {
+                print("Medium range\n")
+            }
+            case 11: {
+                print("Eleven")
+                fall  // Fallthrough to next case
+            }
+            case 12: {
+                print(" or Twelve\n")
+            }
+            else: {
+                print("Large number\n")
+            }
+        }
+    }
+    
+    // Early return pattern
+    print("\n=== Early Returns ===\n")
+    
+    check_value :: fn(x: i32) {
+        if x < 0 {
+            print("Negative value, returning early\n")
+            ret
+        }
+        
+        if x == 0 {
+            print("Zero value, returning early\n")
+            ret
+        }
+        
+        printf("Positive value: {}\n", x)
+    }
+    
+    check_value(-5)
+    check_value(0)
+    check_value(10)
+    
+    // Function with multiple return points
+    classify :: fn(x: i32) string {
+        if x < 0 {
+            ret "negative"
+        } else if x == 0 {
+            ret "zero"
+        } else if x < 10 {
+            ret "small positive"
+        } else {
+            ret "large positive"  
+        }
+    }
+    
+    for test_val := -2; test_val <= 12; test_val += 5 {
+        printf("{} is {}\n", test_val, classify(test_val))
+    }
+}

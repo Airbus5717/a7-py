@@ -1,0 +1,85 @@
+// Literals demonstration
+
+main :: fn() {
+    // Integer literals
+    decimal := 42
+    hexadecimal := 0x2A        // 42 in hex
+    octal := 0o52              // 42 in octal  
+    binary := 0b101010         // 42 in binary
+    with_separators := 1_000_000  // 1 million with separators
+    
+    printf("Decimal: {}\n", decimal)
+    printf("Hexadecimal: {}\n", hexadecimal)
+    printf("Octal: {}\n", octal)
+    printf("Binary: {}\n", binary)
+    printf("With separators: {}\n", with_separators)
+    
+    // Floating-point literals
+    pi := 3.14159
+    scientific := 2.71e10      // 2.71 * 10^10
+    fraction := 0.5            // Can start with 0
+    dot_five := .5             // Can start with dot
+    one_dot := 1.              // Can end with dot
+    
+    printf("Pi: {}\n", pi)
+    printf("Scientific: {}\n", scientific)
+    printf("Fraction: {}\n", fraction)
+    printf("Dot five: {}\n", dot_five)
+    printf("One dot: {}\n", one_dot)
+    
+    // Character literals
+    letter := 'A'
+    newline := '\n'
+    tab := '\t'
+    backslash := '\\'
+    single_quote := '\''
+    hex_escape := '\x41'       // 'A' in hex (ASCII 65)
+    
+    printf("Letter: {}\n", letter)
+    printf("Newline char code: {}\n", cast(i32, newline))
+    printf("Tab char code: {}\n", cast(i32, tab))
+    printf("Backslash: {}\n", backslash)
+    printf("Single quote: {}\n", single_quote)
+    printf("Hex escape: {}\n", hex_escape)
+    
+    // String literals
+    simple := "Hello, World!"
+    multiline := "Line 1\nLine 2"
+    with_quotes := "He said: \"Hello\""
+    
+    printf("Simple: {}\n", simple)
+    printf("Multiline: {}\n", multiline)
+    printf("With quotes: {}\n", with_quotes)
+    
+    // Boolean literals
+    true_val := true
+    false_val := false
+    
+    printf("True: {}\n", true_val)
+    printf("False: {}\n", false_val)
+    
+    // Nil literal
+    null_ptr: ref i32 = nil
+    if null_ptr == nil {
+        print("Pointer is nil\n")
+    }
+    
+    // Array literals
+    numbers: [5]i32 = [1, 2, 3, 4, 5]
+    matrix: [2][3]i32 = [[1, 2, 3], [4, 5, 6]]
+    
+    printf("First number: {}\n", numbers[0])
+    printf("Matrix element: {}\n", matrix[1][2])
+    
+    // Struct literals
+    Point :: struct {
+        x: f32
+        y: f32
+    }
+    
+    origin := Point{0.0, 0.0}
+    point := Point{x: 10.0, y: 20.0}  // Named fields
+    
+    printf("Origin: ({}, {})\n", origin.x, origin.y)
+    printf("Point: ({}, {})\n", point.x, point.y)
+}

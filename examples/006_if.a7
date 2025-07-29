@@ -1,0 +1,28 @@
+main :: fn() {
+    x := 1
+    if x == 1 {
+        print("x is 1\n")
+    } else {
+        print("x is not 1\n")
+    }
+    
+    // Conditional expression
+    result := if x > 0 { "positive" } else { "non-positive" }
+    print(result)
+    print("\n")
+    
+    // Complex conditions with logical operators
+    age := 25
+    if age >= 18 and age <= 65 {
+        print("Working age\n")
+    }
+    
+    // Nested conditions
+    if x > 0 {
+        if x < 10 {
+            print("Single digit positive\n")
+        } else {
+            print("Multi-digit positive\n")
+        }
+    }
+}

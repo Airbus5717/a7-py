@@ -1,0 +1,9 @@
+add :: fn(x: i32, y: i32) i32 {
+    ret x + y
+}
+
+main :: fn() {
+    result := add(5, 7)
+    printf("{}", result)  // Output should be 12
+    print("\n")
+}

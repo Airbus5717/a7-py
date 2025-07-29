@@ -1,0 +1,99 @@
+// Operators demonstration
+
+main :: fn() {
+    // Arithmetic operators
+    a := 10
+    b := 3
+    
+    printf("Arithmetic: {} + {} = {}\n", a, b, a + b)
+    printf("Arithmetic: {} - {} = {}\n", a, b, a - b)
+    printf("Arithmetic: {} * {} = {}\n", a, b, a * b)
+    printf("Arithmetic: {} / {} = {}\n", a, b, a / b)
+    printf("Arithmetic: {} % {} = {}\n", a, b, a % b)
+    
+    // Comparison operators
+    printf("Comparison: {} == {} is {}\n", a, b, a == b)
+    printf("Comparison: {} != {} is {}\n", a, b, a != b)
+    printf("Comparison: {} < {} is {}\n", a, b, a < b)
+    printf("Comparison: {} > {} is {}\n", a, b, a > b)
+    printf("Comparison: {} <= {} is {}\n", a, b, a <= b)
+    printf("Comparison: {} >= {} is {}\n", a, b, a >= b)
+    
+    // Logical operators (using keywords)
+    x := true
+    y := false
+    
+    printf("Logical: {} and {} is {}\n", x, y, x and y)
+    printf("Logical: {} or {} is {}\n", x, y, x or y)
+    printf("Logical: not {} is {}\n", x, !x)
+    
+    // Complex logical expressions
+    age := 25
+    has_license := true
+    can_drive := age >= 18 and has_license
+    printf("Can drive: {}\n", can_drive)
+    
+    // Bitwise operators
+    bits1 := 0b1010  // 10 in decimal
+    bits2 := 0b1100  // 12 in decimal
+    
+    printf("Bitwise: {} & {} = {}\n", bits1, bits2, bits1 & bits2)
+    printf("Bitwise: {} | {} = {}\n", bits1, bits2, bits1 | bits2)
+    printf("Bitwise: {} ^ {} = {}\n", bits1, bits2, bits1 ^ bits2)
+    printf("Bitwise: ~{} = {}\n", bits1, ~bits1)
+    printf("Bitwise: {} << 1 = {}\n", bits1, bits1 << 1)
+    printf("Bitwise: {} >> 1 = {}\n", bits1, bits1 >> 1)
+    
+    // Assignment operators
+    counter := 5
+    printf("Initial counter: {}\n", counter)
+    
+    counter += 3
+    printf("After +=: {}\n", counter)
+    
+    counter -= 2
+    printf("After -=: {}\n", counter)
+    
+    counter *= 2
+    printf("After *=: {}\n", counter)
+    
+    counter /= 3
+    printf("After /=: {}\n", counter)
+    
+    counter %= 3
+    printf("After %=: {}\n", counter)
+    
+    // Bitwise assignment
+    bits := 0b1111
+    bits &= 0b1010
+    printf("After &=: {}\n", bits)
+    
+    bits |= 0b0101
+    printf("After |=: {}\n", bits)
+    
+    bits ^= 0b1100
+    printf("After ^=: {}\n", bits)
+    
+    bits <<= 1
+    printf("After <<=: {}\n", bits)
+    
+    bits >>= 1
+    printf("After >>=: {}\n", bits)
+    
+    // Address-of and dereference operators
+    value := 42
+    ptr := &value
+    printf("Value: {}, *ptr: {}\n", value, ptr.*)
+    
+    // Unary operators
+    positive := 5
+    negative := -positive
+    printf("Unary minus: -{} = {}\n", positive, negative)
+    
+    // Operator precedence demonstration
+    result := 2 + 3 * 4    // Should be 14, not 20
+    printf("2 + 3 * 4 = {} (precedence: * before +)\n", result)
+    
+    parens := (2 + 3) * 4  // Should be 20
+    printf("(2 + 3) * 4 = {} (parentheses override)\n", parens)
+}

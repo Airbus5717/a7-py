@@ -1,0 +1,44 @@
+Token :: struct {
+    id: i32
+    data: [3]i32
+}
+
+Person :: struct {
+    name: string
+    age: u32
+    height: f32
+}
+
+main :: fn() {
+    // Struct initialization
+    t := Token{1, [10, 20, 30]}
+    t.id = 2
+    t.data[1] = 99
+    
+    // Another struct with named fields
+    person := Person{
+        name: "John",
+        age: 30,
+        height: 5.9
+    }
+    
+    // Accessing struct fields
+    printf("Token ID: {}\n", t.id)
+    printf("Token data[0]: {}\n", t.data[0])
+    printf("Person: {} age {} height {}\n", person.name, person.age, person.height)
+    
+    // Nested struct
+    Employee :: struct {
+        person: Person
+        id: u64
+        salary: f64
+    }
+    
+    emp := Employee{
+        person: person,
+        id: 12345,
+        salary: 75000.0
+    }
+    
+    printf("Employee: {} (ID: {})\n", emp.person.name, emp.id)
+}

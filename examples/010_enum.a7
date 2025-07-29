@@ -1,0 +1,64 @@
+TknType :: enum {
+    Id,
+    Number,
+    Float,
+    String,
+    Char,
+    Invalid
+}
+
+Color :: enum {
+    Red,    // 0
+    Green,  // 1
+    Blue    // 2
+}
+
+StatusCode :: enum {
+    Ok = 200,
+    NotFound = 404,
+    Error = 500
+}
+
+main :: fn() {
+    currentType :: TknType.Id
+    
+    // Match on enum values
+    match currentType {
+        case TknType.Id: {
+            print("Token is an identifier\n")
+        }
+        case TknType.Number: {
+            print("Token is a number\n")
+        }
+        case TknType.Float: {
+            print("Token is a float\n")
+        }
+        case TknType.String: {
+            print("Token is a string\n")
+        }
+        case TknType.Char: {
+            print("Token is a char\n")
+        }
+        case TknType.Invalid: {
+            print("Token is invalid\n")
+        }
+    }
+    
+    // Using enums with explicit values
+    status := StatusCode.Ok
+    printf("HTTP Status: {}\n", cast(i32, status))
+    
+    // Color enum
+    color := Color.Red
+    match color {
+        case Color.Red: {
+            print("Color is red\n")
+        }
+        case Color.Green: {
+            print("Color is green\n")
+        }
+        case Color.Blue: {
+            print("Color is blue\n")
+        }
+    }
+}

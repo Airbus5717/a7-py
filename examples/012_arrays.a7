@@ -1,0 +1,36 @@
+// Arrays and slices demonstration
+
+main :: fn() {
+    // Fixed-size arrays
+    arr: [5]i32 = [1, 2, 3, 4, 5]
+    matrix: [2][3]i32 = [[1, 2, 3], [4, 5, 6]]
+    
+    // Array access
+    printf("arr[0] = {}\n", arr[0])
+    printf("matrix[1][2] = {}\n", matrix[1][2])
+    
+    // Array properties (compile-time constants)
+    printf("Array length: {}\n", arr.len)
+    
+    // Modify array elements
+    arr[2] = 99
+    printf("Modified arr[2] = {}\n", arr[2])
+    
+    // Slices (views into arrays)
+    slice: []i32 = arr[1..4]  // Elements 1, 2, 3
+    printf("Slice length: {}\n", slice.len)
+    
+    // Iterate over array
+    for i, value in arr {
+        printf("arr[{}] = {}\n", i, value)
+    }
+    
+    // Slice operations
+    full_slice := arr[..]     // Full array as slice
+    prefix := arr[..3]        // First 3 elements
+    suffix := arr[2..]        // From index 2 to end
+    
+    printf("Full slice length: {}\n", full_slice.len)
+    printf("Prefix length: {}\n", prefix.len)
+    printf("Suffix length: {}\n", suffix.len)
+}

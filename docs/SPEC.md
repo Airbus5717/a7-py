@@ -1,0 +1,2192 @@
+# A7 Programming Language Specification 
+
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [Lexical Structure](#lexical-structure)
+3. [Type System](#type-system)
+4. [Declarations and Expressions](#declarations-and-expressions)
+5. [Control Flow](#control-flow)
+6. [Functions](#functions)
+7. [Generics](#generics)
+8. [Memory Management](#memory-management)
+9. [Modules and Visibility](#modules-and-visibility)
+10. [Built-in Functions and Operators](#built-in-functions-and-operators)
+11. [Tokens and AST Components](#tokens-and-ast-components)
+12. [Grammar Summary](#grammar-summary)
+
+---
+
+## 1. Introduction
+
+### 1.1 Language Overview
+
+A7 is a statically-typed, procedural programming language that compiles to C (could be changed later).
+It features:
+- **Static typing** with type inference
+- **Compile-time generics** via monomorphization
+- **Manual memory management** with safety features
+- **File-based module system** with controlled visibility
+- **Zero-cost abstractions**
+- **Platform-aware integer types** (isize/usize)
+
+### 1.2 Design Philosophy
+
+1. **Simplicity over features**: Every feature must justify its complexity
+2. **Explicit over implicit**: No hidden allocations or conversions
+3. **Performance**: Zero-cost abstractions, predictable performance
+4. **Safety**: Prevent common errors at compile time
+5. **Interoperability**: Clean C ABI compatibility
+
+---
+
+## 2. Lexical Structure
+
+### 2.1 Source Encoding
+
+A7 source files must be ASCII encoded. The standard file extension is `.a7`.
+
+### 2.2 Comments
+
+```a7
+// Single-line comment extends to end of line
+
+/* 
+   Multi-line comment
+   /* Can be nested */
+*/
+```
+
+### 2.3 Identifiers
+
+```ebnf
+identifier = letter (letter | digit | "_")*
+letter     = "a"..."z" | "A"..."Z"
+digit      = "0"..."9"
+```
+
+Identifiers are case-sensitive. Leading underscores are reserved for compiler-generated names.
+
+### 2.4 Keywords
+
+```
+and        as         bool       break      case       cast       char
+const      continue   defer      del        else       enum       f32
+f64        fall       false      fn         for        i8         i16
+i32        i64        if         import     in         isize      match
+new        nil        or         pub        struct     ref        ret
+self       size_of    string     true       type       u8         u16
+u32        u64        union      using      usize      var        where
+while
+```
+
+### 2.5 Operators and Punctuation
+
+```
+// Arithmetic
++    -    *    /    %    
+
+// Comparison
+==   !=   <    >    <=   >=
+
+// Logical
+and  or   !    
+
+// Bitwise
+&    |    ^    ~    <<   >>
+
+// Assignment
+=    +=   -=   *=   /=   %=   &=   |=   ^=   <<=  >>=
+
+// Memory
+*    &    .    
+
+// Other
+::   :    ;    ,    ()   []   {}   ..   ...   @
+```
+
+### 2.6 Literals
+
+#### Integer Literals
+```a7
+42        // Decimal
+0x2A      // Hexadecimal
+0o52      // Octal
+0b101010  // Binary
+1_000_000 // With separators
+```
+
+#### Floating-Point Literals
+```a7
+3.14159
+2.71e10
+.5
+1.
+```
+
+#### Character Literals
+```a7
+'a'
+'\n'      // Newline
+'\t'      // Tab
+'\\'      // Backslash
+'\''      // Single quote
+'\x41'    // Hex escape (A) - ASCII only
+```
+
+#### String Literals
+```a7
+"Hello, World!" // single line string
+"Line 1\nLine 2"
+"Quote: \"Hello\"" 
+```Multi-line string```
+```
+
+#### Boolean Literals
+```a7
+true
+false
+```
+
+#### Nil Literal
+```a7
+nil
+```
+
+---
+
+## 3. Type System
+
+### 3.1 Type Categories
+
+A7's type system consists of:
+1. **Value types**: Copied by value
+2. **Reference types**: Point to memory locations
+3. **Generic types**: Parameterized types
+
+### 3.2 Primitive Types
+
+| Type     | Size (bytes) | Range/Description |
+|----------|--------------|-------------------|
+| `bool`   | 1           | `true` or `false` |
+| `i8`     | 1           | -128 to 127 |
+| `i16`    | 2           | -32,768 to 32,767 |
+| `i32`    | 4           | -2^31 to 2^31-1 |
+| `i64`    | 8           | -2^63 to 2^63-1 |
+| `isize`  | platform    | Signed pointer-sized integer |
+| `u8`     | 1           | 0 to 255 |
+| `u16`    | 2           | 0 to 65,535 |
+| `u32`    | 4           | 0 to 2^32-1 |
+| `u64`    | 8           | 0 to 2^64-1 |
+| `usize`  | platform    | Unsigned pointer-sized integer |
+| `f32`    | 4           | IEEE 754 single |
+| `f64`    | 8           | IEEE 754 double |
+| `char`   | 1           | ASCII character (0-127) |
+
+**Note**: `isize` and `usize` are platform-dependent types:
+- On 32-bit platforms: 4 bytes (same as i32/u32)
+- On 64-bit platforms: 8 bytes (same as i64/u64)
+
+These types are primarily used for memory sizes, array indices, and pointer arithmetic.
+
+### 3.3 Composite Types
+
+#### Arrays
+```a7
+// Fixed-size array
+arr: [10]i32
+matrix: [3][3]f64
+
+// Array type properties
+T.len       // Number of elements (compile-time constant)
+T.element   // Element type
+```
+
+#### Slices
+```a7
+// Dynamic view into array
+slice: []i32
+
+// Slice properties
+slice.ptr      // Pointer to first element
+slice.len      // Number of elements (usize)
+```
+
+#### Strings
+```a7
+// ASCII encoded string
+name: string = "Hello"
+
+// String is equivalent to
+string :: struct {
+    ptr: ref u8
+    len: usize
+}
+```
+
+#### References (Pointers)
+```a7
+// Single indirection
+ptr: ref i32
+
+// Multiple indirection
+ptr_ptr: ref ref i32
+
+// Function pointer
+fn_ptr: ref fn(i32, i32) i32
+
+// All pointers can be modified through dereferencing
+x := 42
+ptr := &x
+ptr.* = 100  // Modifies the value x points to (using . syntax)
+```
+
+#### Structs
+```a7
+Person :: struct {
+    name: string
+    age: u32
+    height: f32
+}
+
+// Nested structs
+Employee :: struct {
+    person: Person
+    id: u64
+    salary: f64
+}
+```
+
+#### Unions
+```a7
+Number :: union {
+    i: i32
+    f: f32
+    u: u32
+}
+
+// Tagged union (discriminated)
+Result :: union(tag) {
+    ok: i32
+    err: string
+}
+
+x := Result(ok: 1)
+x.tag == Result.ok
+```
+
+#### Enums
+```a7
+// Simple enumeration
+Color :: enum {
+    Red,    // 0
+    Green,  // 1
+    Blue    // 2
+}
+
+// With explicit values
+StatusCode :: enum {
+    Ok = 200,
+    NotFound = 404,
+    Error = 500
+}
+```
+
+### 3.4 Type Aliases
+
+```a7
+// Simple alias
+Handle :: u64
+
+// Generic alias
+Vector :: [3]f32
+Matrix :: [4][4]f32
+```
+
+### 3.5 Pointer Semantics
+
+```a7
+// All pointers allow modification through dereferencing
+x := 42
+ptr := &x
+ptr.* = 100  // OK: modifies the value x points to
+
+// Pointer reassignment
+y := 50
+ptr = &y    // OK: pointer now points to y
+
+// Function parameters are immutable (including pointers)
+modify_value :: fn(p: ref i32) {
+    p.* = 200    // OK: modifying through dereference
+    // p = &other_var  // ERROR: cannot reassign parameter
+}
+
+// To reassign a pointer in a function, use ref ref
+reassign_pointer :: fn(p: ref ref i32, new_target: ref i32) {
+    p.* = new_target  // OK: changes what the original pointer points to
+}
+```
+
+---
+
+## 4. Declarations and Expressions
+
+### 4.1 Variable Declarations
+
+```a7
+// Immutable binding (constant)
+x: i32 = 42
+PI :: 3.14159
+
+// Mutable binding (variable)
+count := 0
+buffer := new [1024]u8
+
+// Type can be explicit or inferred
+age: i32 = 25    // Explicit type
+name := "John"   // Inferred as string
+
+// Multiple declarations
+a, b, c: i32 = 1, 2, 3
+x, y := 10, 20
+```
+
+### 4.2 Declaration Rules
+
+**A7 uses two declaration operators:**
+
+- `::` - Creates immutable bindings (constants)
+- `:=` - Creates mutable bindings (variables)
+
+```a7
+// Constants (immutable) - use ::
+PI :: 3.14159
+MAX_BUFFER :: 1024
+VERSION :: "1.0.0"
+DOUBLE_PI :: PI * 2
+
+// Variables (mutable) - use :=
+count := 0
+name := "John"
+buffer := new [1024]u8
+
+// Explicit typing works with both
+MAX_SIZE: i32 = 1000    // Immutable with explicit type
+counter: i32 := 0       // Mutable with explicit type (note := still used)
+
+// Variables can be reassigned
+counter = counter + 1   // OK
+// PI = 3.0             // ERROR: cannot reassign constant
+
+// Example using logical operators
+valid := count > 0 and count < 100
+should_process := valid or force_mode
+can_exit := !running and cleanup_done
+```
+
+### 4.3 Expression Categories
+
+#### Primary Expressions
+- Identifiers: `x`, `foo`
+- Literals: `42`, `"hello"`, `true`
+- Parenthesized: `(x + y)`
+
+#### Postfix Expressions
+- Array subscript: `arr[i]`
+- Slice: `arr[1..5]`, `arr[..3]`, `arr[2..]`
+- Field access: `point.x`
+- Pointer dereference: `ptr.*`
+- Method call: `vec.length()`
+- Function call: `max(a, b)`
+
+#### Unary Expressions
+- Address-of: `&x`
+- Dereference: `ptr.*`
+- Negation: `-x`
+- Logical NOT: `!flag`
+- Bitwise NOT: `~bits`
+
+**Note**: Logical operators use keywords:
+- `and` for logical AND (not `&&`)
+- `or` for logical OR (not `||`)
+- `!` for logical NOT
+
+#### Binary Expressions
+Precedence (highest to lowest):
+1. `*`, `/`, `%`
+2. `+`, `-`
+3. `<<`, `>>`
+4. `<`, `>`, `<=`, `>=`
+5. `==`, `!=`
+6. `&`
+7. `^`
+8. `|`
+9. `and`
+10. `or`
+
+#### Cast Expressions
+```a7
+// Explicit cast
+x := cast(f64, 42)
+
+// Generic cast
+y := cast(T, value)
+```
+
+---
+
+## 5. Control Flow
+
+### 5.1 Conditional Statements
+
+```a7
+// Simple if
+if condition {
+    // code
+}
+
+// If-else chain
+if x < 0 {
+    print("negative")
+} else if x > 0 {
+    print("positive")
+} else {
+    print("zero")
+}
+
+// Conditional expression
+result := if x > 0 { x } else { -x }
+
+// Complex conditions with and/or
+if age >= 18 and age <= 65 {
+    print("Working age")
+}
+
+if name == "admin" or permissions.admin {
+    allow_access()
+}
+
+// Nested logical operators
+if (x > 0 and x < 100) or (y > 0 and y < 100) {
+    print("In bounds")
+}
+```
+
+### 5.2 Pattern Matching
+
+```a7
+// Match on enum values
+match color {
+    case Color.Red: {
+        print("Red")
+    }
+    case Color.Green: {
+        print("Green")
+        fall  // Explicit fallthrough
+    }
+    case Color.Blue: {
+        print("Green or Blue")
+    }
+}
+
+// Match on literal values
+match x {
+    case 0: print("zero")
+    case 1, 2, 3: print("small")
+    case 4..10: print("medium")
+    else: print("large")
+}
+```
+
+### 5.3 Loops
+
+```a7
+// Infinite loop
+for {
+    if should_stop() { break }
+}
+
+// While loop
+while condition {
+    // code
+}
+
+// C-style for loop
+for i := 0; i < 10; i += 1 {
+    print(i)
+}
+
+// Range loop
+for value in array {
+    print(value)
+}
+
+// Range with index
+for i, value in array {
+    printf("[{}] = {}\n", i, value)
+}
+
+// Range over slice
+for char in string[2..5] {
+    print(char)
+}
+
+// Complex conditions using and/or
+while running and not should_exit() {
+    process_events()
+}
+
+for i := 0; i < 100 and valid; i += 1 {
+    if check_condition(i) or force_exit {
+        break
+    }
+}
+```
+
+### 5.4 Jump Statements
+
+```a7
+// Return from function
+ret value
+
+// Break from loop
+break
+
+// Continue to next iteration
+continue
+
+// Break/continue with label
+outer: for i := 0; i < 10; i += 1 {
+    for j := 0; j < 10; j += 1 {
+        if condition {
+            break outer
+        }
+    }
+}
+```
+
+---
+
+## 6. Functions
+
+### 6.1 Function Declarations
+
+```a7
+// Basic function
+add :: fn(x: i32, y: i32) i32 {
+    ret x + y
+}
+
+// Void function
+print_number :: fn(n: i32) {
+    printf("{}\n", n)
+}
+
+// Return struct for multiple values
+DivModResult :: struct {
+    quotient: i32
+    remainder: i32
+}
+
+divmod :: fn(a: i32, b: i32) DivModResult {
+    ret DivModResult{a / b, a % b}
+}
+
+// Named fields in return struct
+sincos :: fn(angle: f64) struct { sin: f64, cos: f64 } {
+    ret struct { sin: f64, cos: f64 }{
+        sin: math.sin(angle),
+        cos: math.cos(angle)
+    }
+}
+
+// Generic function examples
+swap :: fn($T, a: ref T, b: ref T) {
+    temp := a.*
+    a.* = b.*
+    b.* = temp
+}
+
+// Generic function with type constraint
+add :: fn($T: Numeric, a: T, b: T) T {
+    ret a + b
+}
+
+// Multiple generic parameters
+convert :: fn($T: Numeric, $U: Numeric, value: T) U {
+    ret cast(U, value)
+}
+```
+
+### 6.2 Function Parameter Immutability
+
+**All function parameters in A7 are immutable by design.** This includes both value parameters and pointer parameters - the parameters themselves cannot be reassigned, though data can be modified through pointer dereferencing.
+
+```a7
+// Parameters cannot be reassigned
+bad_function :: fn(x: i32) i32 {
+    x += 1  // ERROR: cannot modify parameter
+    ret x
+}
+
+// Pointers can be dereferenced to modify data
+increment :: fn(x: ref i32) {
+    x.* += 1  // OK: modifying through pointer dereference
+}
+
+// To work with a mutable copy, create a local variable
+good_function :: fn(x: i32) i32 {
+    local_x := x      // Create mutable local copy using :=
+    local_x += 1      // OK: modifying local variable
+    ret local_x
+}
+
+// Usage example
+main :: fn() {
+    value := 10
+    increment(&value)  // Pass pointer to modify original
+    printf("Value: {}\n", value)  // Prints: Value: 11
+}
+```
+
+### 6.3 Function Types
+
+```a7
+// Function pointer type
+BinaryOp :: fn(i32, i32) i32
+
+// Using function pointers
+apply :: fn(op: BinaryOp, x: i32, y: i32) i32 {
+    ret op(x, y)
+}
+
+result := apply(add, 10, 20)
+```
+
+### 6.4 Methods
+
+```a7
+// Methods are functions with receiver
+Vec2 :: struct {
+    x: f32
+    y: f32
+}
+
+// Method declaration - receiver is immutable parameter
+length :: fn(self: ref Vec2) f32 {
+    ret sqrt(self.x * self.x + self.y * self.y)
+}
+
+// Method that modifies the receiver
+normalize :: fn(self: ref Vec2) {
+    len := sqrt(self.x * self.x + self.y * self.y)
+    self.x /= len  // OK: modifying through pointer dereference
+    self.y /= len
+}
+
+// Method call
+v := Vec2{3.0, 4.0}
+len := v.length()     // Syntactic sugar for length(&v)
+v.normalize()         // Modifies v through pointer
+```
+
+### 6.5 Variadic Functions
+
+```a7
+// Variadic parameters must be last
+sum :: fn(values: ..i32) i32 {
+    total := 0
+    for val in values {
+        total += val
+    }
+    ret total
+}
+
+// Type-safe printf
+printf :: fn(format: string, args: ..)
+```
+
+---
+
+## 7. Generics
+
+### 7.1 Simplified Generic System
+
+A7 uses a simple generic system with type parameters prefixed by `# A7 Programming Language Specification v2.0
+
+## Table of Contents
+
+1. [Introduction](#introduction)
+2. [Lexical Structure](#lexical-structure)
+3. [Type System](#type-system)
+4. [Declarations and Expressions](#declarations-and-expressions)
+5. [Control Flow](#control-flow)
+6. [Functions](#functions)
+7. [Generics](#generics)
+8. [Memory Management](#memory-management)
+9. [Modules and Visibility](#modules-and-visibility)
+10. [Built-in Functions and Operators](#built-in-functions-and-operators)
+11. [Tokens and AST Components](#tokens-and-ast-components)
+12. [Grammar Summary](#grammar-summary)
+
+---
+
+## 1. Introduction
+
+### 1.1 Language Overview
+
+A7 is a statically-typed, procedural programming language that compiles to C (could be changed later).
+It features:
+- **Static typing** with type inference
+- **Compile-time generics** via monomorphization
+- **Manual memory management** with safety features
+- **File-based module system** with controlled visibility
+- **Zero-cost abstractions**
+- **Platform-aware integer types** (isize/usize)
+
+### 1.2 Design Philosophy
+
+1. **Simplicity over features**: Every feature must justify its complexity
+2. **Explicit over implicit**: No hidden allocations or conversions
+3. **Performance**: Zero-cost abstractions, predictable performance
+4. **Safety**: Prevent common errors at compile time
+5. **Interoperability**: Clean C ABI compatibility
+
+---
+
+## 2. Lexical Structure
+
+### 2.1 Source Encoding
+
+A7 source files must be ASCII encoded. The standard file extension is `.a7`.
+
+### 2.2 Comments
+
+```a7
+// Single-line comment extends to end of line
+
+/* 
+   Multi-line comment
+   /* Can be nested */
+*/
+```
+
+### 2.3 Identifiers
+
+```ebnf
+identifier = letter (letter | digit | "_")*
+letter     = "a"..."z" | "A"..."Z"
+digit      = "0"..."9"
+```
+
+Identifiers are case-sensitive. Leading underscores are reserved for compiler-generated names.
+
+### 2.4 Keywords
+
+```
+and        as         bool       break      case       cast       char
+const      continue   defer      del        else       enum       f32
+f64        fall       false      fn         for        i8         i16
+i32        i64        if         import     in         isize      match
+new        nil        or         pub        struct     ref        ret
+self       size_of    string     true       type       u8         u16
+u32        u64        union      using      usize      var        where
+while
+```
+
+### 2.5 Operators and Punctuation
+
+```
+// Arithmetic
++    -    *    /    %    
+
+// Comparison
+==   !=   <    >    <=   >=
+
+// Logical
+and  or   !    
+
+// Bitwise
+&    |    ^    ~    <<   >>
+
+// Assignment
+=    +=   -=   *=   /=   %=   &=   |=   ^=   <<=  >>=
+
+// Memory
+*    &    .    
+
+// Other
+::   :    ;    ,    ()   []   {}   ..   ...   @
+```
+
+### 2.6 Literals
+
+#### Integer Literals
+```a7
+42        // Decimal
+0x2A      // Hexadecimal
+0o52      // Octal
+0b101010  // Binary
+1_000_000 // With separators
+```
+
+#### Floating-Point Literals
+```a7
+3.14159
+2.71e10
+.5
+1.
+```
+
+#### Character Literals
+```a7
+'a'
+'\n'      // Newline
+'\t'      // Tab
+'\\'      // Backslash
+'\''      // Single quote
+'\x41'    // Hex escape (A) - ASCII only
+```
+
+#### String Literals
+```a7
+"Hello, World!" // single line string
+"Line 1\nLine 2"
+"Quote: \"Hello\"" 
+```Multi-line string```
+```
+
+#### Boolean Literals
+```a7
+true
+false
+```
+
+#### Nil Literal
+```a7
+nil
+```
+
+---
+
+## 3. Type System
+
+### 3.1 Type Categories
+
+A7's type system consists of:
+1. **Value types**: Copied by value
+2. **Reference types**: Point to memory locations
+3. **Generic types**: Parameterized types
+
+### 3.2 Primitive Types
+
+| Type     | Size (bytes) | Range/Description |
+|----------|--------------|-------------------|
+| `bool`   | 1           | `true` or `false` |
+| `i8`     | 1           | -128 to 127 |
+| `i16`    | 2           | -32,768 to 32,767 |
+| `i32`    | 4           | -2^31 to 2^31-1 |
+| `i64`    | 8           | -2^63 to 2^63-1 |
+| `isize`  | platform    | Signed pointer-sized integer |
+| `u8`     | 1           | 0 to 255 |
+| `u16`    | 2           | 0 to 65,535 |
+| `u32`    | 4           | 0 to 2^32-1 |
+| `u64`    | 8           | 0 to 2^64-1 |
+| `usize`  | platform    | Unsigned pointer-sized integer |
+| `f32`    | 4           | IEEE 754 single |
+| `f64`    | 8           | IEEE 754 double |
+| `char`   | 1           | ASCII character (0-127) |
+
+**Note**: `isize` and `usize` are platform-dependent types:
+- On 32-bit platforms: 4 bytes (same as i32/u32)
+- On 64-bit platforms: 8 bytes (same as i64/u64)
+
+These types are primarily used for memory sizes, array indices, and pointer arithmetic.
+
+### 3.3 Composite Types
+
+#### Arrays
+```a7
+// Fixed-size array
+arr: [10]i32
+matrix: [3][3]f64
+
+// Array type properties
+T.len       // Number of elements (compile-time constant)
+T.element   // Element type
+```
+
+#### Slices
+```a7
+// Dynamic view into array
+slice: []i32
+
+// Slice properties
+slice.ptr      // Pointer to first element
+slice.len      // Number of elements (usize)
+```
+
+#### Strings
+```a7
+// ASCII encoded string
+name: string = "Hello"
+
+// String is equivalent to
+string :: struct {
+    ptr: ref u8
+    len: usize
+}
+```
+
+#### References (Pointers)
+```a7
+// Single indirection
+ptr: ref i32
+
+// Multiple indirection
+ptr_ptr: ref ref i32
+
+// Function pointer
+fn_ptr: ref fn(i32, i32) i32
+
+// All pointers can be modified through dereferencing
+x := 42
+ptr := &x
+ptr.* = 100  // Modifies the value x points to (using . syntax)
+```
+
+#### Structs
+```a7
+Person :: struct {
+    name: string
+    age: u32
+    height: f32
+}
+
+// Nested structs
+Employee :: struct {
+    person: Person
+    id: u64
+    salary: f64
+}
+```
+
+#### Unions
+```a7
+Number :: union {
+    i: i32
+    f: f32
+    u: u32
+}
+
+// Tagged union (discriminated)
+Result :: union(tag) {
+    ok: i32
+    err: string
+}
+
+x := Result(ok: 1)
+x.tag == Result.ok
+```
+
+#### Enums
+```a7
+// Simple enumeration
+Color :: enum {
+    Red,    // 0
+    Green,  // 1
+    Blue    // 2
+}
+
+// With explicit values
+StatusCode :: enum {
+    Ok = 200,
+    NotFound = 404,
+    Error = 500
+}
+```
+
+### 3.4 Type Aliases
+
+```a7
+// Simple alias
+Handle :: u64
+
+// Generic alias
+Vector :: [3]f32
+Matrix :: [4][4]f32
+```
+
+### 3.5 Pointer Semantics
+
+```a7
+// All pointers allow modification through dereferencing
+x := 42
+ptr := &x
+ptr.* = 100  // OK: modifies the value x points to
+
+// Pointer reassignment
+y := 50
+ptr = &y    // OK: pointer now points to y
+
+// Function parameters are immutable (including pointers)
+modify_value :: fn(p: ref i32) {
+    p.* = 200    // OK: modifying through dereference
+    // p = &other_var  // ERROR: cannot reassign parameter
+}
+
+// To reassign a pointer in a function, use ref ref
+reassign_pointer :: fn(p: ref ref i32, new_target: ref i32) {
+    p.* = new_target  // OK: changes what the original pointer points to
+}
+```
+
+---
+
+## 4. Declarations and Expressions
+
+### 4.1 Variable Declarations
+
+```a7
+// Immutable binding (constant)
+x: i32 = 42
+PI :: 3.14159
+
+// Mutable binding (variable)
+count := 0
+buffer := new [1024]u8
+
+// Type can be explicit or inferred
+age: i32 = 25    // Explicit type
+name := "John"   // Inferred as string
+
+// Multiple declarations
+a, b, c: i32 = 1, 2, 3
+x, y := 10, 20
+```
+
+### 4.2 Declaration Rules
+
+**A7 uses two declaration operators:**
+
+- `::` - Creates immutable bindings (constants)
+- `:=` - Creates mutable bindings (variables)
+
+```a7
+// Constants (immutable) - use ::
+PI :: 3.14159
+MAX_BUFFER :: 1024
+VERSION :: "1.0.0"
+DOUBLE_PI :: PI * 2
+
+// Variables (mutable) - use :=
+count := 0
+name := "John"
+buffer := new [1024]u8
+
+// Explicit typing works with both
+MAX_SIZE: i32 = 1000    // Immutable with explicit type
+counter: i32 := 0       // Mutable with explicit type (note := still used)
+
+// Variables can be reassigned
+counter = counter + 1   // OK
+// PI = 3.0             // ERROR: cannot reassign constant
+```
+
+### 4.3 Expression Categories
+
+#### Primary Expressions
+- Identifiers: `x`, `foo`
+- Literals: `42`, `"hello"`, `true`
+- Parenthesized: `(x + y)`
+
+#### Postfix Expressions
+- Array subscript: `arr[i]`
+- Slice: `arr[1..5]`, `arr[..3]`, `arr[2..]`
+- Field access: `point.x`
+- Pointer dereference: `ptr.*`
+- Method call: `vec.length()`
+- Function call: `max(a, b)`
+
+#### Unary Expressions
+- Address-of: `&x`
+- Dereference: `ptr.*`
+- Negation: `-x`
+- Logical NOT: `!flag`
+- Bitwise NOT: `~bits`
+
+#### Binary Expressions
+Precedence (highest to lowest):
+1. `*`, `/`, `%`
+2. `+`, `-`
+3. `<<`, `>>`
+4. `<`, `>`, `<=`, `>=`
+5. `==`, `!=`
+6. `&`
+7. `^`
+8. `|`
+9. `and`
+10. `or`
+
+#### Cast Expressions
+```a7
+// Explicit cast
+x := cast(f64, 42)
+
+// Generic cast
+y := cast(T, value)
+```
+
+---
+
+## 5. Control Flow
+
+### 5.1 Conditional Statements
+
+```a7
+// Simple if
+if condition {
+    // code
+}
+
+// If-else chain
+if x < 0 {
+    print("negative")
+} else if x > 0 {
+    print("positive")
+} else {
+    print("zero")
+}
+
+// Conditional expression
+result := if x > 0 { x } else { -x }
+```
+
+### 5.2 Pattern Matching
+
+```a7
+// Match on enum values
+match color {
+    case Color.Red: {
+        print("Red")
+    }
+    case Color.Green: {
+        print("Green")
+        fall  // Explicit fallthrough
+    }
+    case Color.Blue: {
+        print("Green or Blue")
+    }
+}
+
+// Match on literal values
+match x {
+    case 0: print("zero")
+    case 1, 2, 3: print("small")
+    case 4..10: print("medium")
+    else: print("large")
+}
+```
+
+### 5.3 Loops
+
+```a7
+// Infinite loop
+for {
+    if should_stop() { break }
+}
+
+// While loop
+while condition {
+    // code
+}
+
+// C-style for loop
+for i := 0; i < 10; i += 1 {
+    print(i)
+}
+
+// Range loop
+for value in array {
+    print(value)
+}
+
+// Range with index
+for i, value in array {
+    printf("[{}] = {}\n", i, value)
+}
+
+// Range over slice
+for char in string[2..5] {
+    print(char)
+}
+```
+
+### 5.4 Jump Statements
+
+```a7
+// Return from function
+ret value
+
+// Break from loop
+break
+
+// Continue to next iteration
+continue
+
+// Break/continue with label
+outer: for i := 0; i < 10; i += 1 {
+    for j := 0; j < 10; j += 1 {
+        if condition {
+            break outer
+        }
+    }
+}
+```
+
+---
+
+## 6. Functions
+
+### 6.1 Function Declarations
+
+```a7
+// Basic function
+add :: fn(x: i32, y: i32) i32 {
+    ret x + y
+}
+
+// Void function
+print_number :: fn(n: i32) {
+    printf("{}\n", n)
+}
+
+// Return struct for multiple values
+DivModResult :: struct {
+    quotient: i32
+    remainder: i32
+}
+
+divmod :: fn(a: i32, b: i32) DivModResult {
+    ret DivModResult{a / b, a % b}
+}
+
+// Named fields in return struct
+sincos :: fn(angle: f64) struct { sin: f64, cos: f64 } {
+    ret struct { sin: f64, cos: f64 }{
+        sin: math.sin(angle),
+        cos: math.cos(angle)
+    }
+}
+```
+
+### 6.2 Function Parameter Immutability
+
+**All function parameters in A7 are immutable by design.** This includes both value parameters and pointer parameters - the parameters themselves cannot be reassigned, though data can be modified through pointer dereferencing.
+
+```a7
+// Parameters cannot be reassigned
+bad_function :: fn(x: i32) i32 {
+    x += 1  // ERROR: cannot modify parameter
+    ret x
+}
+
+// Pointers can be dereferenced to modify data
+increment :: fn(x: ref i32) {
+    x.* += 1  // OK: modifying through pointer dereference
+}
+
+// To work with a mutable copy, create a local variable
+good_function :: fn(x: i32) i32 {
+    local_x := x      // Create mutable local copy using :=
+    local_x += 1      // OK: modifying local variable
+    ret local_x
+}
+
+// Usage example
+main :: fn() {
+    value := 10
+    increment(&value)  // Pass pointer to modify original
+    printf("Value: {}\n", value)  // Prints: Value: 11
+}
+```
+
+### 6.3 Function Types
+
+```a7
+// Function pointer type
+BinaryOp :: fn(i32, i32) i32
+
+// Using function pointers
+apply :: fn(op: BinaryOp, x: i32, y: i32) i32 {
+    ret op(x, y)
+}
+
+result := apply(add, 10, 20)
+```
+
+### 6.4 Methods
+
+```a7
+// Methods are functions with receiver
+Vec2 :: struct {
+    x: f32
+    y: f32
+}
+
+// Method declaration - receiver is immutable parameter
+length :: fn(self: ref Vec2) f32 {
+    ret sqrt(self.x * self.x + self.y * self.y)
+}
+
+// Method that modifies the receiver
+normalize :: fn(self: ref Vec2) {
+    len := sqrt(self.x * self.x + self.y * self.y)
+    self.x /= len  // OK: modifying through pointer dereference
+    self.y /= len
+}
+
+// Method call
+v := Vec2{3.0, 4.0}
+len := v.length()     // Syntactic sugar for length(&v)
+v.normalize()         // Modifies v through pointer
+```
+
+### 6.5 Variadic Functions
+
+```a7
+// Variadic parameters must be last
+sum :: fn(values: ..i32) i32 {
+    total := 0
+    for val in values {
+        total += val
+    }
+    ret total
+}
+
+// Type-safe printf
+printf :: fn(format: string, args: ..)
+```
+
+---
+
+## 7. Generics
+
+ and built-in type sets defined using `@set()`.
+
+```a7
+// Simple type parameter
+swap :: fn($T, a: ref T, b: ref T) {
+    temp := a.*
+    a.* = b.*
+    b.* = temp
+}
+
+// Multiple type parameters
+map :: fn($T, $U, arr: []T, f: fn(T) U) []U {
+    result := new [arr.len]U
+    for i, val in arr {
+        result[i] = f(val)
+    }
+    ret result[..]
+}
+```
+
+### 7.2 Generic Types
+
+```a7
+// Generic struct
+Pair :: struct($T, $U) {
+    first: T
+    second: U
+}
+
+// Usage
+p := Pair(i32, string){42, "answer"}
+```
+
+### 7.3 Type Sets with @set()
+
+Type constraints are defined using the `@set()` builtin function, which is handled specially by the compiler:
+
+```a7
+// Built-in type sets defined in standard library using @set()
+Numeric :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
+Integer :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
+Float :: @set(f32, f64)
+Signed :: @set(i8, i16, i32, i64, isize, f32, f64)
+Unsigned :: @set(u8, u16, u32, u64, usize)
+
+// Custom type sets
+SmallInts :: @set(i8, u8, i16, u16)
+BigInts :: @set(i64, u64)
+
+// Using type sets in generics - simplified syntax
+abs :: fn($T: Numeric, x: T) T {
+    ret if x < 0 { -x } else { x }
+}
+
+min :: fn($T: Numeric, a: T, b: T) T {
+    ret if a < b { a } else { b }
+}
+
+max :: fn($T: Numeric, a: T, b: T) T {
+    ret if a > b { a } else { b }
+}
+
+// Multiple constraints using intersection
+clamp :: fn($T: Numeric, x: T, low: T, high: T) T {
+    ret min($T, max($T, x, low), high)
+}
+```
+
+### 7.4 Generic Specialization
+
+```a7
+// General implementation
+print :: fn($T, value: T) {
+    printf("{}", value)
+}
+
+// Specialized for strings
+print :: fn(value: string) {
+    printf("\"{s}\"", value)
+}
+```
+
+---
+
+## 8. Memory Management
+
+### 8.1 Stack Allocation
+
+All local variables are stack-allocated by default:
+```a7
+fn example() {
+    x := 42            // Stack
+    arr: [100]f32      // Stack  
+    person: Person     // Stack
+}  // All automatically freed
+```
+
+### 8.2 Heap Allocation
+
+```a7
+// Allocate single value
+ptr := new i32
+ptr.* = 42
+del ptr
+
+// Allocate array
+buffer := new [1024]u8
+del buffer
+
+// Allocate with initialization
+point := new Point{x: 10, y: 20}
+del point
+
+// Check allocation
+large := new [1000000]f64
+if large == nil {
+    // Handle allocation failure
+}
+```
+
+### 8.3 Defer Statement
+
+```a7
+// Defer executes at scope exit
+{
+    file := open("data.txt")
+    defer close(file)
+    
+    buffer := new [1024]u8
+    defer del buffer
+    
+    // Use file and buffer
+    // Both cleaned up automatically
+}
+
+// Defer order is LIFO
+{
+    defer print("3")
+    defer print("2")
+    defer print("1")
+    // Prints: 1 2 3
+}
+```
+
+### 8.4 Memory Safety Rules
+
+1. **No dangling pointers**: Compiler tracks lifetimes
+2. **No double-free**: `del` sets pointer to nil
+3. **No use-after-free**: Nil check required after del
+4. **Bounds checking**: Array access checked in debug mode
+
+---
+
+## 9. Modules and Visibility
+
+### 9.1 File-Based Module System
+
+Every A7 source file is a module. There is no explicit `module` keyword.
+
+```a7
+// File: vector.a7
+// This file is automatically the "vector" module
+
+// Public export
+pub Vec3 :: struct {
+    pub x: f32
+    pub y: f32
+    pub z: f32
+}
+
+// Public function
+pub dot :: fn(a: Vec3, b: Vec3) f32 {
+    ret a.x * b.x + a.y * b.y + a.z * b.z
+}
+
+// Private helper (not exported)
+normalize :: fn(v: ref Vec3) {
+    len := length(v)
+    v.x /= len
+    v.y /= len
+    v.z /= len
+}
+```
+
+### 9.2 Import Statements
+
+```a7
+// Import by filename (without .a7 extension)
+math :: import "math"
+io :: import "io"
+
+// Import user library
+mylib :: import "mylib"
+
+// Import with alias
+vec :: import "vector"
+
+// Import specific items
+import "vector" { Vec3, dot }
+
+// Import all public items
+using import "vector"
+
+// Relative imports
+sibling :: import "./sibling"
+parent :: import "../utils"
+subfolder :: import "subfolder/helper"
+```
+
+### 9.3 Standard Library Files
+
+The standard library consists of individual `.a7` files in a predefined path:
+- `math.a7` - Mathematical functions
+- `io.a7` - Input/output operations
+- `string.a7` - String manipulation
+- `memory.a7` - Memory utilities
+- `collections.a7` - Data structures
+
+### 9.4 Visibility Rules
+
+- `pub` items are exported from the file/module
+- Non-pub items are file-private
+- No protected/internal visibility
+- Struct fields can be individually public
+
+---
+
+## 10. Built-in Functions and Operators
+
+### 10.1 Builtin Functions
+
+These functions are handled specially by the compiler and use the `@` prefix:
+
+```a7
+// Type sets
+@set :: fn(types: ..type) TypeSet          // Create type set
+
+// Memory intrinsics
+@size_of :: fn($T: type) usize             // Size in bytes
+@align_of :: fn($T: type) usize            // Alignment requirement
+@type_id :: fn($T: type) usize             // Unique type identifier
+@type_name :: fn($T: type) string          // Type name as string
+
+// Compiler intrinsics
+@unreachable :: fn()                       // Mark unreachable code
+@likely :: fn(cond: bool) bool             // Branch prediction hint
+@unlikely :: fn(cond: bool) bool           // Branch prediction hint
+```
+
+### 10.2 Standard Library Functions
+
+Non-polymorphic functions with fixed signatures (part of standard library, not builtins):
+
+```a7
+// Math functions (specific signatures, no generics)
+abs_i32 :: fn(x: i32) i32
+abs_i64 :: fn(x: i64) i64
+abs_f32 :: fn(x: f32) f32
+abs_f64 :: fn(x: f64) f64
+
+min_i32 :: fn(a: i32, b: i32) i32
+min_i64 :: fn(a: i64, b: i64) i64
+min_f32 :: fn(a: f32, b: f32) f32
+min_f64 :: fn(a: f64, b: f64) f64
+
+max_i32 :: fn(a: i32, b: i32) i32
+max_i64 :: fn(a: i64, b: i64) i64
+max_f32 :: fn(a: f32, b: f32) f32
+max_f64 :: fn(a: f64, b: f64) f64
+
+// Float math functions
+sqrt_f32 :: fn(x: f32) f32
+sqrt_f64 :: fn(x: f64) f64
+pow_f32 :: fn(x: f32, y: f32) f32
+pow_f64 :: fn(x: f64, y: f64) f64
+sin_f64 :: fn(x: f64) f64
+cos_f64 :: fn(x: f64) f64
+tan_f64 :: fn(x: f64) f64
+
+// I/O functions
+print :: fn(s: string)
+print_i32 :: fn(x: i32)
+print_f64 :: fn(x: f64)
+printf :: fn(fmt: string, args: ..)
+eprint :: fn(s: string)
+eprintln :: fn(s: string)
+
+// Assertions (separate functions, no overloading)
+assert :: fn(cond: bool)
+assert_msg :: fn(cond: bool, msg: string)
+panic :: fn(msg: string)
+
+// String functions
+str_len :: fn(s: string) usize
+str_copy :: fn(dst: []u8, src: string) usize
+str_compare :: fn(a: string, b: string) i32
+str_find :: fn(haystack: string, needle: string) isize
+str_contains :: fn(haystack: string, needle: string) bool
+str_starts_with :: fn(s: string, prefix: string) bool
+str_ends_with :: fn(s: string, suffix: string) bool
+
+// ASCII character functions
+char_is_alpha :: fn(c: char) bool
+char_is_digit :: fn(c: char) bool  
+char_is_upper :: fn(c: char) bool
+char_is_lower :: fn(c: char) bool
+char_to_upper :: fn(c: char) char
+char_to_lower :: fn(c: char) char
+
+// Memory functions
+mem_copy :: fn(dst: []u8, src: []u8) usize
+mem_move :: fn(dst: []u8, src: []u8) usize
+mem_set :: fn(dst: []u8, val: u8) usize
+mem_zero :: fn(dst: []u8) usize
+mem_compare :: fn(a: []u8, b: []u8) i32
+mem_alloc :: fn(size: usize) ref u8
+mem_free :: fn(ptr: ref u8)
+mem_realloc :: fn(ptr: ref u8, old_size: usize, new_size: usize) ref u8
+```
+
+---
+
+## 11. Tokens and AST Components
+
+### 11.1 Token Types
+
+```a7
+// Literals
+TOKEN_INT_LITERAL       // 42, 0x2A, 0b101010
+TOKEN_FLOAT_LITERAL     // 3.14, 2.71e10
+TOKEN_CHAR_LITERAL      // 'a', '\n', '\x41'
+TOKEN_STRING_LITERAL    // "hello", "multi\nline"
+TOKEN_BOOL_LITERAL      // true, false
+TOKEN_NIL_LITERAL       // nil
+
+// Identifiers and Keywords
+TOKEN_IDENTIFIER        // user_defined_names
+TOKEN_AND               // and
+TOKEN_AS                // as
+TOKEN_BOOL              // bool
+TOKEN_BREAK             // break
+TOKEN_CASE              // case
+TOKEN_CAST              // cast
+TOKEN_CHAR              // char
+TOKEN_CONST             // const
+TOKEN_CONTINUE          // continue
+TOKEN_DEFER             // defer
+TOKEN_DEL               // del
+TOKEN_ELSE              // else
+TOKEN_ENUM              // enum
+TOKEN_F32               // f32
+TOKEN_F64               // f64
+TOKEN_FALL              // fall
+TOKEN_FALSE             // false
+TOKEN_FN                // fn
+TOKEN_FOR               // for
+TOKEN_I8                // i8
+TOKEN_I16               // i16
+TOKEN_I32               // i32
+TOKEN_I64               // i64
+TOKEN_IF                // if
+TOKEN_IMPORT            // import
+TOKEN_IN                // in
+TOKEN_ISIZE             // isize
+TOKEN_MATCH             // match
+TOKEN_NEW               // new
+TOKEN_NIL               // nil
+TOKEN_OR                // or
+TOKEN_PUB               // pub
+TOKEN_REF               // ref
+TOKEN_RET               // ret
+TOKEN_SELF              // self
+TOKEN_SIZE_OF           // size_of
+TOKEN_STRING            // string
+TOKEN_STRUCT            // struct
+TOKEN_TRUE              // true
+TOKEN_TYPE              // type
+TOKEN_U8                // u8
+TOKEN_U16               // u16
+TOKEN_U32               // u32
+TOKEN_U64               // u64
+TOKEN_UNION             // union
+TOKEN_USING             // using
+TOKEN_USIZE             // usize
+TOKEN_VAR               // var
+TOKEN_WHERE             // where
+TOKEN_WHILE             // while
+
+// Operators
+TOKEN_PLUS              // +
+TOKEN_MINUS             // -
+TOKEN_STAR              // *
+TOKEN_SLASH             // /
+TOKEN_PERCENT           // %
+TOKEN_EQUAL_EQUAL       // ==
+TOKEN_NOT_EQUAL         // !=
+TOKEN_LESS              // <
+TOKEN_GREATER           // >
+TOKEN_LESS_EQUAL        // <=
+TOKEN_GREATER_EQUAL     // >=
+TOKEN_AND_AND           // and
+TOKEN_OR_OR             // or
+TOKEN_BANG              // !
+TOKEN_AMPERSAND         // &
+TOKEN_PIPE              // |
+TOKEN_CARET             // ^
+TOKEN_TILDE             // ~
+TOKEN_LEFT_SHIFT        // <<
+TOKEN_RIGHT_SHIFT       // >>
+TOKEN_EQUAL             // =
+TOKEN_PLUS_EQUAL        // +=
+TOKEN_MINUS_EQUAL       // -=
+TOKEN_STAR_EQUAL        // *=
+TOKEN_SLASH_EQUAL       // /=
+TOKEN_PERCENT_EQUAL     // %=
+TOKEN_AND_EQUAL         // &=
+TOKEN_OR_EQUAL          // |=
+TOKEN_CARET_EQUAL       // ^=
+TOKEN_LEFT_SHIFT_EQUAL  // <<=
+TOKEN_RIGHT_SHIFT_EQUAL // >>=
+
+// Punctuation
+TOKEN_COLON_COLON       // ::
+TOKEN_COLON             // :
+TOKEN_SEMICOLON         // ;
+TOKEN_COMMA             // ,
+TOKEN_LEFT_PAREN        // (
+TOKEN_RIGHT_PAREN       // )
+TOKEN_LEFT_BRACKET      // [
+TOKEN_RIGHT_BRACKET     // ]
+TOKEN_LEFT_BRACE        // {
+TOKEN_RIGHT_BRACE       // }
+TOKEN_DOT               // .
+TOKEN_DOT_DOT           // ..
+TOKEN_DOT_DOT_DOT       // ...
+TOKEN_AT                // @
+TOKEN_QUESTION          // ?
+
+// Special
+TOKEN_EOF               // End of file
+TOKEN_NEWLINE           // \n (for layout-sensitive parsing)
+TOKEN_COMMENT           // Comments (usually discarded)
+TOKEN_ERROR             // Lexer error token
+```
+
+### 11.2 AST Node Types
+
+```a7
+// Top-level nodes
+AST_PROGRAM             // Root of the entire program
+AST_IMPORT_DECL         // Import declarations
+AST_FUNCTION_DECL       // Function declarations
+AST_STRUCT_DECL         // Struct type declarations
+AST_UNION_DECL          // Union type declarations
+AST_ENUM_DECL           // Enum type declarations
+AST_TYPE_ALIAS          // Type alias declarations
+AST_CONST_DECL          // Constant declarations
+AST_VAR_DECL            // Variable declarations
+
+// Type nodes
+AST_TYPE_PRIMITIVE      // Built-in types (i32, f64, etc.)
+AST_TYPE_IDENTIFIER     // User-defined type names
+AST_TYPE_POINTER        // ref T
+AST_TYPE_ARRAY          // [N]T
+AST_TYPE_SLICE          // []T
+AST_TYPE_FUNCTION       // fn(T, U) V
+AST_TYPE_GENERIC        // T with generic parameters
+AST_TYPE_STRUCT         // Anonymous struct types
+AST_TYPE_UNION          // Anonymous union types
+
+// Expression nodes
+AST_EXPR_LITERAL        // Literal values
+AST_EXPR_IDENTIFIER     // Variable/function names
+AST_EXPR_BINARY         // Binary operations (a + b)
+AST_EXPR_UNARY          // Unary operations (-a, !b, &c)
+AST_EXPR_CALL           // Function calls
+AST_EXPR_INDEX          // Array/slice indexing
+AST_EXPR_SLICE          // Slice expressions [start..end]
+AST_EXPR_FIELD          // Struct field access (a.field)
+AST_EXPR_DEREF          // Pointer dereference (ptr.*)
+AST_EXPR_CAST           // Type casting
+AST_EXPR_IF             // Conditional expressions
+AST_EXPR_MATCH          // Match expressions
+AST_EXPR_STRUCT_INIT    // Struct initialization
+AST_EXPR_ARRAY_INIT     // Array initialization
+
+// Statement nodes
+AST_STMT_EXPRESSION     // Expression statements
+AST_STMT_BLOCK          // Block statements { ... }
+AST_STMT_IF             // If statements
+AST_STMT_WHILE          // While loops
+AST_STMT_FOR            // For loops
+AST_STMT_MATCH          // Match statements
+AST_STMT_BREAK          // Break statements
+AST_STMT_CONTINUE       // Continue statements
+AST_STMT_RETURN         // Return statements
+AST_STMT_DEFER          // Defer statements
+AST_STMT_ASSIGNMENT     // Assignment statements
+
+// Pattern nodes (for match statements)
+AST_PATTERN_LITERAL     // Literal patterns (42, "hello")
+AST_PATTERN_IDENTIFIER  // Variable binding patterns
+AST_PATTERN_ENUM        // Enum variant patterns
+AST_PATTERN_RANGE       // Range patterns (1..10)
+AST_PATTERN_WILDCARD    // Wildcard pattern (_)
+
+// Generic nodes
+AST_GENERIC_PARAM       // Generic type parameters ($T, $T: Numeric)
+AST_GENERIC_CONSTRAINT  // Type set constraints (T: Numeric)
+AST_GENERIC_INSTANCE    // Generic instantiation
+AST_TYPE_SET            // Type set definitions (@set(...))
+
+// Utility nodes
+AST_PARAMETER           // Function parameters
+AST_FIELD               // Struct/union fields
+AST_ENUM_VARIANT        // Enum variants
+AST_CASE_BRANCH         // Match case branches
+AST_IDENTIFIER_LIST     // List of identifiers
+AST_EXPRESSION_LIST     // List of expressions
+AST_TYPE_LIST           // List of types
+```
+
+### 11.3 AST Node Structure
+
+Each AST node contains:
+
+```a7
+ASTNode :: struct {
+    kind: ASTNodeKind          // Type of the node
+    location: SourceLocation   // Position in source file
+    data: union {              // Node-specific data
+        literal: LiteralData
+        binary: BinaryExprData
+        function: FunctionData
+        // ... other node types
+    }
+    children: []ref ASTNode    // Child nodes
+}
+
+SourceLocation :: struct {
+    file: string
+    line: i32
+    column: i32
+    offset: i32
+}
+
+LiteralData :: struct {
+    type: LiteralType
+    value: union {
+        int_val: i64
+        float_val: f64
+        char_val: char
+        string_val: string
+        bool_val: bool
+    }
+}
+
+BinaryExprData :: struct {
+    operator: TokenType
+    left: ref ASTNode
+    right: ref ASTNode
+}
+
+FunctionData :: struct {
+    name: string
+    params: []ref ASTNode
+    return_type: ref ASTNode
+    body: ref ASTNode
+    is_generic: bool
+    generic_params: []ref ASTNode  // List of AST_GENERIC_PARAM nodes
+}
+
+GenericParamData :: struct {
+    name: string              // Parameter name (T)
+    constraint: ref ASTNode   // Optional type set constraint (Numeric)
+}
+
+TypeSetData :: struct {
+    name: string              // Type set name
+    types: []ref ASTNode      // List of types in the set
+}
+```
+
+### 11.4 Parsing Precedence
+
+Operator precedence (highest to lowest):
+1. Primary expressions (literals, identifiers, parentheses)
+2. Postfix (function calls, array access, field access, deref)
+3. Unary prefix (-, !, ~, &, cast)
+4. Multiplicative (*, /, %)
+5. Additive (+, -)
+6. Shift (<<, >>)
+7. Relational (<, >, <=, >=)
+8. Equality (==, !=)
+9. Bitwise AND (&)
+10. Bitwise XOR (^)
+11. Bitwise OR (|)
+12. Logical AND (and)
+13. Logical OR (or)
+14. Assignment (=, +=, -=, etc.)
+
+---
+
+## 12. Grammar Summary
+
+### 12.1 Top-Level Grammar
+
+```ebnf
+program = (import_decl | declaration)*
+
+import_decl = 
+    | "import" string_lit
+    | identifier "::" "import" string_lit
+    | "import" string_lit "{" identifier_list "}"
+    | "using" "import" string_lit
+
+declaration = 
+    | function_decl
+    | type_decl
+    | const_decl
+    | var_decl
+
+function_decl = 
+    | identifier "::" "fn" "(" param_list? ")" type? block
+    | identifier "::" "fn" generic_params "(" param_list? ")" type? block
+
+generic_params = 
+    | "(" generic_param_list ")"
+
+generic_param_list = 
+    | generic_param ("," generic_param)*
+
+generic_param = 
+    | "$" identifier
+    | "$" identifier ":" type_set
+```
+
+### 12.2 Type Grammar
+
+```ebnf
+type = 
+    | primitive_type
+    | identifier type_args?
+    | "[" expr? "]" type
+    | "ref" type
+    | "fn" generic_params? "(" type_list? ")" type?
+    | struct_type
+    | union_type
+
+type_args = "(" type ("," type)* ")"
+
+type_set = identifier  // References to type sets like Numeric, Integer
+
+struct_type = "struct" generic_params? "{" field_list? "}"
+union_type = "union" "(" "tag" ")" "{" variant_list "}"
+
+field_list = field ("," field)*
+field = "pub"? identifier ":" type
+
+variant_list = variant ("," variant)*
+variant = identifier ":" type
+```
+
+### 12.3 Expression Grammar
+
+```ebnf
+expr = assignment_expr
+
+assignment_expr = 
+    | logical_or_expr
+    | logical_or_expr assign_op assignment_expr
+
+logical_or_expr = logical_and_expr ("or" logical_and_expr)*
+logical_and_expr = bitwise_or_expr ("and" bitwise_or_expr)*
+bitwise_or_expr = bitwise_xor_expr ("|" bitwise_xor_expr)*
+bitwise_xor_expr = bitwise_and_expr ("^" bitwise_and_expr)*
+bitwise_and_expr = equality_expr ("&" equality_expr)*
+equality_expr = relational_expr (("==" | "!=") relational_expr)*
+relational_expr = shift_expr (("<" | ">" | "<=" | ">=") shift_expr)*
+shift_expr = additive_expr (("<<" | ">>") additive_expr)*
+additive_expr = multiplicative_expr (("+" | "-") multiplicative_expr)*
+multiplicative_expr = unary_expr (("*" | "/" | "%") unary_expr)*
+
+unary_expr = 
+    | postfix_expr
+    | unary_op unary_expr
+    | "cast" "(" type "," expr ")"
+
+postfix_expr = 
+    | primary_expr
+    | postfix_expr "[" expr "]"
+    | postfix_expr "[" expr? ".." expr? "]"
+    | postfix_expr "." identifier
+    | postfix_expr "." "*"
+    | postfix_expr "(" expr_list? ")"
+
+primary_expr = 
+    | identifier
+    | literal
+    | "(" expr ")"
+    | "if" expr block "else" block_or_if
+```
+
+### 12.4 Statement Grammar
+
+```ebnf
+statement = 
+    | expr_stmt
+    | block_stmt
+    | if_stmt
+    | match_stmt
+    | for_stmt
+    | while_stmt
+    | jump_stmt
+    | defer_stmt
+    | var_decl
+
+jump_stmt = 
+    | "ret" expr?
+    | "break" identifier?
+    | "continue" identifier?
+
+defer_stmt = "defer" statement
+```
+
+---
+
+## Appendix A: Language Semantics
+
+### A.1 Evaluation Order
+
+1. Function arguments: left-to-right
+2. Binary operators: left-to-right
+3. Assignment: right-to-left
+4. Field initialization: declaration order
+
+### A.2 Type Conversions
+
+No implicit conversions except:
+- Array to slice (safe widening)
+- `T` to `ref T` in function calls
+- Integer literals to any integer type if in range
+
+### A.3 Name Resolution
+
+1. Current scope
+2. Enclosing scopes (outward)
+3. File scope
+4. Imported names
+5. Built-in names
+
+### A.4 Lifetime Rules
+
+1. Stack values live until scope exit
+2. Heap values live until explicit `del`
+3. References must not outlive referent
+4. Slices must not outlive backing array
+
+---
+
+## Appendix B: Standard Compiler Diagnostics
+
+### B.1 Error Categories
+
+- **E0xxx**: Syntax errors
+- **E1xxx**: Type errors  
+- **E2xxx**: Lifetime errors
+- **E3xxx**: Generic instantiation errors
+- **E4xxx**: Module/import errors
+
+### B.2 Warning Categories
+
+- **W0xxx**: Unused code
+- **W1xxx**: Deprecated features
+- **W2xxx**: Performance issues
+- **W3xxx**: Potential bugs
+
+---
+
+## Appendix C: Implementation Limits
+
+| Feature | Minimum Limit |
+|---------|---------------|
+| Identifier length | 255 characters |
+| String literal length | 65,535 bytes |
+| Function parameters | 255 |
+| Generic parameters | 32 |
+| Nested blocks | 127 |
+| Array dimensions | 8 |
+| Struct fields | 1,023 |
+| Union variants | 255 |
+| Enum values | 65,535 |
+| Import depth | 32 |
+| Defer statements per scope | 255 |
+| Match cases | 1,023 |
+
+---
+
+## Appendix D: ASCII Character Set Support
+
+A7 supports the full ASCII character set (0-127) only. Characters outside this range are not supported in string literals, character literals, or identifiers.
+
+### D.1 Escape Sequences
+
+| Escape | ASCII Value | Description |
+|--------|-------------|-------------|
+| `\n`   | 10          | Line feed (newline) |
+| `\r`   | 13          | Carriage return |
+| `\t`   | 9           | Horizontal tab |
+| `\b`   | 8           | Backspace |
+| `\f`   | 12          | Form feed |
+| `\v`   | 11          | Vertical tab |
+| `\a`   | 7           | Alert (bell) |
+| `\\`   | 92          | Backslash |
+| `\'`   | 39          | Single quote |
+| `\"`   | 34          | Double quote |
+| `\0`   | 0           | Null character |
+| `\xHH` | 0-127       | Hex escape (2 digits, ASCII only) |

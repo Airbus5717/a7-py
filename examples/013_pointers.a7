@@ -1,0 +1,45 @@
+// Pointers and references demonstration
+
+main :: fn() {
+    // Basic pointer usage
+    x := 42
+    ptr: ref i32 = &x
+    
+    printf("x = {}\n", x)
+    printf("*ptr = {}\n", ptr.*)
+    
+    // Modify through pointer
+    ptr.* = 100
+    printf("After modification: x = {}\n", x)
+    
+    // Multiple indirection
+    ptr_ptr: ref ref i32 = &ptr
+    printf("**ptr_ptr = {}\n", ptr_ptr.*.*)
+    
+    // Null pointer
+    null_ptr: ref i32 = nil
+    if null_ptr == nil {
+        print("Pointer is null\n")
+    }
+    
+    // Function that modifies through pointer
+    increment :: fn(p: ref i32) {
+        p.* += 1
+    }
+    
+    value := 10
+    printf("Before increment: {}\n", value)
+    increment(&value)
+    printf("After increment: {}\n", value)
+    
+    // Pointer reassignment
+    y := 50
+    ptr = &y    // Now points to y
+    printf("ptr now points to y: {}\n", ptr.*)
+    
+    // Array pointer
+    arr: [3]i32 = [10, 20, 30]
+    arr_ptr: ref [3]i32 = &arr
+    printf("Array through pointer: {} {} {}\n", 
+           arr_ptr.*[0], arr_ptr.*[1], arr_ptr.*[2])
+}

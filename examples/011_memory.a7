@@ -1,0 +1,37 @@
+main :: fn() {
+    // Allocate single value
+    ptr := new i32
+    ptr.* = 42
+    defer del ptr
+    
+    // Allocate array
+    buffer := new [3]char
+    defer del buffer
+    
+    nums := new [100]i32
+    defer del nums
+    
+    if nums == nil {
+        print("Allocation failed\n")
+        ret
+    }
+    
+    // Initialize some values
+    nums[0] = 10
+    nums[1] = 20
+    nums[2] = 30
+    
+    printf("First three values: {} {} {}\n", nums[0], nums[1], nums[2])
+    printf("Pointer value: {}\n", ptr.*)
+    
+    // Nested scope with defer
+    {
+        temp := new f64
+        defer del temp
+        temp.* = 3.14159
+        printf("Pi approximation: {}\n", temp.*)
+        // temp automatically freed here due to defer
+    }
+    
+    // Defer order is LIFO - nums, buffer, ptr will be freed in that order
+}

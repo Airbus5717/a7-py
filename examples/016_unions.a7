@@ -1,0 +1,70 @@
+// Unions demonstration
+
+// Simple union
+Number :: union {
+    i: i32
+    f: f32
+    u: u32
+}
+
+// Tagged union (discriminated)
+Result :: union(tag) {
+    ok: i32
+    err: string
+}
+
+// Union with different sized members
+Data :: union {
+    byte_val: u8
+    int_val: i32
+    float_val: f64
+    array_val: [4]i32
+}
+
+main :: fn() {
+    // Simple union usage
+    num: Number
+    num.i = 42
+    printf("Union as int: {}\n", num.i)
+    
+    // Same memory interpreted as float (unsafe!)
+    printf("Same memory as float: {}\n", num.f)
+    
+    // Tagged union
+    success := Result(ok: 100)
+    failure := Result(err: "Something went wrong")
+    
+    // Check tag to determine which variant is active
+    if success.tag == Result.ok {
+        printf("Success with value: {}\n", success.ok)
+    }
+    
+    if failure.tag == Result.err {
+        printf("Failure with error: {}\n", failure.err)
+    }
+    
+    // Function that processes tagged union
+    process_result :: fn(r: Result) {
+        match r.tag {
+            case Result.ok: {
+                printf("Processing success: {}\n", r.ok)
+            }
+            case Result.err: {
+                printf("Processing error: {}\n", r.err)
+            }
+        }
+    }
+    
+    process_result(success)
+    process_result(failure)
+    
+    // Large union
+    data: Data
+    data.byte_val = 255
+    printf("Data as byte: {}\n", data.byte_val)
+    
+    data.array_val = [1, 2, 3, 4]
+    printf("Data as array: {} {} {} {}\n", 
+           data.array_val[0], data.array_val[1], 
+           data.array_val[2], data.array_val[3])
+}
