@@ -4,22 +4,71 @@ This is a Python implementation of a compiler for the A7 programming language.
 A7 is a statically-typed, procedural language with C-style syntax, manual 
 memory management, and compile-time generics.
 
-## Building
+## Setup
 
+### Prerequisites
+
+- **Python 3.13+**: Required for running the compiler
+- **uv**: Modern Python package manager (recommended for dependency management)
+
+### Installing uv
+
+If you don't have uv installed, install it using one of these methods:
+
+**Linux/macOS:**
 ```bash
-uv sync
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-## Running
+**Windows:**
+```powershell
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
+**Alternative (pip):**
+```bash
+pip install uv
+```
+
+### Clone and Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd a7-py
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   uv sync
+   ```
+
+This will create a virtual environment and install all required dependencies including pytest and rich.
+
+## Usage
+
+### Running the Compiler
+
+**Using uv (recommended):**
+```bash
+uv run python main.py <file.a7>
+```
+
+**Using the shell script:**
+```bash
+./run.sh <file.a7>
+```
+
+**Direct Python (if dependencies are installed):**
 ```bash
 python main.py <file.a7>
 ```
 
-Or use the shell script:
+### Example
 
+Try compiling one of the example programs:
 ```bash
-./run.sh <file.a7>
+uv run python main.py examples/001_hello.a7
 ```
 
 ## Testing
