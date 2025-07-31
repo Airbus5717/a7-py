@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from typing import Optional, List, Union
 import re
 import string
+from .errors import LexError, LexErrorType
+
+
+# A7 Language limits (matching C implementation)
+MAX_IDENTIFIER_LENGTH = 100
+MAX_NUMBER_LENGTH = 100
+MAX_STRING_LENGTH = 2**31 - 1  # Very large but finite limit
 
 
 class TokenType(Enum):
@@ -156,15 +163,6 @@ class Token:
             self.length = len(self.value)
 
 
-class LexerError(Exception):
-    """Exception raised for lexical analysis errors."""
-    def __init__(self, message: str, line: int, column: int):
-        self.message = message
-        self.line = line
-        self.column = column
-        super().__init__(f"Lexer error at line {line}, column {column}: {message}")
-
-
 class Tokenizer:
     """Tokenizes A7 source code into tokens."""
     
@@ -216,8 +214,10 @@ class Tokenizer:
         'while': TokenType.WHILE,
     }
     
-    def __init__(self, source_code: str):
+    def __init__(self, source_code: str, filename: Optional[str] = None):
         self.source = source_code
+        self.filename = filename
+        self.source_lines = source_code.splitlines()
         self.position = 0
         self.line = 1
         self.column = 1
@@ -253,8 +253,15 @@ class Tokenizer:
         return char
     
     def skip_whitespace(self):
-        """Skip whitespace characters except newlines."""
+        """Skip whitespace characters except newlines. Detect tabs and raise error."""
         while self.current_char() and self.current_char() in ' \t\r':
+            if self.current_char() == '\t':
+                # A7 doesn't support tabs - raise error
+                raise LexError.from_type_and_location(
+                    LexErrorType.TABS_UNSUPPORTED,
+                    self.line, self.column, 1, self.filename, self.source_lines,
+                    "Tabs '\\t' are unsupported"
+                )
             self.advance()
     
     def tokenize(self) -> List[Token]:
@@ -305,7 +312,11 @@ class Tokenizer:
                 continue
             
             # Unknown character
-            raise LexerError(f"Unexpected character: '{self.current_char()}'", self.line, self.column)
+            raise LexError.from_type_and_location(
+                LexErrorType.INVALID_CHARACTER,
+                self.line, self.column, 1, self.filename, self.source_lines,
+                f"Unexpected character: '{self.current_char()}'"
+            )
         
         # Add EOF token
         self._add_token(TokenType.EOF, '')
@@ -369,6 +380,15 @@ class Tokenizer:
             while self.current_char() and self.current_char() in '01':
                 self.advance()
             number_text = self.source[start_pos:self.position]
+            
+            # Check number length limit
+            if len(number_text) > MAX_NUMBER_LENGTH:
+                raise LexError.from_type_and_location(
+                    LexErrorType.TOO_LONG_NUMBER,
+                    self.line, self.column - len(number_text), len(number_text),
+                    self.filename, self.source_lines
+                )
+            
             self._add_token(TokenType.INTEGER_LITERAL, number_text)
             return
         
@@ -379,6 +399,15 @@ class Tokenizer:
             while self.current_char() and self.current_char() in '0123456789abcdefABCDEF':
                 self.advance()
             number_text = self.source[start_pos:self.position]
+            
+            # Check number length limit
+            if len(number_text) > MAX_NUMBER_LENGTH:
+                raise LexError.from_type_and_location(
+                    LexErrorType.TOO_LONG_NUMBER,
+                    self.line, self.column - len(number_text), len(number_text),
+                    self.filename, self.source_lines
+                )
+            
             self._add_token(TokenType.INTEGER_LITERAL, number_text)
             return
         
@@ -404,13 +433,25 @@ class Tokenizer:
             
             # Must have at least one digit after e/E (and optional +/-)
             if not (self.current_char() and self.current_char().isdigit()):
-                raise LexerError("Invalid scientific notation: missing exponent digits", self.line, self.column)
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_SCIENTIFIC_NOTATION,
+                    self.line, self.column, 1, self.filename, self.source_lines
+                )
             
             # Parse exponent digits
             while self.current_char() and self.current_char().isdigit():
                 self.advance()
         
         number_text = self.source[start_pos:self.position]
+        
+        # Check number length limit
+        if len(number_text) > MAX_NUMBER_LENGTH:
+            raise LexError.from_type_and_location(
+                LexErrorType.TOO_LONG_NUMBER,
+                self.line, self.column - len(number_text), len(number_text),
+                self.filename, self.source_lines
+            )
+        
         token_type = TokenType.FLOAT_LITERAL if is_float else TokenType.INTEGER_LITERAL
         self._add_token(token_type, number_text)
     
@@ -428,7 +469,10 @@ class Tokenizer:
                 self.advance()
         
         if not self.current_char():
-            raise LexerError("Unterminated string literal", self.line, self.column)
+            raise LexError.from_type_and_location(
+                LexErrorType.NOT_CLOSED_STRING,
+                self.line, self.column, 1, self.filename, self.source_lines
+            )
         
         self.advance()  # Closing quote
         string_text = self.source[start_pos:self.position]
@@ -447,7 +491,10 @@ class Tokenizer:
             self.advance()  # Single character
         
         if self.current_char() != "'":
-            raise LexerError("Unterminated or invalid character literal", self.line, self.column)
+            raise LexError.from_type_and_location(
+                LexErrorType.NOT_CLOSED_CHAR,
+                self.line, self.column, 1, self.filename, self.source_lines
+            )
         
         self.advance()  # Closing quote
         char_text = self.source[start_pos:self.position]
@@ -462,6 +509,14 @@ class Tokenizer:
             self.advance()
         
         identifier_text = self.source[start_pos:self.position]
+        
+        # Check identifier length limit
+        if len(identifier_text) > MAX_IDENTIFIER_LENGTH:
+            raise LexError.from_type_and_location(
+                LexErrorType.TOO_LONG_IDENTIFIER,
+                self.line, self.column - len(identifier_text), len(identifier_text),
+                self.filename, self.source_lines
+            )
         
         # Check if it's a keyword
         token_type = self.KEYWORDS.get(identifier_text, TokenType.IDENTIFIER)

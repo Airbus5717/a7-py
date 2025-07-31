@@ -15,6 +15,8 @@ This is **a7-py**, a Python implementation of the A7 programming language compil
 - **Run Python tests**: `uv run pytest` (pytest is available as dependency)
 - **Run specific test**: `uv run pytest path/to/test.py::SpecificTestClass::test_method -v`
 - **Run tokenizer tests**: `uv run pytest test/test_tokenizer.py -v`
+- **Run error handling tests**: `uv run pytest test/test_tokenizer_errors.py -v`
+- **Run all tokenizer tests**: `uv run pytest test/ -v` (includes basic, aggressive, and error tests)
 - **Test individual A7 programs**: Pass `.a7` file path as argument to interpreter (when implemented)
 
 ## Architecture
@@ -23,10 +25,10 @@ This is **a7-py**, a Python implementation of the A7 programming language compil
 - **Compiler Pipeline**: Lexer → Parser → Code Generator (pluggable backends)
 - **Main Entry**: `main.py` contains CLI argument parsing and calls compile pipeline
 - **Core Modules**:
-  - `src/tokens.py`: Complete lexer/tokenizer with A7 token types
+  - `src/tokens.py`: Complete lexer/tokenizer with A7 token types and length validation
   - `src/compile.py`: Main compilation pipeline (A7Compiler class) 
   - `src/backends/`: Pluggable code generation backends (currently targets Zig, not C)
-  - `src/errors.py`: Error handling infrastructure
+  - `src/errors.py`: Comprehensive error handling with 17 specific error types, advice messages, and Rich-formatted display
 - **Source files**: A7 programs use `.a7` extension
 - **Default target**: Currently compiles to Zig (not C as originally planned)
 
@@ -81,6 +83,7 @@ The `examples/` directory contains A7 language examples showing language progres
 The `test/` directory contains Python unit tests for the compiler:
 - `test_tokenizer.py` - Comprehensive tokenizer tests paired with A7 examples
 - `test_tokenizer_aggressive.py` - Additional tokenizer edge case tests
+- `test_tokenizer_errors.py` - Comprehensive error handling and error message formatting tests
 
 ## Language Specification Reference
 
@@ -101,6 +104,10 @@ The complete A7 language specification is in `docs/SPEC.md` (2000+ lines). Key s
 
 - **Implementation Status**: 
   - ✅ Complete lexer/tokenizer with all A7 tokens (`src/tokens.py`)
+  - ✅ Comprehensive error handling system with specific error types and helpful advice
+  - ✅ Enhanced error display with precise location tracking and visual indicators
+  - ✅ Length validation for identifiers (100 chars) and numbers (100 digits)
+  - ✅ Tab detection with specific error messages
   - ⚠️ Parser module referenced but not yet implemented (`src/parser.py` mentioned in compile.py)
   - ⚠️ Backend system partially implemented (base class exists, but missing concrete backends)
   - ✅ Main program has CLI parsing and calls compilation pipeline
@@ -113,7 +120,11 @@ The complete A7 language specification is in `docs/SPEC.md` (2000+ lines). Key s
 
 - **Arrow operator removed**: The `->` operator was removed from the tokenizer as it's not used in the current A7 specification. Sequences like `->` are now tokenized as separate `MINUS` and `GREATER_THAN` tokens.
 - **Tokenizer architecture**: The tokenizer in `src/tokens.py` handles all A7 tokens including nested comments, numeric literals (decimal, hex, binary), string/char literals with escapes, and operators with proper precedence handling.
-- **Test structure**: Tests are organized with `test_tokenizer.py` covering A7 example files and `test_tokenizer_aggressive.py` for edge cases and error conditions.
+- **Enhanced error system**: `src/errors.py` implements 17 specific error types (e.g., `INVALID_CHARACTER`, `NOT_CLOSED_STRING`, `TABS_UNSUPPORTED`) with corresponding helpful advice messages and precise error location tracking.
+- **Error message format**: Uses format `error: message, line: x, col: y` followed by `help: advice` with yellow line numbers, white code, and red `^` pointers for precise error indication.
+- **Smart context display**: Small files (≤5 lines) show all lines, larger files show contextual lines around errors.
+- **Test structure**: Tests are organized with `test_tokenizer.py` covering A7 example files, `test_tokenizer_aggressive.py` for edge cases, and `test_tokenizer_errors.py` for comprehensive error handling validation.
+- **No arrow operator**: There is no arrow -> in A7
 
 ## Dependencies
 

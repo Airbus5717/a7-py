@@ -16,7 +16,7 @@ console = Console()
 from .tokens import Tokenizer
 # from .parser import Parser  # Not yet implemented
 # from .backends import get_backend  # Ignoring backend for now
-from .errors import CompilerError
+from .errors import CompilerError, display_error, create_error_handler
 
 
 class A7Compiler:
@@ -59,12 +59,15 @@ class A7Compiler:
             if self.verbose:
                 print(f"Compiling {input_path} -> {output_path}")
             
+            # Create error handler for this file
+            error_handler = create_error_handler(input_path, source_code)
+            
             # Compilation pipeline - just tokenize and log output
             from rich.console import Console
             from rich.table import Table
             
             console = Console()
-            tokenizer = Tokenizer(source_code)
+            tokenizer = Tokenizer(source_code, filename=str(input_path))
             tokens = tokenizer.tokenize()
             
             # Display tokens using Rich
@@ -103,7 +106,8 @@ class A7Compiler:
             return True
             
         except CompilerError as e:
-            print(f"Compilation error: {e}", file=sys.stderr)
+            # Use Rich formatting to display error with source context
+            display_error(e, console)
             return False
         except Exception as e:
             print(f"Unexpected error: {e}", file=sys.stderr)
