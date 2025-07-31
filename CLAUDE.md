@@ -21,7 +21,7 @@ This is **a7-py**, a Python implementation of the A7 programming language compil
 
 ### Implementation Architecture
 - **Compiler Pipeline**: Lexer → Parser → Code Generator (pluggable backends)
-- **Main Entry**: `main.py` currently contains minimal implementation
+- **Main Entry**: `main.py` contains CLI argument parsing and calls compile pipeline
 - **Core Modules**:
   - `src/tokens.py`: Complete lexer/tokenizer with A7 token types
   - `src/compile.py`: Main compilation pipeline (A7Compiler class) 
@@ -103,8 +103,9 @@ The complete A7 language specification is in `docs/SPEC.md` (2000+ lines). Key s
   - ✅ Complete lexer/tokenizer with all A7 tokens (`src/tokens.py`)
   - ⚠️ Parser module referenced but not yet implemented (`src/parser.py` mentioned in compile.py)
   - ⚠️ Backend system partially implemented (base class exists, but missing concrete backends)
-  - ❌ Main program only contains "Hello from a7-py!" placeholder
-- **Missing Components**: Parser, AST nodes, concrete code generators, CLI argument handling
+  - ✅ Main program has CLI parsing and calls compilation pipeline
+  - ⚠️ Compilation currently only tokenizes and displays tokens with Rich formatting
+- **Missing Components**: Parser, AST nodes, concrete code generators
 - **Target Language**: Currently designed to compile to Zig (see `src/compile.py` line 3: "A7 to Zig Compiler")
 - **Development Philosophy**: Specification-driven development using `docs/SPEC.md` as authoritative reference
 

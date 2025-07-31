@@ -41,7 +41,8 @@ class TestTokenizerAggressive:
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
         
-        expected_types = [TokenType.NEWLINE] * 5 + [TokenType.EOF]
+        # With deduplication, consecutive newlines become single TERMINATOR
+        expected_types = [TokenType.TERMINATOR, TokenType.EOF]
         actual_types = [token.type for token in tokens]
         assert actual_types == expected_types
     
@@ -52,8 +53,9 @@ class TestTokenizerAggressive:
         tokens = tokenizer.tokenize()
         
         # Should only capture newlines, not other whitespace
-        newline_tokens = [t for t in tokens if t.type == TokenType.NEWLINE]
-        assert len(newline_tokens) == 4  # 4 newline sequences
+        # With deduplication, consecutive newlines become single TERMINATOR
+        terminator_tokens = [t for t in tokens if t.type == TokenType.TERMINATOR]
+        assert len(terminator_tokens) == 1  # Deduplicated to single TERMINATOR
     
     def test_operator_edge_cases(self):
         """Test complex operator sequences and potential ambiguities."""
@@ -256,38 +258,40 @@ class TestTokenizerAggressive:
     
     def test_comment_edge_cases(self):
         """Test edge cases in comment parsing."""
-        # Single line comments
+        # Single line comments - should be discarded, no COMMENT tokens
         source1 = "// This is a comment\n// Another comment"
         tokenizer1 = Tokenizer(source1)
         tokens1 = tokenizer1.tokenize()
         comment_tokens = [t for t in tokens1 if t.type == TokenType.COMMENT]
-        assert len(comment_tokens) == 2
+        assert len(comment_tokens) == 0  # Comments are discarded
         
-        # Multi-line comments
+        # Multi-line comments - should be discarded
         source2 = "/* single line comment */"
         tokenizer2 = Tokenizer(source2)
         tokens2 = tokenizer2.tokenize()
-        assert tokens2[0].type == TokenType.COMMENT
+        comment_tokens = [t for t in tokens2 if t.type == TokenType.COMMENT]
+        assert len(comment_tokens) == 0  # Comments are discarded
         
-        # Nested multi-line comments
+        # Nested multi-line comments - should be discarded
         source3 = "/* outer /* inner */ still outer */"
         tokenizer3 = Tokenizer(source3)
         tokens3 = tokenizer3.tokenize()
-        assert tokens3[0].type == TokenType.COMMENT
-        assert len([t for t in tokens3 if t.type == TokenType.COMMENT]) == 1
+        comment_tokens = [t for t in tokens3 if t.type == TokenType.COMMENT]
+        assert len(comment_tokens) == 0  # Comments are discarded
         
         # Unterminated multi-line comment (should consume to EOF)
         source4 = "/* unterminated comment"
         tokenizer4 = Tokenizer(source4)
         tokens4 = tokenizer4.tokenize()
-        assert tokens4[0].type == TokenType.COMMENT
+        comment_tokens = [t for t in tokens4 if t.type == TokenType.COMMENT]
+        assert len(comment_tokens) == 0  # Comments are discarded
         
-        # Alternative hash comments
+        # Alternative hash comments - should be discarded
         source5 = "# Hash comment\n# Another hash comment"
         tokenizer5 = Tokenizer(source5)
         tokens5 = tokenizer5.tokenize()
         hash_comments = [t for t in tokens5 if t.type == TokenType.COMMENT]
-        assert len(hash_comments) == 2
+        assert len(hash_comments) == 0  # Comments are discarded
     
     def test_identifier_edge_cases(self):
         """Test edge cases in identifier parsing."""
@@ -445,7 +449,6 @@ class TestTokenizerAggressive:
         
         # Check for some expected token types
         token_types = [t.type for t in tokens]
-        assert TokenType.COMMENT in token_types
         assert TokenType.IDENTIFIER in token_types
         assert TokenType.INTEGER_LITERAL in token_types
         assert TokenType.FLOAT_LITERAL in token_types
@@ -484,9 +487,9 @@ class TestTokenizerAggressive:
         tokenizer = Tokenizer(source_with_unicode)
         tokens = tokenizer.tokenize()
         
-        # Should not crash and should identify comments
+        # Should not crash and should discard comments
         comment_tokens = [t for t in tokens if t.type == TokenType.COMMENT]
-        assert len(comment_tokens) == 3  # Two single-line + one multi-line
+        assert len(comment_tokens) == 0  # Comments are discarded
     
     def test_tokenizer_state_consistency(self):
         """Test that tokenizer maintains consistent internal state."""

@@ -40,22 +40,21 @@ main :: fn() {
             TokenType.DECLARE_CONST,   # ::
             TokenType.IMPORT,          # import
             TokenType.STRING_LITERAL,  # "std/io"
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # main
             TokenType.DECLARE_CONST,   # ::
             TokenType.FN,              # fn
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # io
             TokenType.DOT,             # .
             TokenType.IDENTIFIER,      # println
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "Hello World"
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]
@@ -81,62 +80,54 @@ main :: fn() {
             TokenType.DECLARE_CONST,   # ::
             TokenType.IMPORT,          # import
             TokenType.STRING_LITERAL,  # "std/io"
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # main
             TokenType.DECLARE_CONST,   # ::
             TokenType.FN,              # fn
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # a
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 1
-            TokenType.COMMENT,         # // Inferred variable (mutable)
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # b
             TokenType.DECLARE_CONST,   # ::
             TokenType.INTEGER_LITERAL, # 2
-            TokenType.COMMENT,         # // Inferred constant (immutable)
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # c
             TokenType.COLON,           # :
             TokenType.I32,             # i32
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 3
-            TokenType.COMMENT,         # // Integer variable with explicit type
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // Using proper A7 standard library functions
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # a
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # b
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # c
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # print
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "\\n"
             TokenType.RIGHT_PAREN,     # )
-            TokenType.COMMENT,         # // Print newline
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]
@@ -157,12 +148,7 @@ main :: fn() {}
  as a comment delimiter
 '''
         expected_types = [
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // SINGLE LINE COMMENTS
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # /* multi line comments */
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # main
             TokenType.DECLARE_CONST,   # ::
             TokenType.FN,              # fn
@@ -170,9 +156,7 @@ main :: fn() {}
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
             TokenType.RIGHT_BRACE,     # }
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # /* multi line comment (unterminated)
+            TokenType.TERMINATOR,
             TokenType.EOF
         ]
         self._assert_token_types_match(source, expected_types)
@@ -203,22 +187,21 @@ main :: fn() {
             TokenType.RIGHT_PAREN,     # )
             TokenType.I32,             # i32 (return type)
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RET,             # ret
             TokenType.IDENTIFIER,      # x
             TokenType.PLUS,            # +
             TokenType.IDENTIFIER,      # y
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # main
             TokenType.DECLARE_CONST,   # ::
             TokenType.FN,              # fn
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # result
             TokenType.DECLARE_VAR,     # :=
             TokenType.IDENTIFIER,      # add
@@ -227,20 +210,19 @@ main :: fn() {
             TokenType.COMMA,           # ,
             TokenType.INTEGER_LITERAL, # 7
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # result
             TokenType.RIGHT_PAREN,     # )
-            TokenType.COMMENT,         # // Output should be 12
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # print
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "\\n"
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]
@@ -275,42 +257,35 @@ main :: fn() {
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // C-style for loop
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.FOR,             # for
             TokenType.IDENTIFIER,      # i
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 0
-            TokenType.SEMICOLON,       # ;
+            TokenType.TERMINATOR,       # ;
             TokenType.IDENTIFIER,      # i
             TokenType.LESS_THAN,       # <
             TokenType.INTEGER_LITERAL, # 3
-            TokenType.SEMICOLON,       # ;
+            TokenType.TERMINATOR,       # ;
             TokenType.IDENTIFIER,      # i
             TokenType.PLUS_ASSIGN,     # +=
             TokenType.INTEGER_LITERAL, # 1
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // Loop body: i takes on values 0, 1, 2
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # i
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # print
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "\\n"
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // Range-based for loop with array
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # arr
             TokenType.COLON,           # :
             TokenType.LEFT_BRACKET,    # [
@@ -325,30 +300,27 @@ main :: fn() {
             TokenType.COMMA,           # ,
             TokenType.INTEGER_LITERAL, # 30
             TokenType.RIGHT_BRACKET,   # ]
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.FOR,             # for
             TokenType.IDENTIFIER,      # value
             TokenType.IN,              # in
             TokenType.IDENTIFIER,      # arr
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "{}"
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # value
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # print
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "\\n"
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
-            TokenType.COMMENT,         # // Range with index
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.FOR,             # for
             TokenType.IDENTIFIER,      # i
             TokenType.COMMA,           # ,
@@ -356,7 +328,7 @@ main :: fn() {
             TokenType.IN,              # in
             TokenType.IDENTIFIER,      # arr
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # printf
             TokenType.LEFT_PAREN,      # (
             TokenType.STRING_LITERAL,  # "[{}] = {}\\n"
@@ -365,9 +337,9 @@ main :: fn() {
             TokenType.COMMA,           # ,
             TokenType.IDENTIFIER,      # value
             TokenType.RIGHT_PAREN,     # )
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]
@@ -395,53 +367,51 @@ main :: fn() {
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # a
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 10
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # b
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 3
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # result
             TokenType.DECLARE_VAR,     # :=
             TokenType.IDENTIFIER,      # a
             TokenType.PLUS,            # +
             TokenType.IDENTIFIER,      # b
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # comparison
             TokenType.DECLARE_VAR,     # :=
             TokenType.IDENTIFIER,      # a
             TokenType.EQUAL,           # ==
             TokenType.IDENTIFIER,      # b
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # logical
             TokenType.DECLARE_VAR,     # :=
             TokenType.TRUE_LITERAL,    # true
             TokenType.AND,             # and
             TokenType.FALSE_LITERAL,   # false
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # bitwise
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 0b1010
             TokenType.BITWISE_AND,     # &
             TokenType.INTEGER_LITERAL, # 0b1100
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # counter
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 5
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # counter
             TokenType.PLUS_ASSIGN,     # +=
             TokenType.INTEGER_LITERAL, # 3
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # counter
             TokenType.MINUS_ASSIGN,    # -=
             TokenType.INTEGER_LITERAL, # 2
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]
@@ -475,63 +445,58 @@ main :: fn() {
             TokenType.LEFT_PAREN,      # (
             TokenType.RIGHT_PAREN,     # )
             TokenType.LEFT_BRACE,      # {
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # decimal
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 42
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # hexadecimal
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 0x2A
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # binary
             TokenType.DECLARE_VAR,     # :=
             TokenType.INTEGER_LITERAL, # 0b101010
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # pi
             TokenType.DECLARE_VAR,     # :=
             TokenType.FLOAT_LITERAL,   # 3.14159
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # scientific
             TokenType.DECLARE_VAR,     # :=
             TokenType.FLOAT_LITERAL,   # 2.71e10
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # letter
             TokenType.DECLARE_VAR,     # :=
             TokenType.CHAR_LITERAL,    # 'A'
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # newline
             TokenType.DECLARE_VAR,     # :=
             TokenType.CHAR_LITERAL,    # '\\n'
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # simple
             TokenType.DECLARE_VAR,     # :=
             TokenType.STRING_LITERAL,  # "Hello, World!"
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # with_quotes
             TokenType.DECLARE_VAR,     # :=
             TokenType.STRING_LITERAL,  # "He said: \\"Hello\\""
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # true_val
             TokenType.DECLARE_VAR,     # :=
             TokenType.TRUE_LITERAL,    # true
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # false_val
             TokenType.DECLARE_VAR,     # :=
             TokenType.FALSE_LITERAL,   # false
-            TokenType.NEWLINE,
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.IDENTIFIER,      # null_ptr
             TokenType.COLON,           # :
             TokenType.REF,             # ref
             TokenType.I32,             # i32
             TokenType.ASSIGN,          # =
             TokenType.NIL_LITERAL,     # nil
-            TokenType.NEWLINE,
+            TokenType.TERMINATOR,
             TokenType.RIGHT_BRACE,     # }
             TokenType.EOF
         ]

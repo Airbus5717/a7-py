@@ -265,9 +265,9 @@ class Tokenizer:
             if self.current_char() is None:
                 break
                 
-            # Handle newlines (significant in A7)
+            # Handle newlines as terminators
             if self.current_char() == '\n':
-                self._add_token(TokenType.NEWLINE, '\n')
+                self._add_token(TokenType.TERMINATOR, '\n')
                 self.advance()
                 continue
             
@@ -313,23 +313,25 @@ class Tokenizer:
     
     def _add_token(self, token_type: TokenType, value: str):
         """Add a token to the tokens list."""
+        # Handle TERMINATOR deduplication
+        if token_type == TokenType.TERMINATOR:
+            # Don't add if the last token is already a TERMINATOR
+            if self.tokens and self.tokens[-1].type == TokenType.TERMINATOR:
+                return
+        
         token = Token(token_type, value, self.line, self.column - len(value))
         self.tokens.append(token)
     
     def _try_comment(self) -> bool:
-        """Try to tokenize a comment. Returns True if successful."""
+        """Try to tokenize a comment. Returns True if successful. Comments are discarded but line counting is preserved."""
         if self.current_char() == '/' and self.peek_char() == '/':
-            # Single line comment
-            start_pos = self.position
+            # Single line comment - consume but don't add token
             while self.current_char() and self.current_char() != '\n':
                 self.advance()
-            comment_text = self.source[start_pos:self.position]
-            self._add_token(TokenType.COMMENT, comment_text)
             return True
         
         if self.current_char() == '/' and self.peek_char() == '*':
-            # Multi-line comment
-            start_pos = self.position
+            # Multi-line comment - consume but don't add token
             self.advance()  # /
             self.advance()  # *
             
@@ -345,18 +347,12 @@ class Tokenizer:
                     depth -= 1
                 else:
                     self.advance()
-            
-            comment_text = self.source[start_pos:self.position]
-            self._add_token(TokenType.COMMENT, comment_text)
             return True
         
         if self.current_char() == '#':
-            # Alternative single line comment
-            start_pos = self.position
+            # Alternative single line comment - consume but don't add token
             while self.current_char() and self.current_char() != '\n':
                 self.advance()
-            comment_text = self.source[start_pos:self.position]
-            self._add_token(TokenType.COMMENT, comment_text)
             return True
         
         return False
@@ -614,7 +610,7 @@ class Tokenizer:
             '^': TokenType.BITWISE_XOR,
             '~': TokenType.BITWISE_NOT,
             '!': TokenType.LOGICAL_NOT,
-            ';': TokenType.SEMICOLON,
+            ';': TokenType.TERMINATOR,
             ':': TokenType.COLON,
             ',': TokenType.COMMA,
             '.': TokenType.DOT,
