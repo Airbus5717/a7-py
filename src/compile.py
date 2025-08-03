@@ -16,7 +16,7 @@ from datetime import datetime
             
 console = Console()
 from .tokens import Tokenizer, Token
-# from .parser import Parser  # Not yet implemented
+from .parser import Parser, parse_a7  # Now implemented!
 # from .backends import get_backend  # Ignoring backend for now
 from .errors import CompilerError, display_error, create_error_handler
 
@@ -32,8 +32,8 @@ class A7Compiler:
         # self.parser = Parser()  # Not yet implemented
         # self.codegen = get_backend(backend)  # Ignoring backend for now
     
-    def _tokens_to_json(self, tokens: list[Token], source_code: str, input_path: str) -> dict:
-        """Convert tokens and metadata to JSON format."""
+    def _compilation_to_json(self, tokens: list[Token], ast, source_code: str, input_path: str) -> dict:
+        """Convert compilation results to JSON format."""
         # Convert tokens to serializable format
         token_list = []
         for token in tokens:
@@ -45,6 +45,74 @@ class A7Compiler:
                 "length": token.length
             })
         
+        # Convert AST to serializable format (comprehensive)
+        def ast_to_dict(node):
+            if node is None:
+                return None
+            
+            result = {
+                "kind": node.kind.name,
+                "span": {
+                    "start_line": node.span.start_line,
+                    "start_column": node.span.start_column,
+                    "end_line": node.span.end_line,
+                    "end_column": node.span.end_column,
+                    "length": getattr(node.span, 'length', None)
+                } if node.span else None
+            }
+            
+            # Add all relevant scalar fields
+            scalar_fields = [
+                'name', 'is_public', 'is_using', 'is_tagged', 'is_variadic', 
+                'has_fallthrough', 'module_path', 'alias', 'type_name', 'field',
+                'iterator', 'index_var', 'label', 'enum_type', 'variant', 'raw_text'
+            ]
+            
+            for field in scalar_fields:
+                value = getattr(node, field, None)
+                if value is not None:
+                    result[field] = value
+            
+            # Add literal information
+            if hasattr(node, 'literal_kind') and node.literal_kind:
+                result["literal_kind"] = node.literal_kind.name
+                result["literal_value"] = node.literal_value
+                result["raw_text"] = node.raw_text
+            
+            # Add operator information
+            if hasattr(node, 'operator') and node.operator:
+                result["operator"] = node.operator.name if hasattr(node.operator, 'name') else str(node.operator)
+            
+            # Add list fields (child nodes)
+            list_fields = [
+                'declarations', 'parameters', 'statements', 'arguments', 'fields',
+                'variants', 'generic_params', 'type_arguments', 'parameter_types',
+                'type_args', 'types', 'elements', 'field_inits', 'cases',
+                'else_case', 'patterns', 'imported_items'
+            ]
+            
+            for field in list_fields:
+                field_value = getattr(node, field, None)
+                if field_value:
+                    result[field] = [ast_to_dict(child) for child in field_value]
+            
+            # Add single node fields
+            node_fields = [
+                'value', 'body', 'condition', 'left', 'right', 'operand', 'function',
+                'expression', 'return_type', 'explicit_type', 'target_type',
+                'element_type', 'size', 'object', 'index', 'start', 'end',
+                'pointer', 'then_expr', 'else_expr', 'struct_type', 'then_stmt',
+                'else_stmt', 'init', 'update', 'iterable', 'statement', 'target',
+                'literal', 'param_type', 'field_type', 'variant_type', 'constraint'
+            ]
+            
+            for field in node_fields:
+                field_value = getattr(node, field, None)
+                if field_value:
+                    result[field] = ast_to_dict(field_value)
+            
+            return result
+        
         # Create comprehensive JSON structure
         result = {
             "metadata": {
@@ -54,10 +122,12 @@ class A7Compiler:
                 "timestamp": datetime.now().isoformat(),
                 "token_count": len(tokens),
                 "source_lines": len(source_code.splitlines()),
-                "source_size_bytes": len(source_code.encode('utf-8'))
+                "source_size_bytes": len(source_code.encode('utf-8')),
+                "parse_success": ast is not None
             },
             "source_code": source_code,
-            "tokens": token_list
+            "tokens": token_list,
+            "ast": ast_to_dict(ast) if ast else None
         }
         
         return result
@@ -95,44 +165,76 @@ class A7Compiler:
             # Create error handler for this file
             error_handler = create_error_handler(input_path, source_code)
             
-            # Compilation pipeline - just tokenize and log output
+            # Compilation pipeline - tokenize and parse
             tokenizer = Tokenizer(source_code, filename=str(input_path))
             tokens = tokenizer.tokenize()
+            
+            # Parse tokens into AST
+            ast = None
+            try:
+                parser = Parser(tokens, filename=str(input_path))
+                ast = parser.parse()
+                
+                if self.verbose:
+                    print(f"Successfully parsed {input_path}")
+            except Exception as e:
+                if self.verbose:
+                    print(f"Parse error in {input_path}: {e}")
+                # Continue with tokenization results even if parsing fails
             
             # Output in JSON or Rich format based on flag
             if self.json_output:
                 # JSON output
-                json_result = self._tokens_to_json(tokens, source_code, input_path)
+                json_result = self._compilation_to_json(tokens, ast, source_code, input_path)
                 print(json.dumps(json_result, indent=2))
             else:
                 # Rich console output
                 from rich.console import Console
                 from rich.table import Table
+                from rich.text import Text
                 
                 console = Console()
                 
-                # Display tokens using Rich
-                table = Table(title=f"Tokens for {input_path}")
-                table.add_column("Line", style="cyan", no_wrap=True)
-                table.add_column("Column", style="magenta", no_wrap=True)
-                table.add_column("Type", style="green")
-                table.add_column("Value", style="yellow")
-                
-                for token in tokens:
-                    table.add_row(
-                        str(token.line),
-                        str(token.column),
-                        token.type.name,
-                        repr(token.value) if token.value else ""
-                    )
-                
+                # Display source code
                 code_panel = Panel(
                     source_code,
                     title=f"Source: {input_path}",
                     border_style="blue"
                 )
                 console.print(code_panel)
-                console.print(table)
+                
+                # Display tokens
+                token_table = Table(title="Tokens", show_header=True)
+                token_table.add_column("Line", style="cyan", no_wrap=True)
+                token_table.add_column("Column", style="magenta", no_wrap=True)
+                token_table.add_column("Type", style="green")
+                token_table.add_column("Value", style="yellow")
+                
+                for token in tokens:
+                    token_table.add_row(
+                        str(token.line),
+                        str(token.column),
+                        token.type.name,
+                        repr(token.value) if token.value else ""
+                    )
+                
+                console.print(token_table)
+                
+                # Display AST information
+                if ast:
+                    ast_text = Text("✅ Successfully parsed into AST", style="green bold")
+                    console.print(ast_text)
+                    
+                    # Simple AST display
+                    ast_info = Text()
+                    ast_info.append("AST Root: ", style="bold")
+                    ast_info.append(f"{ast.kind.name}", style="cyan")
+                    if ast.declarations:
+                        ast_info.append(f" ({len(ast.declarations)} declarations)", style="dim")
+                    console.print(ast_info)
+                else:
+                    ast_text = Text("❌ Failed to parse AST", style="red bold")
+                    console.print(ast_text)
             # Skip actual code generation for now
             target_code = "// Tokenization complete - no code generation yet\n"
             

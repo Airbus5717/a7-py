@@ -42,6 +42,8 @@ class TokenType(Enum):
     DEFER = auto()       # defer
     ELSE = auto()        # else
     ENUM = auto()        # enum
+    F32 = auto()         # f32
+    F64 = auto()         # f64
     FALL = auto()        # fall
     FALSE = auto()       # false
     FLOAT = auto()       # float
@@ -68,6 +70,7 @@ class TokenType(Enum):
     STRING = auto()      # string
     STRUCT = auto()      # struct
     TRUE = auto()        # true
+    UNION = auto()       # union
     U8 = auto()          # u8
     U16 = auto()         # u16
     U32 = auto()         # u32
@@ -182,6 +185,8 @@ class Tokenizer:
         'defer': TokenType.DEFER,
         'else': TokenType.ELSE,
         'enum': TokenType.ENUM,
+        'f32': TokenType.F32,
+        'f64': TokenType.F64,
         'fall': TokenType.FALL,
         'false': TokenType.FALSE,
         'float': TokenType.FLOAT,
@@ -208,6 +213,7 @@ class Tokenizer:
         'string': TokenType.STRING,
         'struct': TokenType.STRUCT,
         'true': TokenType.TRUE,
+        'union': TokenType.UNION,
         'u8': TokenType.U8,
         'u16': TokenType.U16,
         'u32': TokenType.U32,
@@ -400,6 +406,25 @@ class Tokenizer:
             self.advance()  # 0
             self.advance()  # x
             while self.current_char() and self.current_char() in '0123456789abcdefABCDEF':
+                self.advance()
+            number_text = self.source[start_pos:self.position]
+            
+            # Check number length limit
+            if len(number_text) > MAX_NUMBER_LENGTH:
+                raise LexError.from_type_and_location(
+                    LexErrorType.TOO_LONG_NUMBER,
+                    self.line, self.column - len(number_text), len(number_text),
+                    self.filename, self.source_lines
+                )
+            
+            self._add_token(TokenType.INTEGER_LITERAL, number_text)
+            return
+        
+        # Handle octal numbers (0o)
+        if self.current_char() == '0' and self.peek_char() == 'o':
+            self.advance()  # 0
+            self.advance()  # o
+            while self.current_char() and self.current_char() in '01234567':
                 self.advance()
             number_text = self.source[start_pos:self.position]
             
