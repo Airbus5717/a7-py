@@ -22,12 +22,11 @@ class TestTokenizerAggressive:
         assert tokens[0].type == TokenType.EOF
     
     def test_whitespace_only(self):
-        """Test input with only whitespace characters."""
+        """Test input with only whitespace characters (no tabs - A7 doesn't support tabs)."""
         test_cases = [
             "   ",           # spaces
-            "\t\t\t",       # tabs
             "\r\r\r",       # carriage returns
-            "   \t  \r  ",  # mixed whitespace
+            "   \r  ",      # spaces and carriage returns
         ]
         
         for source in test_cases:
@@ -48,8 +47,8 @@ class TestTokenizerAggressive:
         assert actual_types == expected_types
     
     def test_mixed_whitespace_and_newlines(self):
-        """Test complex whitespace patterns."""
-        source = "  \n\t\n  \r\n\t  \n  "
+        """Test complex whitespace patterns (no tabs - A7 doesn't support tabs)."""
+        source = "  \n \n  \r\n   \n  "
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
         

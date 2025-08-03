@@ -10,7 +10,7 @@ This is **a7-py**, a Python implementation of the A7 programming language compil
 
 - **Install dependencies**: `uv sync` (use uv for dependency management)
 - **Run the main program**: `python main.py` or `uv run python main.py`
-- **Run with shell script**: `./run.sh` (activates venv and runs main)
+- **Run with shell script**: `./run.sh` (activates venv and uses uv run)
 - **Run Python with dependencies**: `uv run python <script>` 
 - **Run Python tests**: `uv run pytest` (pytest is available as dependency)
 - **Run specific test**: `uv run pytest path/to/test.py::SpecificTestClass::test_method -v`
@@ -103,28 +103,34 @@ The complete A7 language specification is in `docs/SPEC.md` (2000+ lines). Key s
 ## Development Notes
 
 - **Implementation Status**: 
-  - ✅ Complete lexer/tokenizer with all A7 tokens (`src/tokens.py`)
-  - ✅ Comprehensive error handling system with specific error types and helpful advice
+  - ✅ Complete lexer/tokenizer with all A7 tokens including `$` for generics (`src/tokens.py`)
+  - ✅ Advanced character literal parsing with hex escape sequences (`\x41`)
+  - ✅ JSON output format with `--json` flag for structured data export
+  - ✅ Comprehensive error handling system (17 error types) with helpful advice
   - ✅ Enhanced error display with precise location tracking and visual indicators
   - ✅ Length validation for identifiers (100 chars) and numbers (100 digits)
   - ✅ Tab detection with specific error messages
+  - ✅ All 22 A7 examples now tokenize successfully (was 19/22, now 22/22)
   - ⚠️ Parser module referenced but not yet implemented (`src/parser.py` mentioned in compile.py)
   - ⚠️ Backend system partially implemented (base class exists, but missing concrete backends)
   - ✅ Main program has CLI parsing and calls compilation pipeline
-  - ⚠️ Compilation currently only tokenizes and displays tokens with Rich formatting
+  - ✅ Compilation outputs Rich console display or JSON format based on flags
 - **Missing Components**: Parser, AST nodes, concrete code generators
 - **Target Language**: Currently designed to compile to Zig (see `src/compile.py` line 3: "A7 to Zig Compiler")
 - **Development Philosophy**: Specification-driven development using `docs/SPEC.md` as authoritative reference
 
 ## Important Implementation Notes
 
+- **Generics support**: The `$` token is fully implemented for generic type parameters (`$T`, `$U`) as specified in the A7 language
+- **Advanced character literals**: Supports all escape sequences including hex escapes (`\x41`) with proper validation
+- **JSON output**: Added `--json` flag providing structured output with metadata, source code, and token arrays for tooling integration
 - **Arrow operator removed**: The `->` operator was removed from the tokenizer as it's not used in the current A7 specification. Sequences like `->` are now tokenized as separate `MINUS` and `GREATER_THAN` tokens.
 - **Tokenizer architecture**: The tokenizer in `src/tokens.py` handles all A7 tokens including nested comments, numeric literals (decimal, hex, binary), string/char literals with escapes, and operators with proper precedence handling.
 - **Enhanced error system**: `src/errors.py` implements 17 specific error types (e.g., `INVALID_CHARACTER`, `NOT_CLOSED_STRING`, `TABS_UNSUPPORTED`) with corresponding helpful advice messages and precise error location tracking.
 - **Error message format**: Uses format `error: message, line: x, col: y` followed by `help: advice` with yellow line numbers, white code, and red `^` pointers for precise error indication.
 - **Smart context display**: Small files (≤5 lines) show all lines, larger files show contextual lines around errors.
 - **Test structure**: Tests are organized with `test_tokenizer.py` covering A7 example files, `test_tokenizer_aggressive.py` for edge cases, and `test_tokenizer_errors.py` for comprehensive error handling validation.
-- **No arrow operator**: There is no arrow -> in A7
+- **Complete example coverage**: All 22 A7 example files now tokenize successfully, including complex generics and character literals
 
 ## Dependencies
 

@@ -81,7 +81,7 @@ class TestTokenizerErrors:
                 tokenizer.tokenize()
             
             error = exc_info.value
-            assert "Unterminated string literal" in error.message
+            assert "The string is not closed" in error.message
             # Note: The exact line/column may vary based on where tokenizer detects the error
 
     def test_unterminated_char_literals(self):
@@ -101,7 +101,7 @@ class TestTokenizerErrors:
                 tokenizer.tokenize()
             
             error = exc_info.value
-            assert "Unterminated or invalid character literal" in error.message
+            assert "The char is not closed" in error.message
 
     def test_invalid_numeric_literals(self):
         """Test invalid numeric literal formats."""
@@ -219,9 +219,9 @@ class TestTokenizerErrors:
             assert "11 │ line11" in output    # 1 line after
             assert "12 │ line12" in output    # 2 lines after
             
-            # Should NOT show lines too far away
-            assert "1 │ line1" not in output
-            assert "20 │ line20" not in output
+            # Should NOT show lines too far away (using precise patterns to avoid substring matches)
+            assert "\n   1 │ line1" not in output and not output.startswith("   1 │ line1")
+            assert "\n  20 │ line20" not in output and not output.startswith("  20 │ line20")
 
     def test_error_location_accuracy(self):
         """Test that error locations are reported accurately."""
@@ -298,12 +298,11 @@ class TestTokenizerErrors:
         assert error.span.start_column == 8  # Position of §
 
     def test_error_with_tabs_and_spaces(self):
-        """Test error location accuracy with mixed tabs and spaces."""
-        # Note: This test assumes tabs are handled as single characters in column counting
+        """Test error location accuracy with tabs (A7 doesn't support tabs, so tab position is error position)."""
         test_cases = [
-            ("\t§", 2),              # Tab then error
-            ("  \t §", 5),           # Spaces, tab, space, error
-            ("x\t:=\t§", 6),         # Variable with tabs and error
+            ("\t§", 1),              # Tab causes error at position 1
+            ("  \t §", 3),           # Tab causes error at position 3 (after 2 spaces)
+            ("x\t:=\t§", 2),         # First tab causes error at position 2 (after 'x')
         ]
         
         for source, expected_col in test_cases:
@@ -314,6 +313,7 @@ class TestTokenizerErrors:
             
             error = exc_info.value
             assert error.span.start_column == expected_col, f"Wrong column for '{repr(source)}'"
+            assert "Tabs" in error.message, f"Expected tab error message for '{repr(source)}'"
 
     def test_error_recovery_information(self):
         """Test that errors contain enough information for good error recovery."""
@@ -430,8 +430,8 @@ class TestTokenizerErrorEdgeCases:
         assert tokens[0].type == TokenType.EOF
 
     def test_whitespace_only_no_error(self):
-        """Test that whitespace-only files don't produce errors.""" 
-        tokenizer = Tokenizer("   \t  \n  \r\n  ")
+        """Test that whitespace-only files don't produce errors (no tabs - A7 doesn't support tabs).""" 
+        tokenizer = Tokenizer("     \n  \r\n  ")
         tokens = tokenizer.tokenize()  # Should not raise
         # Should only have terminator and EOF tokens
         non_eof_tokens = [t for t in tokens if t.type != TokenType.EOF]

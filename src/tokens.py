@@ -13,7 +13,7 @@ from .errors import LexError, LexErrorType
 # A7 Language limits (matching C implementation)
 MAX_IDENTIFIER_LENGTH = 100
 MAX_NUMBER_LENGTH = 100
-MAX_STRING_LENGTH = 2**31 - 1  # Very large but finite limit
+MAX_STRING_LENGTH = 2**15 - 1  # Very large but finite limit
 
 
 class TokenType(Enum):
@@ -143,10 +143,13 @@ class TokenType(Enum):
     # Comments
     COMMENT = auto()         # // or /* */
     
+    # Generic/Template operators
+    DOLLAR = auto()          # $ (for generic type parameters)
+    
     # Special tokens
-    NEWLINE = auto()         # \n (significant in A7)
+    # NEWLINE = auto()         # \n (significant in A7)
+    TERMINATOR = auto()      # "\n" or ";" as Statement terminator
     EOF = auto()             # End of file
-    TERMINATOR = auto()      # Statement terminator
 
 
 @dataclass
@@ -297,8 +300,8 @@ class Tokenizer:
                 self._tokenize_char()
                 continue
             
-            # Handle identifiers and keywords
-            if self.current_char() and (self.current_char().isalpha() or self.current_char() == '_'):
+            # Handle identifiers and keywords  
+            if self.current_char() and (self.current_char().isascii() and self.current_char().isalpha() or self.current_char() == '_'):
                 self._tokenize_identifier()
                 continue
             
@@ -483,12 +486,59 @@ class Tokenizer:
         start_pos = self.position
         self.advance()  # Opening quote
         
+        # Check for empty char literal
+        if self.current_char() == "'":
+            raise LexError.from_type_and_location(
+                LexErrorType.NOT_CLOSED_CHAR,
+                self.line, self.column, 1, self.filename, self.source_lines
+            )
+        
+        # Check for EOF
+        if self.current_char() is None:
+            raise LexError.from_type_and_location(
+                LexErrorType.NOT_CLOSED_CHAR,
+                self.line, self.column, 1, self.filename, self.source_lines
+            )
+        
         if self.current_char() == '\\':
             self.advance()  # Escape character
-            if self.current_char():
-                self.advance()  # Escaped character
-        elif self.current_char():
-            self.advance()  # Single character
+            escape_char = self.current_char()
+            if escape_char is None:
+                raise LexError.from_type_and_location(
+                    LexErrorType.NOT_CLOSED_CHAR,
+                    self.line, self.column, 1, self.filename, self.source_lines
+                )
+            elif escape_char == 'x':
+                # Hex escape sequence: \x41
+                self.advance()  # 'x'
+                # Read two hex digits
+                for _ in range(2):
+                    if self.current_char() and self.current_char().lower() in '0123456789abcdef':
+                        self.advance()
+                    else:
+                        raise LexError.from_type_and_location(
+                            LexErrorType.NOT_CLOSED_CHAR,
+                            self.line, self.column, 1, self.filename, self.source_lines
+                        )
+            elif escape_char in 'ntr\\\'\"0':
+                # Standard escape sequences: \n, \t, \r, \\, \', \", \0
+                self.advance()
+            else:
+                # Invalid escape sequence
+                raise LexError.from_type_and_location(
+                    LexErrorType.NOT_CLOSED_CHAR,
+                    self.line, self.column, 1, self.filename, self.source_lines
+                )
+        else:
+            # Single character
+            self.advance()
+            
+            # Check for multiple characters (like 'ab')
+            if self.current_char() and self.current_char() != "'":
+                raise LexError.from_type_and_location(
+                    LexErrorType.NOT_CLOSED_CHAR,
+                    self.line, self.column, 1, self.filename, self.source_lines
+                )
         
         if self.current_char() != "'":
             raise LexError.from_type_and_location(
@@ -505,7 +555,7 @@ class Tokenizer:
         start_pos = self.position
         
         while (self.current_char() and 
-               (self.current_char().isalnum() or self.current_char() == '_')):
+               (self.current_char().isascii() and self.current_char().isalnum() or self.current_char() == '_')):
             self.advance()
         
         identifier_text = self.source[start_pos:self.position]
@@ -675,6 +725,7 @@ class Tokenizer:
             ']': TokenType.RIGHT_BRACKET,
             '{': TokenType.LEFT_BRACE,
             '}': TokenType.RIGHT_BRACE,
+            '$': TokenType.DOLLAR,  # For generic type parameters
         }
         
         if char in operators:

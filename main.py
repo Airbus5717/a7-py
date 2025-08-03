@@ -30,6 +30,12 @@ def main():
         help="Enable verbose output"
     )
     
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output compilation results in JSON format"
+    )
+    
     args = parser.parse_args()
     
     if not args.file:
@@ -50,7 +56,8 @@ def main():
     success = compile_a7_file(
         str(input_path),
         args.output,
-        verbose=args.verbose
+        verbose=args.verbose,
+        json_output=args.json
     )
     
     if not success:
