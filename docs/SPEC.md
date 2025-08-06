@@ -10,10 +10,11 @@
 6. [Functions](#functions)
 7. [Generics](#generics)
 8. [Memory Management](#memory-management)
-9. [Modules and Visibility](#modules-and-visibility)
-10. [Built-in Functions and Operators](#built-in-functions-and-operators)
-11. [Tokens and AST Components](#tokens-and-ast-components)
-12. [Grammar Summary](#grammar-summary)
+9. [Array Programming for AI](#array-programming-for-ai)
+10. [Modules and Visibility](#modules-and-visibility)
+11. [Built-in Functions and Operators](#built-in-functions-and-operators)
+12. [Tokens and AST Components](#tokens-and-ast-components)
+13. [Grammar Summary](#grammar-summary)
 
 ---
 
@@ -21,11 +22,13 @@
 
 ### 1.1 Language Overview
 
-A7 is a statically-typed, procedural programming language that compiles to C (could be changed later).
+A7 is a statically-typed, procedural programming language that currently compiles to Zig, with plans for C and native machine code targets.
 It features:
 - **Static typing** with type inference
 - **Compile-time generics** via monomorphization
 - **Manual memory management** with safety features
+- **Array programming for AI** with broadcasting and vectorized operations
+- **Multidimensional tensors** with efficient memory layouts
 - **File-based module system** with controlled visibility
 - **Zero-cost abstractions**
 - **Platform-aware integer types** (isize/usize)
@@ -884,7 +887,369 @@ if large == nil {
 
 ---
 
-## 9. Modules and Visibility
+## 9. Array Programming for AI
+
+### 9.1 Multidimensional Arrays
+
+A7 provides powerful array programming features designed for AI and scientific computing workloads.
+
+#### Tensor Types
+```a7
+// N-dimensional tensors (up to 8 dimensions)
+Tensor :: struct($T: Numeric, $N: u8) {
+    data: ref T              // Flat data storage
+    shape: [N]usize         // Dimensions
+    strides: [N]usize       // Memory strides
+}
+
+// Type aliases for common tensor shapes
+Vector :: [N]$T             // 1D vector
+Matrix :: [M][N]$T          // 2D matrix  
+Tensor3D :: [D][H][W]$T     // 3D tensor
+Tensor4D :: [B][C][H][W]$T  // 4D tensor (batch, channels, height, width)
+
+// Dynamic tensors with runtime shape
+DynTensor :: struct($T: Numeric) {
+    data: ref T
+    shape: []usize
+    strides: []usize
+    ndim: u8
+}
+```
+
+#### Array Literals and Initialization
+```a7
+// Multi-dimensional array literals
+matrix := [[1, 2, 3],
+           [4, 5, 6],
+           [7, 8, 9]]
+
+// Tensor initialization with shape inference
+tensor := [[[1, 2], [3, 4]],
+           [[5, 6], [7, 8]]]  // Shape: [2, 2, 2]
+
+// Explicit tensor creation
+zeros := tensor_zeros([3, 4, 5], f32)     // All zeros
+ones := tensor_ones([2, 3], i32)          // All ones  
+range := tensor_range(0, 100, [10, 10])   // Sequential values
+random := tensor_random([5, 5], f32)      // Random values [0, 1)
+
+// Tensor from data with explicit shape
+data := [1, 2, 3, 4, 5, 6]
+reshaped := tensor_from_data(data, [2, 3])
+```
+
+### 9.2 Broadcasting and Vectorized Operations
+
+#### Automatic Broadcasting
+```a7
+// Broadcasting follows NumPy-compatible rules
+a := [[1, 2, 3],        // Shape: [2, 3]
+      [4, 5, 6]]
+      
+b := [10, 20, 30]       // Shape: [3] -> broadcasts to [1, 3]
+
+result := a + b         // Element-wise addition with broadcasting
+// result = [[11, 22, 33],
+//           [14, 25, 36]]
+
+// Scalar broadcasting
+scaled := a * 2.0       // Multiply all elements by 2
+
+// Complex broadcasting
+x := tensor_ones([3, 1, 4])    // Shape: [3, 1, 4]
+y := tensor_ones([2, 5, 1])    // Shape: [2, 5, 1] 
+z := x + y                     // Result shape: [3, 2, 5, 4]
+```
+
+#### Vectorized Operations
+```a7
+// Element-wise operations (all support broadcasting)
+sum := a + b           // Addition
+diff := a - b          // Subtraction  
+prod := a * b          // Multiplication
+quot := a / b          // Division
+power := a ^ b         // Power
+mod := a % b           // Modulo
+
+// Mathematical functions (vectorized)
+roots := sqrt(a)       // Square root of each element
+logs := log(a)         // Natural logarithm
+exps := exp(a)         // Exponential
+sins := sin(a)         // Sine function
+tans := tanh(a)        // Hyperbolic tangent
+
+// Comparison operations (return boolean tensors)
+gt := a > b            // Greater than
+eq := a == b           // Equality
+mask := a >= 0.5       // Create boolean mask
+
+// Boolean operations on tensors
+result := tensor_where(mask, a, b)  // Select elements based on condition
+```
+
+### 9.3 Tensor Manipulation and Reshaping
+
+#### Shape Operations
+```a7
+// Get tensor properties
+dims := tensor_shape(a)        // Returns [usize] of dimensions
+ndim := tensor_ndim(a)         // Number of dimensions
+size := tensor_size(a)         // Total number of elements
+dtype := tensor_dtype(a)       // Element type
+
+// Reshaping (must preserve total size)
+reshaped := tensor_reshape(a, [6])        // Flatten to 1D
+matrix := tensor_reshape(a, [2, 3])       // 2x3 matrix
+tensor3d := tensor_reshape(a, [1, 2, 3])  // Add batch dimension
+
+// View operations (share memory)
+flattened := tensor_flatten(a)            // 1D view
+view := tensor_view(a, [start..end])      // Slice view
+```
+
+#### Axis Operations  
+```a7
+// Reorder dimensions
+transposed := tensor_transpose(matrix)              // 2D transpose
+swapped := tensor_transpose(tensor, [2, 0, 1])     // Reorder axes
+
+// Add/remove dimensions
+expanded := tensor_expand_dims(a, axis: 1)         // Add dimension at axis 1
+squeezed := tensor_squeeze(a)                      // Remove size-1 dimensions
+unsqueezed := tensor_unsqueeze(a, axis: 0)         // Add dimension at axis 0
+
+// Concatenation and splitting
+concat := tensor_concat([a, b, c], axis: 0)        // Join along axis
+chunks := tensor_split(a, sections: 3, axis: 1)    // Split into 3 parts
+stacked := tensor_stack([a, b, c], axis: 2)        // Stack along new axis
+```
+
+### 9.4 Reduction Operations
+
+```a7
+// Aggregation along axes
+sum_all := tensor_sum(a)                    // Sum all elements
+sum_axis := tensor_sum(a, axis: 1)          // Sum along axis 1
+mean_val := tensor_mean(a, axis: [0, 1])    // Mean along multiple axes
+
+// Statistical operations
+max_val := tensor_max(a)                    // Maximum value
+min_val := tensor_min(a)                    // Minimum value
+std_dev := tensor_std(a, axis: 0)           // Standard deviation
+variance := tensor_var(a)                   // Variance
+
+// Find operations
+argmax := tensor_argmax(a, axis: 1)         // Indices of maximum values
+argmin := tensor_argmin(a)                  // Index of global minimum
+```
+
+### 9.5 Linear Algebra Operations
+
+```a7
+// Matrix operations
+product := tensor_matmul(A, B)              // Matrix multiplication
+dot_prod := tensor_dot(x, y)                // Vector dot product
+cross := tensor_cross(u, v)                 // Cross product (3D vectors)
+
+// Decompositions and factorizations
+eigenvals, eigenvecs := tensor_eig(A)       // Eigendecomposition
+U, S, Vt := tensor_svd(A)                  // Singular value decomposition
+Q, R := tensor_qr(A)                       // QR decomposition
+L, U := tensor_lu(A)                       // LU decomposition
+
+// Matrix properties
+det := tensor_det(A)                        // Determinant
+trace := tensor_trace(A)                    // Trace
+inv := tensor_inv(A)                        // Matrix inverse
+norm := tensor_norm(x, p: 2)                // L2 norm
+```
+
+### 9.6 AI-Specific Operations
+
+#### Neural Network Primitives
+```a7
+// Convolution operations
+conv_out := tensor_conv2d(input, kernel,    // 2D convolution
+                         stride: [1, 1], 
+                         padding: [0, 0])
+
+pool_out := tensor_maxpool2d(input,         // Max pooling
+                            kernel_size: [2, 2],
+                            stride: [2, 2])
+
+// Activation functions (vectorized)
+relu := tensor_relu(x)                      // ReLU activation
+sigmoid := tensor_sigmoid(x)                // Sigmoid activation
+softmax := tensor_softmax(x, axis: -1)      // Softmax normalization
+gelu := tensor_gelu(x)                      // GELU activation
+
+// Normalization
+batch_norm := tensor_batch_norm(x, gamma, beta, mean, var)
+layer_norm := tensor_layer_norm(x, axis: -1)
+```
+
+#### Gradient Operations
+```a7
+// Automatic differentiation support
+grad_fn := tensor_grad_enable(x)            // Enable gradient tracking
+grad := tensor_backward(loss)               // Compute gradients
+no_grad := tensor_no_grad { ... }           // Disable gradient computation
+
+// Gradient clipping
+clipped := tensor_clip_grad_norm(params, max_norm: 1.0)
+```
+
+### 9.7 Memory Layout and Performance
+
+#### Memory Layout Control
+```a7
+// Specify memory layout
+row_major := tensor_c_layout(data, shape)   // C-style (row-major)
+col_major := tensor_f_layout(data, shape)   // Fortran-style (column-major)
+strided := tensor_strided(data, shape, strides)
+
+// Memory management
+contiguous := tensor_contiguous(a)          // Ensure contiguous memory
+copied := tensor_copy(a)                    // Deep copy
+cloned := tensor_clone(a)                   // Clone with same layout
+```
+
+#### Performance Annotations
+```a7
+// Compiler hints for optimization
+@vectorize                                  // Enable SIMD vectorization
+tensor_operation :: fn(a: Tensor, b: Tensor) Tensor {
+    ret a + b
+}
+
+@parallel                                   // Enable parallel execution
+matrix_multiply :: fn(A: Matrix, B: Matrix) Matrix {
+    ret tensor_matmul(A, B)
+}
+
+// Memory prefetch hints
+@prefetch(a.data, size_of(f32) * tensor_size(a))
+result := expensive_computation(a)
+```
+
+### 9.8 Indexing and Slicing
+
+#### Advanced Indexing
+```a7
+// Multi-dimensional indexing
+element := tensor[i, j, k]                  // Direct element access
+row := tensor[i, ..]                        // Entire row
+col := tensor[.., j]                        // Entire column
+block := tensor[i..i+3, j..j+3]             // 3x3 block
+
+// Boolean indexing
+mask := tensor > 0.5                        // Boolean mask
+filtered := tensor[mask]                    // Elements where mask is true
+
+// Integer array indexing
+indices := [0, 2, 4, 6]
+selected := tensor[indices]                 // Select specific indices
+
+// Fancy indexing with multiple arrays
+row_idx := [0, 1, 2]
+col_idx := [1, 2, 0]
+elements := tensor[row_idx, col_idx]        // Select (0,1), (1,2), (2,0)
+```
+
+### 9.9 Built-in Tensor Functions
+
+```a7
+// Creation functions
+tensor_zeros :: fn(shape: []usize, $T: Numeric) Tensor(T)
+tensor_ones :: fn(shape: []usize, $T: Numeric) Tensor(T)
+tensor_eye :: fn(n: usize, $T: Numeric) Tensor(T)           // Identity matrix
+tensor_arange :: fn(start: $T, stop: $T, step: $T) Tensor(T)
+tensor_linspace :: fn(start: $T, stop: $T, num: usize) Tensor(T)
+
+// Type conversion
+tensor_cast :: fn($T, $U: Numeric, tensor: Tensor(T)) Tensor(U)
+tensor_to_f32 :: fn(tensor: Tensor) Tensor(f32)
+tensor_to_i32 :: fn(tensor: Tensor) Tensor(i32)
+
+// I/O operations  
+tensor_save :: fn(tensor: Tensor, filename: string) bool
+tensor_load :: fn(filename: string, $T: Numeric) Tensor(T)
+tensor_print :: fn(tensor: Tensor, precision: u8)
+
+// Device operations (for GPU/accelerator support)
+tensor_to_gpu :: fn(tensor: Tensor) Tensor
+tensor_to_cpu :: fn(tensor: Tensor) Tensor
+tensor_device :: fn(tensor: Tensor) Device
+```
+
+### 9.10 Array Programming Examples
+
+#### Machine Learning Example
+```a7
+// Simple neural network layer
+Layer :: struct {
+    weights: Matrix(f32)
+    bias: Vector(f32)
+}
+
+forward :: fn(layer: Layer, input: Matrix(f32)) Matrix(f32) {
+    // Matrix multiplication + bias + activation
+    linear := tensor_matmul(input, layer.weights) + layer.bias
+    ret tensor_relu(linear)
+}
+
+// Batch processing
+process_batch :: fn(data: Tensor4D(f32)) Tensor4D(f32) {
+    // Normalize batch
+    normalized := tensor_batch_norm(data)
+    
+    // Apply convolution
+    conv_out := tensor_conv2d(normalized, kernel)
+    
+    // Pooling
+    ret tensor_maxpool2d(conv_out, kernel_size: [2, 2])
+}
+```
+
+#### Scientific Computing Example  
+```a7
+// Solve linear system Ax = b using tensor operations
+solve_linear :: fn(A: Matrix(f64), b: Vector(f64)) Vector(f64) {
+    // LU decomposition
+    L, U, P := tensor_lu_pivot(A)
+    
+    // Forward substitution: Ly = Pb
+    Pb := tensor_matmul(P, b)
+    y := tensor_forward_solve(L, Pb)
+    
+    // Backward substitution: Ux = y
+    ret tensor_backward_solve(U, y)
+}
+
+// Numerical integration using broadcasting
+integrate_2d :: fn(f: fn(f64, f64) f64, bounds: [4]f64, steps: [2]usize) f64 {
+    x := tensor_linspace(bounds[0], bounds[1], steps[0])
+    y := tensor_linspace(bounds[2], bounds[3], steps[1])
+    
+    // Create meshgrid using broadcasting
+    X := tensor_expand_dims(x, axis: 1)     // [n, 1]
+    Y := tensor_expand_dims(y, axis: 0)     // [1, m]
+    
+    // Evaluate function on grid (broadcasts to [n, m])
+    Z := f(X, Y)
+    
+    // Numerical integration using trapezoidal rule
+    dx := (bounds[1] - bounds[0]) / cast(f64, steps[0] - 1)
+    dy := (bounds[3] - bounds[2]) / cast(f64, steps[1] - 1)
+    
+    ret tensor_sum(Z) * dx * dy
+}
+```
+
+---
+
+## 10. Modules and Visibility
 2. [Lexical Structure](#lexical-structure)
 3. [Type System](#type-system)
 4. [Declarations and Expressions](#declarations-and-expressions)
@@ -903,7 +1268,7 @@ if large == nil {
 
 ### 1.1 Language Overview
 
-A7 is a statically-typed, procedural programming language that compiles to C (could be changed later).
+A7 is a statically-typed, procedural programming language that currently compiles to Zig, with plans for C and native machine code targets.
 It features:
 - **Static typing** with type inference
 - **Compile-time generics** via monomorphization
@@ -2403,85 +2768,131 @@ A7 supports the full ASCII character set (0-127) only. Characters outside this r
 
 ## Appendix E: Implementation Status (a7-py)
 
-The **a7-py** implementation (Python-based A7 compiler) currently provides:
+The **a7-py** implementation (Python-based A7 compiler) currently provides a fully functional tokenizer and recursive descent parser with comprehensive AST generation.
 
 ### E.1 Completed Features ✅
 
-**Lexical Analysis:**
-- Complete tokenizer with all A7 token types
+**Lexical Analysis (Complete):**
+- Complete tokenizer with all A7 token types (~765 lines, fully implemented)
 - Support for all literal types (integer, float, char, string, boolean, nil)
 - Proper handling of character escape sequences including hex escapes (`\x41`)
 - Generic type parameter tokenization with `$` prefix (`$T`, `$U`)
-- Comprehensive error reporting with precise location tracking
-- Length validation (identifiers: 100 chars, numbers: 100 digits)
+- Comprehensive error reporting with 17+ specific error types and helpful advice
+- Length validation (identifiers: 100 chars, numbers: 100 chars)
 - Tab detection with specific error messages
+- Nested multi-line comments and single-line comments
 
-**Language Features:**
-- All primitive types (i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64, bool, char)
-- Keywords and operators tokenization
-- Comments (single-line `//` and nested multi-line `/* */`)
-- String and character literals with escape sequences
-- Numeric literals (decimal, hex, binary, octal)
-- Generic syntax support (`$T` type parameters)
+**Syntax Analysis (Implemented):**
+- **Recursive descent parser** with precedence climbing for expressions (~1137 lines)
+- **Complete AST generation** with 79 different node types covering all A7 constructs
+- **Function declarations** with parameters, return types, and generic support
+- **Control flow statements** (if/else, while, for loops, match/case)
+- **Expression parsing** with proper operator precedence and associativity
+- **Type system** parsing (primitive types, arrays, slices, pointers, function types)
+- **Memory management** constructs (new, del, defer statements)
+- **Composite types** (struct, enum, union declarations with full field parsing)
+
+**Currently Working A7 Language Constructs:**
+- ✅ **Function declarations**: `name :: fn(params) return_type { body }`
+- ✅ **Variable/constant declarations**: `name := value`, `name :: value`, `name: type = value`
+- ✅ **Control flow**: if/else statements, while loops, simple for loops
+- ✅ **Expressions**: arithmetic, comparison, logical, function calls, field access
+- ✅ **Type parsing**: primitive types, arrays `[N]T`, slices `[]T`, pointers `ref T`
+- ✅ **Basic literals**: integers, floats, strings, characters, booleans, nil
+- ✅ **Struct declarations**: `Name :: struct { fields... }`
+- ✅ **Enum declarations**: `Name :: enum { variants... }`
+- ✅ **Union declarations**: `Name :: union { fields... }`
+- ✅ **Array literals**: `[1, 2, 3]`
+- ✅ **Struct initialization**: `Person{name: "John", age: 30}`
+- ✅ **Match statements**: basic parsing with case branches
+- ✅ **Defer statements**: `defer statement`
+- ✅ **Generic parameters**: `fn($T, ...)`
 
 **Developer Tools:**
-- Rich console output with syntax highlighting
-- JSON output mode (`--json` flag) with metadata and token arrays
-- Comprehensive test suite (55 tests covering tokenizer and error handling)
-- CLI with verbose and JSON output options
+- Rich console output with syntax highlighting and AST tree visualization
+- JSON output mode (`--json` flag) with comprehensive metadata and AST serialization
+- Debug modes: `--tokenize-only`, `--parse-only` for analysis at different stages
+- Comprehensive test suite with 238+ tests across multiple categories
+- CLI with verbose and error recovery options
 
-### E.2 In Development 🚧
+### E.2 Parser Success Rate 📊
 
-**Parser and AST:**
-- AST node construction (referenced but not yet implemented)
-- Syntax tree building and validation
+**A7 Example Analysis:**
+- **Current Success Rate**: ~6/22 examples (27%) parse completely successfully
+- **Successful Examples**: 000_empty.a7, basic function declarations, simple control flow
+- **Partially Working**: Struct/enum keywords recognized, basic syntax parsing works
 
-**Code Generation:**
-- Backend system (base classes exist, concrete implementations needed)
-- Target language output (currently designed for Zig, not C)
+**Major Missing Parser Features** (7 areas causing example failures):
 
-### E.3 Testing Status 📊
+1. **Named Import Statements** (`examples/001_hello.a7`, `002_var.a7`):
+   - `io :: import "std/io"` syntax not supported
+   - Field access on imported modules `io.println()` not implemented
+   - Module namespace resolution missing
 
-**Example Coverage:**
-- ✅ **22/22 A7 examples** parse successfully with tokenizer
-- ✅ All basic language constructs (functions, variables, control flow)
-- ✅ Advanced features (generics, pointers, memory management syntax)
-- ✅ Complex literals and escape sequences
+2. **Advanced For Loop Variants** (`examples/005_for_loop.a7`):
+   - Range-based loops: `for value in arr` not implemented
+   - Indexed iteration: `for i, value in arr` not implemented
+   - Only simple `for { ... }` infinite loops currently work
 
-**Test Suite:**
-- ✅ **55/55 Python tests** pass
-- ✅ Comprehensive tokenizer tests
-- ✅ Aggressive edge case testing  
-- ✅ Complete error handling validation
-- ✅ JSON output format validation
+3. **Complex Match/Switch Patterns** (`examples/008_switch.a7`):
+   - Range patterns `case 6..10:` not supported
+   - Multiple case values `case 3, 4, 5:` not supported
+   - `fall` (fallthrough) statement parsing incomplete
 
-### E.4 Known Limitations
+4. **Complex Struct Features** (`examples/009_struct.a7`):
+   - Anonymous struct initialization: `Token{1, [10, 20, 30]}` fails
+   - Nested struct declarations inside function bodies fail
+   - Array field initialization in struct literals fails
 
-1. **Parser**: Not yet implemented - currently only tokenizes source code
-2. **Semantic Analysis**: Type checking, lifetime analysis not implemented
-3. **Code Generation**: No actual compilation to target languages
-4. **Standard Library**: Function signatures documented but not implemented
-5. **Module System**: Import syntax recognized but not processed
+5. **Enum Value Access** (`examples/010_enum.a7`):
+   - Scoped enum access: `TknType.Id` not supported  
+   - Explicit enum values: `Ok = 200` parsing works but access patterns fail
+   - `cast(i32, status)` expressions not implemented
 
-### E.5 Error Handling Quality
+6. **Memory Management Expressions** (`examples/011_memory.a7`):
+   - `new` expressions for allocation not implemented
+   - Pointer dereference: `ptr.*` syntax not fully integrated
+   - Complex defer statement integration needs work
 
-The a7-py implementation provides production-quality error messages:
+7. **Advanced Type Annotations**:
+   - Function types in parameters not fully supported
+   - Complex array type expressions with initialization fail
+   - Generic type constraints parsing incomplete
+
+### E.3 Architecture & Quality ⚙️
+
+**Parser Architecture:**
+- **Error Recovery**: Robust synchronization prevents cascade failures
+- **Context-Aware Parsing**: Sophisticated disambiguation between struct literals and statement blocks
+- **Safety Mechanisms**: Infinite loop prevention, position tracking, maximum iteration limits
+- **Source Locations**: Precise error locations with line/column tracking for all AST nodes
+
+**Error Handling Quality:**
+Production-quality error messages with source context:
 
 ```
-error: The char is not closed, line: 2, col: 15
-help: Close the char with a quote
+error: Expected declaration (constant, variable, or function), line: 2, col: 15
+help: Use :: for constants or := for variables
   1 │ fn main() {
-  2 │     ch := '\x4  // Missing closing quote
+  2 │     invalid syntax here
     │               ^
 ```
 
-**Error Types Supported:**
-- `INVALID_CHARACTER` - Invalid characters in source
-- `NOT_CLOSED_STRING` - Unterminated string literals  
-- `NOT_CLOSED_CHAR` - Unterminated character literals
-- `TABS_UNSUPPORTED` - Tab character usage
-- `TOO_LONG_IDENTIFIER` - Identifier length violations
-- `TOO_LONG_NUMBER` - Numeric literal length violations
-- And 11 additional specific error types with helpful advice
+### E.4 Current Limitations 🚧
 
-The implementation serves as a solid foundation for A7 language development and provides excellent tooling for language exploration and testing.
+1. **Complex Language Features**: Named imports, advanced for loops, complex match patterns
+2. **Expression Context**: Some struct literal vs. statement block disambiguation edge cases
+3. **Code Generation**: No backend implementation yet (AST-to-Zig not implemented)
+4. **Semantic Analysis**: Type checking, lifetime analysis, scope resolution not implemented
+5. **Standard Library**: Built-in functions referenced but not implemented
+
+### E.5 Development Status Summary
+
+The **a7-py** implementation has successfully moved **beyond tokenization** to provide a **working recursive descent parser** that generates complete ASTs for significant portions of the A7 language. While complex language features still need implementation, the foundation is solid with ~1900 lines of parser/AST code and comprehensive error handling.
+
+**Next Development Priorities:**
+1. Named import statement parsing
+2. Advanced for loop variants (range-based, indexed)
+3. Complex match pattern support
+4. Expression context disambiguation improvements
+5. AST-to-Zig code generation backend

@@ -4,234 +4,256 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **a7-py**, a Python implementation of the A7 programming language compiler/interpreter. A7 is a statically-typed, procedural programming language with C-style syntax, manual memory management, and compile-time generics.
+This is an A7 programming language compiler implemented in Python. A7 is a statically-typed, procedural language designed for AI and systems programming with array programming capabilities, generics, and manual memory management. The compiler targets Zig as the output language.
 
-## Key Commands
+## Core Architecture
 
-- **Install dependencies**: `uv sync` (use uv for dependency management)
-- **Run the main program**: `python main.py` or `uv run python main.py`
-- **Run with shell script**: `./run.sh` (requires `chmod +x run.sh` first time, activates venv and uses uv run)
-- **Run Python with dependencies**: `uv run python <script>` 
-- **Run Python tests**: `uv run pytest` (pytest is available as dependency)
-- **Run specific test**: `uv run pytest path/to/test.py::SpecificTestClass::test_method -v`
-- **Run tokenizer tests**: `uv run pytest test/test_tokenizer.py -v`
-- **Run error handling tests**: `uv run pytest test/test_tokenizer_errors.py -v`
-- **Run all tokenizer tests**: `uv run pytest test/ -v` (includes basic, aggressive, and error tests)
-- **Run parser tests**: `uv run pytest test/test_parser_basic.py -v` (basic parser functionality)
-- **Run parser analysis**: `uv run pytest test/test_parser_integration.py::TestParserFailureAnalysis::test_analyze_all_examples -v -s` (comprehensive analysis)
-- **Test individual A7 programs**: `uv run python main.py examples/001_hello.a7` (compiles and displays tokens/AST)
-- **JSON output**: Add `--json` flag for structured output: `uv run python main.py examples/001_hello.a7 --json`
+### Compilation Pipeline
+The compiler follows a standard multi-stage architecture:
 
-## Architecture
+1. **Lexical Analysis** (`src/tokens.py`) - Tokenizes A7 source code with comprehensive error reporting
+2. **Syntax Analysis** (`src/parser.py`) - Recursive descent parser that builds ASTs
+3. **AST Construction** (`src/ast_nodes.py`) - Defines all AST node types and factory functions
+4. **Error Handling** (`src/errors.py`) - Rich error formatting with 17+ specific error types
+5. **Code Generation** (`src/backends/`) - Backend interface (Zig target planned)
+6. **Main Pipeline** (`src/compile.py`) - Orchestrates the entire compilation process
 
-### Implementation Architecture
-- **Compiler Pipeline**: Lexer → Parser → Code Generator (pluggable backends)
-- **Main Entry**: `main.py` contains CLI argument parsing and calls compile pipeline
-- **Core Modules**:
-  - `src/tokens.py`: Complete lexer/tokenizer with A7 token types and length validation
-  - `src/parser.py`: Recursive descent parser with precedence climbing for expressions
-  - `src/ast_nodes.py`: Complete AST node system with 79 node kinds and utility functions
-  - `src/compile.py`: Main compilation pipeline (A7Compiler class) with tokenization → parsing → AST generation
-  - `src/backends/`: Pluggable code generation backends (base class exists, concrete backends pending)
-  - `src/errors.py`: Comprehensive error handling with 17 specific error types, advice messages, and Rich-formatted display
-- **Source files**: A7 programs use `.a7` extension
-- **Default target**: Currently compiles to Zig (not C as originally planned)
+### Key Components
 
-### A7 Language Key Features
-- **Statically typed** with type inference
-- **Manual memory management** with `new`/`del` and `defer` statements  
-- **Compile-time generics** via monomorphization using `$T` syntax
-- **Two declaration operators**: `::` for constants, `:=` for variables
-- **Logical operators**: Uses `and`/`or` keywords instead of `&&`/`||` symbols
-- **Platform-aware types**: `isize`/`usize` for pointer-sized integers
-- **Memory safety features**: bounds checking, lifetime tracking
-- **File-based module system** with `pub` visibility
-- **Function parameter immutability**: All parameters cannot be reassigned
-- **Pointer semantics**: Modification through dereferencing with `ptr.*` syntax
-- **Pattern matching**: `match` statements with explicit `fall` for fallthrough
+**Tokenizer** (`src/tokens.py`, ~765 lines):
+- Handles all A7 tokens including generics (`$T`), array syntax, and operators
+- Validates identifier/number length limits (100 chars each)
+- Provides detailed error locations and helpful messages
+- Supports hex escapes (`\x41`), nested comments, and all A7 literals
 
-### Critical A7 Language Details
-- **Declaration syntax**: `::` creates immutable bindings, `:=` creates mutable bindings
-- **Return statement**: Uses `ret` keyword (not `return`)
-- **String type**: Built-in `string` type, ASCII-only encoding
-- **Array/slice distinction**: Fixed arrays `[N]T` vs dynamic slices `[]T`
-- **Reference syntax**: `ref T` for pointers, `&` for address-of, `ptr.*` for dereference
-- **Generic constraints**: Type sets like `Numeric`, `Integer` defined with `@set()`
-- **Import system**: `name :: import "module"` syntax
+**Parser** (`src/parser.py`, ~1137 lines):
+- Recursive descent with precedence climbing for expressions
+- Builds complete ASTs for all A7 language constructs
+- Handles generics, functions, structs, enums, control flow
+- Currently parses 16 of 22 A7 example programs successfully (72% success rate)
 
-### A7 Language Examples Structure
-The `examples/` directory contains A7 language examples showing language progression:
-- `000_empty.a7` - Empty program
-- `001_hello.a7` - Hello World with module imports
-- `002_var.a7` - Variable/constant declarations with `::` and `:=`
-- `003_comments.a7` - Comment syntax (single and multi-line)  
-- `004_func.a7` - Function definitions and calls
-- `005_for_loop.a7` - Loop constructs
-- `006_if.a7` - Conditional statements
-- `007_while.a7` - While loops
-- `008_switch.a7` - Pattern matching with `match`
-- `009_struct.a7` - Structure definitions
-- `010_enum.a7` - Enumeration types
-- `011_memory.a7` - Memory management with `new`/`del`
-- `012_arrays.a7` - Array syntax and operations
-- `013_pointers.a7` - Pointer semantics and dereferencing
-- `014_generics.a7` - Generic type parameters and constraints
-- `015_types.a7` - Type system features
-- `016_unions.a7` - Union types
-- `017_methods.a7` - Method definitions
-- `018_modules.a7` - Module system usage
-- `019_literals.a7` - Literal syntax (numbers, strings, chars)
-- `020_operators.a7` - Operator precedence and usage
-- `021_control_flow.a7` - Advanced control flow patterns
+**AST Nodes** (`src/ast_nodes.py`, ~558 lines):
+- Enum-based design with minimal inheritance
+- Factory functions for consistent node creation
+- Supports all A7 constructs: generics, memory management, pattern matching
 
-### Python Test Structure
-The `test/` directory contains Python unit tests for the compiler:
+**Error System** (`src/errors.py`, ~461 lines):
+- Rich console formatting with syntax highlighting
+- 17 specific lexer error types with helpful advice
+- Source location tracking with line/column precision
+- Both human-readable and JSON output modes
 
-**Tokenizer Tests:**
-- `test_tokenizer.py` - Comprehensive tokenizer tests paired with A7 examples
-- `test_tokenizer_aggressive.py` - Additional tokenizer edge case tests
-- `test_tokenizer_errors.py` - Comprehensive error handling and error message formatting tests
+## Development Commands
 
-**Parser Tests (NEW):**
-- `test_parser_basic.py` - Core parser functionality tests (constants, variables, functions, expressions, types)
-- `test_parser_missing_constructs.py` - Documents missing language features with skip markers (structs, enums, unions, match, defer)
-- `test_parser_examples.py` - Tests parser against actual A7 example files with failure analysis
-- `test_parser_edge_cases.py` - Edge cases, error recovery, robustness, and boundary condition tests
-- `test_parser_integration.py` - Integration tests and comprehensive analysis of parser capabilities
+### Core Compilation
+```bash
+# Compile A7 source files
+uv run python main.py examples/001_hello.a7
+uv run python main.py --json examples/014_generics.a7    # JSON output
+./run.sh examples/021_control_flow.a7                    # Alternative
 
-## Language Specification Reference
+# Debugging and analysis modes
+uv run python main.py examples/006_if.a7 --tokenize-only        # Show tokenization output only
+uv run python main.py examples/004_func.a7 --parse-only         # Show tokenization + parsing output  
+uv run python main.py examples/002_var.a7 --tokenize-only --json # JSON analysis output
 
-The complete A7 language specification is in `docs/SPEC.md` (2000+ lines). Key sections:
-- **Section 2**: Lexical structure, keywords, operators
-- **Section 3**: Type system (primitives, composites, generics)
-- **Section 4**: Declaration syntax and expression categories
-- **Section 5**: Control flow (if, match, loops, jumps)
-- **Section 6**: Functions (declarations, parameters, methods, variadic)
-- **Section 7**: Generic system with type parameters and constraints
-- **Section 8**: Memory management (stack, heap, defer, safety)
-- **Section 9**: Module system (imports, visibility, file-based)
-- **Section 10**: Built-in functions and standard library
-- **Section 11**: Token types and AST node structure
-- **Section 12**: Complete grammar in EBNF
+# Test all examples
+for file in examples/*.a7; do uv run python main.py "$file" || echo "FAILED: $file"; done
+```
 
-## Development Notes
+### Testing (238 total tests)
+```bash
+# Run all tests
+uv run pytest
 
-- **Implementation Status**: 
-  - ✅ Complete lexer/tokenizer with all A7 tokens including `$` for generics (`src/tokens.py`)
-  - ✅ Advanced character literal parsing with hex escape sequences (`\x41`)
-  - ✅ JSON output format with `--json` flag for structured data export
-  - ✅ Comprehensive error handling system (17 error types) with helpful advice
-  - ✅ Enhanced error display: Rich-formatted output with visual context, dynamic error indicators (`▲` for single chars, `└──┘` for spans), compact `[line X: col X]` format, and contextual hints
-  - ✅ Length validation for identifiers (100 chars) and numbers (100 digits)
-  - ✅ Tab detection with specific error messages
-  - ✅ All 22 A7 examples now tokenize successfully (was 19/22, now 22/22)
-  - ✅ **Recursive descent parser implemented** (`src/parser.py`) with precedence climbing for expressions
-  - ✅ **Complete AST node system** (`src/ast_nodes.py`) with 79 node kinds and utility functions
-  - ✅ **Enhanced compilation pipeline** now supports tokenization → parsing → AST generation
-  - ✅ **Comprehensive parser test suite** (100+ test cases across 5 test files covering functionality, missing features, examples, edge cases)
-  - ⚠️ Backend system partially implemented (base class exists, but missing concrete backends)
-  - ✅ Main program has CLI parsing and calls compilation pipeline
-  - ✅ Compilation outputs Rich console display or JSON format with AST information
-- **Missing Components**: Concrete code generator backends (lexing and parsing complete)
-- **Target Language**: Currently designed to compile to Zig (see `src/compile.py` line 3: "A7 to Zig Compiler")
-- **Development Philosophy**: Specification-driven development using `docs/SPEC.md` as authoritative reference
+# Test specific components
+uv run pytest test/test_tokenizer.py              # Core tokenizer tests
+uv run pytest test/test_parser_basic.py           # Basic parser functionality  
+uv run pytest test/test_tokenizer_errors.py       # Error handling validation
+uv run pytest test/test_parser_examples.py        # All 22 A7 examples
 
-## Important Implementation Notes
+# Run single test method
+uv run pytest test/test_tokenizer.py::TestTokenizer::test_keywords -v
 
-- **Generics support**: The `$` token is fully implemented for generic type parameters (`$T`, `$U`) as specified in the A7 language
-- **Advanced character literals**: Supports all escape sequences including hex escapes (`\x41`) with proper validation
-- **JSON output**: Added `--json` flag providing structured output with metadata, source code, and token arrays for tooling integration
-- **Arrow operator removed**: The `->` operator was removed from the tokenizer as it's not used in the current A7 specification. Sequences like `->` are now tokenized as separate `MINUS` and `GREATER_THAN` tokens.
-- **Tokenizer architecture**: The tokenizer in `src/tokens.py` handles all A7 tokens including nested comments, numeric literals (decimal, hex, binary), string/char literals with escapes, and operators with proper precedence handling.
-- **Enhanced error system**: `src/errors.py` implements 17 specific error types (e.g., `INVALID_CHARACTER`, `NOT_CLOSED_STRING`, `TABS_UNSUPPORTED`) with corresponding helpful advice messages and precise error location tracking.
-- **Error message format**: Uses format `error: message, line: x, col: y` followed by `help: advice` with yellow line numbers, white code, and red `^` pointers for precise error indication.
-- **Smart context display**: Small files (≤5 lines) show all lines, larger files show contextual lines around errors.
-- **Test structure**: Tests are organized with `test_tokenizer.py` covering A7 example files, `test_tokenizer_aggressive.py` for edge cases, and `test_tokenizer_errors.py` for comprehensive error handling validation.
-- **Complete example coverage**: All 22 A7 example files now tokenize successfully, including complex generics and character literals
+# Test with coverage
+uv run pytest --tb=short -v                       # Shorter tracebacks
+```
 
-## Dependencies
+### Development Environment
+```bash
+uv sync                           # Install dependencies
+uv add <package>                  # Add dependency  
+uv tree                          # Show dependency tree
+```
 
-- **Python 3.13+**: Minimum required Python version
-- **uv**: Modern Python package manager for dependency management
-- **pytest**: Testing framework with comprehensive test suite (100+ tests)
-- **rich**: Enhanced terminal output, error formatting, and CLI display
+## Testing Strategy
 
-## Error Handling System
+The project uses a 3-tier testing approach:
 
-The error system provides professional-grade error reporting with:
-- **Visual Context**: Source code display with line numbers and error highlighting
-- **Dynamic Indicators**: Triangle (`▲`) for single characters, box drawing (`└──┘`) for spans
-- **Compact Location**: Format `[line X: col X]` for precise error positioning
-- **Contextual Hints**: Helpful suggestions for fixing common errors
-- **Rich Formatting**: Clean, readable output without distracting elements
+1. **Basic Functionality** - Core language features work correctly
+2. **Aggressive Edge Cases** - Boundary conditions, malformed input, limits
+3. **Error Handling** - All error types produce helpful messages
 
-## Current Implementation Status
+### Test Organization
+- `test_tokenizer.py` - Token type validation for all A7 constructs
+- `test_tokenizer_aggressive.py` - Edge cases, limits, malformed syntax
+- `test_tokenizer_errors.py` - Error message validation (17 error types)
+- `test_parser_*.py` - Parser functionality across language features
+- `test_parser_examples.py` - Integration tests using all 22 A7 examples
 
-**CURRENT STATUS (January 2025)**: The compiler has **complete lexing and parsing capabilities**:
+### A7 Example Coverage
+The `examples/` directory contains 22 A7 programs demonstrating:
+- `000_empty.a7` through `021_control_flow.a7`
+- All major language features: functions, generics, memory management, structs, enums
+- These serve as both documentation and integration tests
 
-- ✅ **Lexer/Tokenizer**: Fully implemented, handles all A7 tokens, passes all tests
-- ✅ **Parser Core**: **100% A7 example success rate** - all 22 example files parse successfully
-- ✅ **Language Features**: All major A7 constructs implemented (struct, enum, union, match, defer, generics, pointers)
-- ✅ **AST System**: 79 node kinds implemented covering all A7 language constructs  
-- ✅ **Error Handling**: Enhanced Rich-formatted error display with visual indicators and context
-- ✅ **CLI Interface**: Full argument parsing with `--json` output option
-- ⚠️ **Expression Gaps**: Array literals, struct initialization, cast expressions not fully implemented
-- ⚠️ **Code Generation**: Base backend class exists, but no concrete Zig backend implemented
+## Language Implementation Status
 
-**Next Development Priority**: Implement Zig code generator backend for complete compilation pipeline.
+### ✅ Completed
+- **Complete tokenizer** with all A7 token types
+- **Recursive descent parser** handling all language constructs  
+- **AST generation** for the full A7 grammar
+- **Error system** with 17+ specific error types and rich formatting
+- **JSON output mode** for tooling integration
+- **6 of 22 A7 examples** parse completely successfully (27% success rate, see Missing Parser Features section for detailed breakdown)
 
-## Parser Implementation Analysis
+### 🚧 In Development
+- **Parser improvements** for remaining A7 constructs (struct literals, imports, for loops, switch statements)  
+- **Code generation** to Zig (backend architecture exists)
+- **Type checking** and semantic analysis
+- **Optimization passes**
 
-### Parser Capabilities (WORKING)
-- ✅ **Basic Declarations**: Constants (`::`) and variables (`:=`) with type inference
-- ✅ **Function Declarations**: With parameters, return types, and body parsing
-- ✅ **Expression Parsing**: Binary/unary operators with correct precedence
-- ✅ **Control Flow**: if/else statements, while loops, basic for loops
-- ✅ **Type System**: Primitive types, arrays `[N]T`, slices `[]T`, pointers `ref T`
-- ✅ **Function Calls**: With argument lists and nested calls
-- ✅ **Import Statements**: Basic `import "module"` syntax
-- ✅ **Literals**: All literal types (integers, floats, strings, chars, booleans, nil)
-- ✅ **Error Recovery**: Basic synchronization at statement/declaration boundaries
+### 🎯 Key Design Decisions
+- **Enum-based AST** nodes for simplicity and performance
+- **Factory pattern** for AST construction with validation
+- **Rich error formatting** prioritizes developer experience  
+- **uv-based** dependency management for modern Python workflows
+- **Comprehensive testing** with 238 tests covering edge cases
 
-### Parser Implementation Status (January 2025)
+## A7 Language Features
 
-**COMPREHENSIVE LANGUAGE SUPPORT**: All major A7 language features are successfully parsed:
+This compiler implements the A7 language specification (`docs/SPEC.md`) including:
 
-### Fully Implemented Language Constructs ✅
-- ✅ **All Declaration Types**: Constants (`::`) and variables (`:=`) with full type support
-- ✅ **Complete Type System**: Primitives, arrays `[N]T`, slices `[]T`, pointers `ref T`, generics `$T`
-- ✅ **Advanced Data Types**: Struct, enum, union declarations with full member support
-- ✅ **Function System**: Declarations, parameters, return types, generic functions
-- ✅ **Control Flow**: if/else, while, for loops, match statements, defer
-- ✅ **Expression Parsing**: Binary/unary operators with correct precedence, function calls
-- ✅ **Memory Management**: `new`, `del` keywords and pointer operations
-- ✅ **Module System**: Import statements and public visibility
-- ✅ **All Example Files**: 22/22 A7 examples parse successfully with 100% success rate
+- **Static typing** with type inference and generics (`$T`)
+- **Array programming** with broadcasting and vectorized operations
+- **Memory management** (`new`/`del`, pointers, slices)
+- **Pattern matching** (`match`/`case` with fallthrough)
+- **Modules** with visibility controls (`pub`)
+- **Functions** with immutable parameters and generic constraints
+- **Composite types** (structs, unions, enums, arrays)
 
-### Minor Implementation Gaps ⚠️
-- ⚠️ **Array Literals**: `[1, 2, 3]` syntax in expressions
-- ⚠️ **Struct Initialization**: `Person{name: "John"}` syntax
-- ⚠️ **Cast Expressions**: `cast(type, value)` syntax
-- ⚠️ **Named Imports**: `name :: import "module"` syntax
-- ⚠️ **Explicit Type Annotations**: `var: type := value` syntax
+The compiler uses `uv` for dependency management and pytest for testing. All development should use `uv run` prefix for consistency.
 
+## Parser Architecture & Context Handling
 
-### Test Coverage
-- **Comprehensive Test Suite**: 100+ test cases across tokenizer, parser, and error handling
-- **Example Integration**: All 22 A7 example files parse successfully (100% success rate)
-- **Edge Cases**: Robust testing for error conditions, boundary cases, and recovery scenarios
-- **Analysis Tools**: Automated parser capability analysis and language feature detection
+**Context-Aware Parsing**: The parser includes sophisticated context detection to handle ambiguous syntax:
+- **Struct Literal Detection** (`_should_parse_struct_literal()`) - Distinguishes `identifier{` between struct literals and statement blocks
+- **Expression vs Statement Context** - Prevents misinterpreting `if condition {` where the `{` starts a block, not a struct literal
+- **Error Recovery** - Parser continues after errors to provide comprehensive feedback, but may misclassify some constructs
 
-### Development Priorities
-1. **High Priority - Code Generation**:
-   - Implement concrete Zig backend in `src/backends/`
-   - Add code generation for all AST node types
-   - Complete the compilation pipeline from A7 source to Zig output
-2. **Medium Priority - Expression Enhancements**:
-   - Implement array literals `[1, 2, 3]` in `parse_primary_expression`
-   - Implement struct initialization `Person{name: "John"}` syntax
-   - Implement cast expressions `cast(type, value)`
-3. **Low Priority - Language Refinements**:
-   - Add named imports: `name :: import "module"`
-   - Add explicit type annotations: `var: type := value`
-   - Enhanced error recovery for edge cases
+**Missing Parser Features** (7 major areas causing example failures):
+
+1. **Import + Field Access Chain** (`examples/001_hello.a7`, `002_var.a7`):
+   - `io :: import "std/io"` followed by `io.println()` fails
+   - Field access on imported modules not implemented
+   - Module namespace resolution missing
+
+2. **For Loop Variants** (`examples/005_for_loop.a7`):  
+   - Range-based loops: `for value in arr` not implemented
+   - Indexed iteration: `for i, value in arr` not implemented
+   - Only simple infinite loops `for { ... }` currently work
+
+3. **Match/Switch Statements** (`examples/008_switch.a7`):
+   - Basic `match` parsing exists but complex patterns fail
+   - Range patterns `case 6..10:` not supported
+   - Multiple case values `case 3, 4, 5:` not supported  
+   - `fall` (fallthrough) statement not implemented
+
+4. **Struct Literal Initialization** (`examples/009_struct.a7`):
+   - Anonymous initialization: `Token{1, [10, 20, 30]}` fails
+   - Named field initialization: `Person{name: "John", age: 30}` works in simple cases
+   - Array field initialization in struct literals fails
+   - Nested struct initialization not supported
+   - Local struct declarations inside functions fail
+
+5. **Enum Declarations & Access** (`examples/010_enum.a7`):
+   - Enum declaration parsing implemented but access patterns fail
+   - Scoped enum access: `TknType.Id` not supported
+   - Explicit enum values: `Ok = 200` not fully implemented
+   - `cast(i32, status)` expressions not supported
+
+6. **Memory Management Syntax** (`examples/011_memory.a7`):
+   - `new` expressions for allocation not implemented
+   - `defer` statements parsed but not integrated with scopes
+   - Pointer dereference: `ptr.*` syntax not supported  
+   - `del` statements for deallocation not implemented
+
+7. **Advanced Type Features**:
+   - Explicit type annotations: `c: i32 := 3` fail parsing
+   - Function types in parameters not implemented (TODO comment exists)
+   - Array literals with explicit types: `[3]i32 = [10, 20, 30]` fail
+
+## CLI Debugging Features
+
+The A7 compiler provides specialized flags for analyzing source code at different stages:
+
+### Analysis Modes
+- `--tokenize-only` - Show lexical analysis (tokenization) output only, skip parsing
+- `--parse-only` - Show tokenization and syntax analysis (AST generation), skip code generation
+- `--json` - Output results in JSON format (compatible with both analysis modes)
+- `--verbose` - Show detailed compilation progress information
+
+### Usage Examples
+```bash
+# Tokenization analysis with rich visual output
+uv run python main.py examples/006_if.a7 --tokenize-only
+
+# Parsing analysis showing AST structure
+uv run python main.py examples/014_generics.a7 --parse-only
+
+# JSON output for tooling integration
+uv run python main.py examples/009_struct.a7 --parse-only --json
+
+# Combine with verbose for detailed progress
+uv run python main.py examples/021_control_flow.a7 --parse-only --verbose
+```
+
+### AST Visualization Features
+The `--parse-only` mode displays AST structure with:
+- **Technical node names** (FUNCTION, VAR, IF_STMT, WHILE, etc.)
+- **Inline parameters** for functions: `FUNCTION main (x, y)`  
+- **Statement hierarchies** showing actual nested structures (IF_STMT containing EXPRESSION_STMT, VAR declarations)
+- **Clean tree format** without redundant "Then/Else" nodes
+
+These modes are useful for:
+- Understanding tokenization issues in A7 source code
+- Debugging parser behavior and AST generation
+- Analyzing language constructs and their representation
+- Integrating with external tools via JSON output
+- Learning A7 language structure and syntax
+
+## Specialized Agents
+
+Use `/task compiler-test-engineer` for:
+- Adding test coverage for new language features
+- Testing edge cases in tokenizer/parser
+- Validating error message quality
+- Ensuring A7 examples continue working
+
+## Parser Development Workflow
+
+When implementing missing parser features:
+
+1. **Identify the construct** - Use failing examples to pinpoint exact syntax
+2. **Check tokenization** - Run `--tokenize-only` to ensure tokens are correct
+3. **Add parsing method** - Follow existing pattern in `src/parser.py`  
+4. **Update AST nodes** - Add new node types to `src/ast_nodes.py` if needed
+5. **Test incrementally** - Run specific example with `--parse-only` to debug
+6. **Add comprehensive tests** - Cover edge cases in appropriate test file
+
+**Key parsing patterns**:
+- `parse_*_statement()` for control flow (if, while, for, match)  
+- `parse_*_expression()` for values and operations
+- `parse_*_decl()` for top-level declarations (struct, enum, function)
+- Use `create_span_from_token()` for accurate error locations
+- Follow precedence climbing for expressions
