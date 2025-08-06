@@ -486,6 +486,8 @@ class Tokenizer:
     def _tokenize_string(self):
         """Tokenize string literals."""
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         self.advance()  # Opening quote
         
         while self.current_char() and self.current_char() != '"':
@@ -497,9 +499,11 @@ class Tokenizer:
                 self.advance()
         
         if not self.current_char():
+            # Report error at the end of the string where the quote should be
+            error_length = self.position - start_pos
             raise LexError.from_type_and_location(
                 LexErrorType.NOT_CLOSED_STRING,
-                self.line, self.column, 1, self.filename, self.source_lines
+                start_line, start_column, error_length, self.filename, self.source_lines
             )
         
         self.advance()  # Closing quote
