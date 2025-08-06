@@ -407,6 +407,7 @@ def token_to_unary_op(token_type: TokenType) -> Optional[UnaryOp]:
     """Convert a token type to a unary operator."""
     mapping = {
         TokenType.MINUS: UnaryOp.NEG,
+        TokenType.NOT: UnaryOp.NOT,
         TokenType.LOGICAL_NOT: UnaryOp.NOT,
         TokenType.BITWISE_NOT: UnaryOp.BIT_NOT,
         TokenType.BITWISE_AND: UnaryOp.ADDR,  # & as address-of

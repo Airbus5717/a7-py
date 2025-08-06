@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Edit", 
+      "MultiEdit",
+      "Write",
+      "Bash(uv:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(git:*)"
+    ],
+    "deny": [
+      "Bash(curl:*)",
+      "Bash(wget:*)", 
+      "Bash(rm -rf:*)"
+    ],
+    "defaultMode": "allowEdits"
+  },
+  "env": {
+    "BASH_DEFAULT_TIMEOUT_MS": "60000",
+    "BASH_MAX_OUTPUT_LENGTH": "20000", 
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "1",
+    "PYTHONPATH": "."
+  },
+  "includeCoAuthoredBy": true,
+  "cleanupPeriodDays": 30,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '\"\\(.tool_input.command) - \\(.tool_input.description // \"No description\")\"' >> ~/.claude/bash-command-log.txt"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command", 
+            "command": "FILE=$(echo $STDIN_JSON | jq -r '.tool_input.file_path // \"\"'); if [[ \"$FILE\" =~ \\.py$ && \"$FILE\" != *\"test_\"* && \"$FILE\" != *\"_test.py\" ]]; then echo \"Running tests after modifying $FILE...\"; uv run pytest -xvs || echo 'Tests failed - check implementation'; fi",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

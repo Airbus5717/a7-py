@@ -17,7 +17,7 @@ from .ast_nodes import (
     token_to_binary_op, token_to_unary_op, token_to_assign_op,
     get_binary_precedence
 )
-from .errors import ParseError, create_span_between_tokens
+from .errors import ParseError, SourceSpan, create_span_between_tokens
 
 
 class Parser:
@@ -74,6 +74,28 @@ class Parser:
         """Check if we're at the end of input."""
         return self.match(TokenType.EOF)
     
+    def _should_parse_struct_literal(self) -> bool:
+        """
+        Determine if we should parse identifier{ as a struct literal.
+        
+        Returns False if we're likely in a statement context where { starts a block,
+        such as in if conditions, while conditions, etc.
+        """
+        # For now, use a simple heuristic: if we see common statement keywords
+        # in recent tokens, we're likely in a statement context
+        
+        # Look back a few tokens to see if we're in a statement context
+        lookback_distance = min(5, self.position)
+        for i in range(1, lookback_distance + 1):
+            if self.position - i >= 0:
+                prev_token = self.tokens[self.position - i]
+                if prev_token.type in (TokenType.IF, TokenType.WHILE, TokenType.FOR, 
+                                     TokenType.MATCH, TokenType.ELSE):
+                    return False
+        
+        # Default to allowing struct literals
+        return True
+    
     def parse(self) -> ASTNode:
         """Parse the entire program."""
         declarations = []
@@ -100,7 +122,12 @@ class Parser:
                     self.advance()
                     
             except ParseError as e:
-                # Simple error recovery: skip to next likely declaration start
+                # If this is the first declaration and it failed, re-raise the error
+                # This ensures incomplete syntax like "x :: " raises proper errors
+                if len(declarations) == 0 and prev_position == 0:
+                    raise e
+                
+                # Otherwise do error recovery for multi-declaration programs
                 self.synchronize()
                 
                 # Ensure we're making progress after error recovery
@@ -147,6 +174,13 @@ class Parser:
     
     def parse_declaration(self) -> Optional[ASTNode]:
         """Parse top-level declarations."""
+        # Skip any leading terminators at declaration level
+        self.skip_terminators()
+        
+        # Check if we've reached the end after skipping terminators
+        if self.at_end():
+            return None
+            
         start_token = self.current()
         
         # Handle public modifier
@@ -174,13 +208,8 @@ class Parser:
         if self.match(TokenType.FN):
             return self.parse_function_decl_anonymous(is_public)
         
-        # If we reach here, it might be an expression statement
-        expr = self.parse_expression()
-        return ASTNode(
-            kind=NodeKind.EXPRESSION_STMT,
-            expression=expr,
-            span=expr.span if expr else create_span_from_token(start_token)
-        )
+        # If we reach here, this is not a valid declaration
+        raise ParseError.from_token("Expected declaration (constant, variable, or function)", self.current(), self.filename)
     
     def parse_import(self) -> ASTNode:
         """Parse import declarations."""
@@ -255,12 +284,18 @@ class Parser:
         self.consume(TokenType.LEFT_PAREN)
         parameters = []
         
+        # Skip any terminators after opening paren
+        self.skip_terminators()
+        
         if not self.match(TokenType.RIGHT_PAREN):
             parameters.append(self.parse_parameter())
             while self.match(TokenType.COMMA):
                 self.advance()
-                parameters.append(self.parse_parameter())
+                self.skip_terminators()  # Skip terminators after comma
+                if not self.match(TokenType.RIGHT_PAREN):  # Handle trailing comma
+                    parameters.append(self.parse_parameter())
         
+        self.skip_terminators()  # Skip terminators before closing paren
         self.consume(TokenType.RIGHT_PAREN)
         
         # Return type (optional)
@@ -277,10 +312,10 @@ class Parser:
                 (self.match(TokenType.FN))):  # Function type
                 return_type = self.parse_type()
         
-        # Function body
-        body = None
-        if self.match(TokenType.LEFT_BRACE):
-            body = self.parse_block()
+        # Function body (required)
+        if not self.match(TokenType.LEFT_BRACE):
+            raise ParseError.from_token("Expected function body after function signature", self.current(), self.filename)
+        body = self.parse_block()
         
         return create_function_decl(
             name=name,
@@ -479,6 +514,47 @@ class Parser:
         if self.match(TokenType.LEFT_BRACE):
             return self.parse_block()
         
+        # Variable or constant declarations inside function body
+        if self.match(TokenType.IDENTIFIER):
+            lookahead = self.peek()
+            if lookahead.type == TokenType.DECLARE_VAR:
+                # Simple: name := value
+                name_token = self.advance()
+                self.consume(TokenType.DECLARE_VAR)
+                value = self.parse_expression()
+                return create_var_decl(
+                    name=name_token.value,
+                    value=value,
+                    is_public=False,
+                    span=create_span_from_token(name_token)
+                )
+            elif lookahead.type == TokenType.COLON:
+                # Explicit type annotation: name: type = value
+                name_token = self.advance()
+                self.consume(TokenType.COLON)
+                explicit_type = self.parse_type()
+                self.consume(TokenType.ASSIGN)  # Use = not :=
+                value = self.parse_expression()
+                var_decl = create_var_decl(
+                    name=name_token.value,
+                    value=value,
+                    is_public=False,
+                    span=create_span_from_token(name_token)
+                )
+                var_decl.explicit_type = explicit_type
+                return var_decl
+            elif lookahead.type == TokenType.DECLARE_CONST:
+                # Constant declaration: name :: value
+                name_token = self.advance()
+                self.consume(TokenType.DECLARE_CONST)
+                value = self.parse_expression()
+                return create_const_decl(
+                    name=name_token.value,
+                    value=value,
+                    is_public=False,
+                    span=create_span_from_token(name_token)
+                )
+        
         # Expression statement or assignment
         return self.parse_expression_or_assignment()
     
@@ -518,7 +594,7 @@ class Parser:
         """Parse for statement."""
         for_token = self.consume(TokenType.FOR)
         
-        # For now, simple infinite loop: for { ... }
+        # Simple infinite loop: for { ... }
         if self.match(TokenType.LEFT_BRACE):
             body = self.parse_block()
             return ASTNode(
@@ -527,8 +603,50 @@ class Parser:
                 span=create_span_from_token(for_token)
             )
         
-        # TODO: Implement other for loop variants
-        raise ParseError.from_token("Complex for loops not yet implemented", self.current(), self.filename)
+        # Complex for loop: for init; condition; update { ... }
+        # Parse init statement
+        init = None
+        if self.match(TokenType.IDENTIFIER):
+            lookahead = self.peek()
+            if lookahead.type == TokenType.DECLARE_VAR:
+                # Variable declaration: i := 0
+                name_token = self.advance()
+                self.consume(TokenType.DECLARE_VAR)
+                value = self.parse_expression()
+                init = create_var_decl(
+                    name=name_token.value,
+                    value=value,
+                    is_public=False,
+                    span=create_span_from_token(name_token)
+                )
+            else:
+                # Assignment or expression
+                init = self.parse_expression_or_assignment()
+        
+        if not self.match(TokenType.TERMINATOR):
+            raise ParseError.from_token("Expected ';' or newline in for loop", self.current(), self.filename)
+        self.consume(TokenType.TERMINATOR)
+        
+        # Parse condition
+        condition = self.parse_expression()
+        if not self.match(TokenType.TERMINATOR):
+            raise ParseError.from_token("Expected ';' or newline in for loop", self.current(), self.filename)
+        self.consume(TokenType.TERMINATOR)
+        
+        # Parse update
+        update = self.parse_expression_or_assignment()
+        
+        # Parse body
+        body = self.parse_block()
+        
+        return ASTNode(
+            kind=NodeKind.FOR,
+            init=init,
+            condition=condition,
+            update=update,
+            body=body,
+            span=create_span_from_token(for_token)
+        )
     
     def parse_expression_or_assignment(self) -> ASTNode:
         """Parse expression statement or assignment."""
@@ -597,7 +715,7 @@ class Parser:
         start_token = self.current()
         
         # Unary operators
-        if self.match(TokenType.MINUS, TokenType.LOGICAL_NOT, TokenType.BITWISE_NOT, TokenType.BITWISE_AND):
+        if self.match(TokenType.MINUS, TokenType.NOT, TokenType.LOGICAL_NOT, TokenType.BITWISE_NOT, TokenType.BITWISE_AND):
             op_token = self.advance()
             unary_op = token_to_unary_op(op_token.type)
             if unary_op:
@@ -728,10 +846,20 @@ class Parser:
                      TokenType.NIL_LITERAL):
             return create_literal_from_token(self.advance())
         
-        # Identifiers
+        # Array literals: [1, 2, 3]
+        if self.match(TokenType.LEFT_BRACKET):
+            return self.parse_array_literal()
+        
+        # Identifiers or struct literals
         if self.match(TokenType.IDENTIFIER):
             name = self.advance().value
-            return create_identifier(name, create_span_from_token(start_token))
+            # Check for struct literal: Person{...} 
+            # Only parse as struct literal if we're in an appropriate context
+            # (not in a statement context where { would start a block)
+            if self.match(TokenType.LEFT_BRACE) and self._should_parse_struct_literal():
+                return self.parse_struct_literal(name, create_span_from_token(start_token))
+            else:
+                return create_identifier(name, create_span_from_token(start_token))
         
         # Parenthesized expressions
         if self.match(TokenType.LEFT_PAREN):
@@ -768,6 +896,71 @@ class Parser:
             else_expr=else_expr,
             span=create_span_from_token(if_token)
         )
+    
+    def parse_array_literal(self) -> ASTNode:
+        """Parse array literals: [1, 2, 3]"""
+        start_token = self.consume(TokenType.LEFT_BRACKET)
+        elements = []
+        
+        if not self.match(TokenType.RIGHT_BRACKET):
+            elements.append(self.parse_expression())
+            while self.match(TokenType.COMMA):
+                self.advance()
+                if self.match(TokenType.RIGHT_BRACKET):  # Handle trailing comma
+                    break
+                elements.append(self.parse_expression())
+        
+        self.consume(TokenType.RIGHT_BRACKET)
+        
+        return ASTNode(
+            kind=NodeKind.ARRAY_INIT,
+            elements=elements,
+            span=create_span_from_token(start_token)
+        )
+    
+    def parse_struct_literal(self, struct_name: str, span: SourceSpan) -> ASTNode:
+        """Parse struct literals: Person{name: "John", age: 30}"""
+        self.consume(TokenType.LEFT_BRACE)
+        field_inits = []
+        
+        if not self.match(TokenType.RIGHT_BRACE):
+            # Parse field: value pairs
+            field_name_token = self.consume(TokenType.IDENTIFIER)
+            self.consume(TokenType.COLON)
+            field_value = self.parse_expression()
+            
+            field_init = ASTNode(
+                kind=NodeKind.FIELD_INIT,
+                name=field_name_token.value,
+                value=field_value,
+                span=create_span_from_token(field_name_token)
+            )
+            field_inits.append(field_init)
+            
+            while self.match(TokenType.COMMA):
+                self.advance()
+                if self.match(TokenType.RIGHT_BRACE):  # Handle trailing comma
+                    break
+                field_name_token = self.consume(TokenType.IDENTIFIER)
+                self.consume(TokenType.COLON)
+                field_value = self.parse_expression()
+                
+                field_init = ASTNode(
+                    kind=NodeKind.FIELD_INIT,
+                    name=field_name_token.value,
+                    value=field_value,
+                    span=create_span_from_token(field_name_token)
+                )
+                field_inits.append(field_init)
+        
+        self.consume(TokenType.RIGHT_BRACE)
+        
+        return ASTNode(
+            kind=NodeKind.STRUCT_INIT,
+            struct_type=struct_name,
+            field_inits=field_inits,
+            span=span
+        )
 
 
     def parse_struct_decl_with_name(self, name: str, is_public: bool, name_token: Token) -> ASTNode:
@@ -795,6 +988,10 @@ class Parser:
                 span=create_span_from_token(field_name_token)
             )
             fields.append(field)
+            
+            # Skip comma if present
+            if self.match(TokenType.COMMA):
+                self.advance()
             
             self.skip_terminators()
         
@@ -879,6 +1076,10 @@ class Parser:
                 span=create_span_from_token(field_name_token)
             )
             fields.append(field)
+            
+            # Skip comma if present
+            if self.match(TokenType.COMMA):
+                self.advance()
             
             self.skip_terminators()
         

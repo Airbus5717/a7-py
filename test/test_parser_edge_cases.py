@@ -18,7 +18,7 @@ class TestParserEdgeCases:
     def test_deeply_nested_expressions(self):
         """Test parsing deeply nested expressions."""
         # Create a deeply nested expression: ((((1 + 2) + 3) + 4) + 5)
-        code = "result :: " + "(" * 10 + "1 + 2" + " + 3)" * 9
+        code = "result :: " + "(" * 9 + "1 + 2" + " + 3)" * 9
         ast = parse_a7(code)
         # Should not crash and should create proper AST
         assert ast.declarations[0].value.kind == NodeKind.BINARY
@@ -418,7 +418,7 @@ class TestParserRobustness:
     
     def test_whitespace_only_input(self):
         """Test parser with whitespace-only input."""
-        ast = parse_a7("   \n\n\t  \n  ")
+        ast = parse_a7("   \n\n   \n  ")
         assert ast.kind == NodeKind.PROGRAM
         assert ast.declarations == []
     

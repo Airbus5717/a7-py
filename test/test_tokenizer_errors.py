@@ -152,11 +152,11 @@ class TestTokenizerErrors:
             output = console.file.getvalue()
             
             # Check that error format is correct
-            assert "error: Unexpected character: '§', line: 1, col: 13" in output
+            assert "error: Unexpected character: '§' [line 1: col 13]" in output
             # Check that source code is displayed
             assert "x := invalid§" in output
             # Check that pointer line is included
-            assert "^" in output
+            assert "▲" in output
 
     def test_error_display_single_line_file(self):
         """Test error display for single-line files."""
@@ -172,9 +172,9 @@ class TestTokenizerErrors:
             output = console.file.getvalue()
             
             # Should show the single line with error
-            assert "error: Unexpected character: '§', line: 1, col: 1" in output
-            assert "1 │ §" in output
-            assert "│ ^" in output
+            assert "error: Unexpected character: '§' [line 1: col 1]" in output
+            assert "1 ┃ §" in output
+            assert "┃ ▲" in output
 
     def test_error_display_small_file(self):
         """Test error display for small files (≤5 lines)."""
@@ -190,11 +190,11 @@ class TestTokenizerErrors:
             output = console.file.getvalue()
             
             # Should show all lines for small files
-            assert "1 │ line1" in output
-            assert "2 │ line2" in output  
-            assert "3 │ error§" in output
-            assert "4 │ line4" in output
-            assert "5 │ line5" in output
+            assert "1 ┃ line1" in output
+            assert "2 ┃ line2" in output  
+            assert "3 ┃ error§" in output
+            assert "4 ┃ line4" in output
+            assert "5 ┃ line5" in output
 
     def test_error_display_large_file(self):
         """Test error display for larger files with context."""
@@ -213,15 +213,15 @@ class TestTokenizerErrors:
             output = console.file.getvalue()
             
             # Should show context around error line (line 10)
-            assert "8 │ line8" in output      # 2 lines before
-            assert "9 │ line9" in output      # 1 line before
-            assert "10 │ line10§" in output   # Error line
-            assert "11 │ line11" in output    # 1 line after
-            assert "12 │ line12" in output    # 2 lines after
+            assert "8 ┃ line8" in output      # 2 lines before
+            assert "9 ┃ line9" in output      # 1 line before
+            assert "10 ┃ line10§" in output   # Error line
+            assert "11 ┃ line11" in output    # 1 line after
+            assert "12 ┃ line12" in output    # 2 lines after
             
             # Should NOT show lines too far away (using precise patterns to avoid substring matches)
-            assert "\n   1 │ line1" not in output and not output.startswith("   1 │ line1")
-            assert "\n  20 │ line20" not in output and not output.startswith("  20 │ line20")
+            assert "\n   1 ┃ line1" not in output and not output.startswith("   1 ┃ line1")
+            assert "\n  20 ┃ line20" not in output and not output.startswith("  20 ┃ line20")
 
     def test_error_location_accuracy(self):
         """Test that error locations are reported accurately."""
@@ -267,19 +267,19 @@ class TestTokenizerErrors:
                 error.display(console)
                 output = console.file.getvalue()
                 
-                # Find the pointer line (contains ^)
+                # Find the pointer line (contains ▲)
                 lines = output.split('\n')
                 pointer_line = None
                 for line in lines:
-                    if '│' in line and '^' in line and '1 │' not in line:
+                    if '┃' in line and '▲' in line and '1 ┃' not in line:
                         pointer_line = line
                         break
                 
                 assert pointer_line is not None, f"No pointer line found for '{source}'"
                 
-                # Count characters before ^ to verify alignment
-                prefix_end = pointer_line.find('│') + 2  # "   │ "
-                pointer_pos = pointer_line.find('^')
+                # Count characters before ▲ to verify alignment
+                prefix_end = pointer_line.find('┃') + 2  # "   ┃ "
+                pointer_pos = pointer_line.find('▲')
                 actual_pos = pointer_pos - prefix_end + 1  # Convert to 1-based
                 
                 assert actual_pos == expected_pos, f"Pointer misaligned for '{source}': expected {expected_pos}, got {actual_pos}"
@@ -349,9 +349,9 @@ class TestTokenizerErrors:
             output = console.file.getvalue()
             
             # Verify the complete error display format
-            assert "error: Unexpected character: '§', line: 1, col: 15" in output
-            assert "1 │ error_here := §" in output
-            assert "│               ^" in output
+            assert "error: Unexpected character: '§' [line 1: col 15]" in output
+            assert "1 ┃ error_here := §" in output
+            assert "┃               ▲" in output
 
     def test_error_formatter_context_lines(self):
         """Test ErrorFormatter with different context line settings."""
@@ -375,11 +375,11 @@ class TestTokenizerErrors:
                 
                 # Should show appropriate number of context lines
                 if context_lines >= 1:
-                    assert "4 │ line4" in output  # 1 line before
-                    assert "6 │ line6" in output  # 1 line after
+                    assert "4 ┃ line4" in output  # 1 line before
+                    assert "6 ┃ line6" in output  # 1 line after
                 if context_lines >= 2:
-                    assert "3 │ line3" in output  # 2 lines before
-                    assert "7 │ line7" in output  # 2 lines after
+                    assert "3 ┃ line3" in output  # 2 lines before
+                    assert "7 ┃ line7" in output  # 2 lines after
 
 
 class TestTokenizerErrorEdgeCases:

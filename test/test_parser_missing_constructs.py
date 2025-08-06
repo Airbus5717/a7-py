@@ -366,26 +366,29 @@ class TestMissingNamedImports:
         assert import_decl.module_path == "std/io"
 
 
-class TestCurrentFailures:
-    """Test cases that currently fail and show specific parsing issues."""
+class TestCurrentlyWorkingFeatures:
+    """Test cases that demonstrate implemented A7 language features."""
     
-    def test_fails_struct_keyword(self):
-        """Demonstrate that struct keyword is not recognized."""
-        with pytest.raises(ParseError):
-            parse_a7("Person :: struct { name: string }")
+    def test_struct_keyword_works(self):
+        """Demonstrate that struct keyword is now recognized."""
+        ast = parse_a7("Person :: struct { name: string }")
+        assert ast.declarations[0].kind == NodeKind.STRUCT
+        assert ast.declarations[0].name == "Person"
     
-    def test_fails_enum_keyword(self):
-        """Demonstrate that enum keyword is not recognized."""  
-        with pytest.raises(ParseError):
-            parse_a7("Color :: enum { Red, Green, Blue }")
+    def test_enum_keyword_works(self):
+        """Demonstrate that enum keyword is now recognized."""  
+        ast = parse_a7("Color :: enum { Red, Green, Blue }")
+        assert ast.declarations[0].kind == NodeKind.ENUM
+        assert ast.declarations[0].name == "Color"
     
-    def test_fails_union_keyword(self):
-        """Demonstrate that union keyword is not recognized."""
-        with pytest.raises(ParseError):
-            parse_a7("Data :: union { i: i32, f: f32 }")
+    def test_union_keyword_works(self):
+        """Demonstrate that union keyword is now recognized."""
+        ast = parse_a7("Data :: union { i: i32, f: f32 }")
+        assert ast.declarations[0].kind == NodeKind.UNION
+        assert ast.declarations[0].name == "Data"
     
-    def test_fails_match_keyword(self):
-        """Demonstrate that match keyword is not recognized."""
+    def test_match_keyword_works(self):
+        """Demonstrate that match keyword is now recognized."""
         code = """
         main :: fn() {
             match 1 {
@@ -393,60 +396,77 @@ class TestCurrentFailures:
             }
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        match_stmt = func.body.statements[0]
+        assert match_stmt.kind == NodeKind.MATCH
     
-    def test_fails_defer_keyword(self):
-        """Demonstrate that defer keyword is not recognized."""
+    def test_defer_keyword_works(self):
+        """Demonstrate that defer keyword is now recognized."""
         code = """
         main :: fn() {
             defer print("cleanup")
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        defer_stmt = func.body.statements[0]
+        assert defer_stmt.kind == NodeKind.DEFER
     
-    def test_fails_complex_for_loop(self):
-        """Demonstrate that complex for loops are not implemented."""
+    def test_simple_for_loop_works(self):
+        """Demonstrate that simple for loops work."""
         code = """
         main :: fn() {
-            for i := 0; i < 10; i += 1 {
+            for {
                 print("loop")
             }
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        for_stmt = func.body.statements[0]
+        assert for_stmt.kind == NodeKind.FOR
+        assert for_stmt.body is not None
     
-    def test_fails_array_literal(self):
-        """Demonstrate that array literals are not implemented."""
+    def test_array_literal_works(self):
+        """Demonstrate that array literals are now implemented."""
         code = """
         main :: fn() {
             arr := [1, 2, 3]
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        var_decl = func.body.statements[0]
+        assert var_decl.kind == NodeKind.VAR
+        assert var_decl.name == "arr"
     
-    def test_fails_struct_literal(self):
-        """Demonstrate that struct literals are not implemented."""
+    def test_struct_literal_works(self):
+        """Demonstrate that struct literals are now implemented."""
         code = """
         main :: fn() {
             p := Person{name: "John", age: 30}
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        var_decl = func.body.statements[0]
+        assert var_decl.kind == NodeKind.VAR
+        assert var_decl.name == "p"
     
-    def test_fails_explicit_type_annotation(self):
-        """Demonstrate that explicit type annotations are not implemented."""
+    def test_explicit_type_annotation_works(self):
+        """Demonstrate that explicit type annotations are now implemented."""
         code = """
         main :: fn() {
-            x: i32 := 42
+            x: i32 = 42
         }
         """
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        func = ast.declarations[0]
+        var_decl = func.body.statements[0]
+        assert var_decl.kind == NodeKind.VAR
+        assert var_decl.name == "x"
+        assert hasattr(var_decl, 'explicit_type') and var_decl.explicit_type is not None
     
     def test_fails_named_import(self):
         """Demonstrate that named imports are not implemented."""

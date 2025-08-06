@@ -25,11 +25,15 @@ class TestExampleFiles:
         return example_path.read_text()
     
     def test_000_empty(self):
-        """Test parsing empty program."""
+        """Test parsing minimal program with empty main function."""
         code = self.read_example("000_empty.a7")
         ast = parse_a7(code)
         assert ast.kind == NodeKind.PROGRAM
-        assert ast.declarations == []
+        assert len(ast.declarations) == 1
+        # Should have one function declaration (main)
+        main_func = ast.declarations[0]
+        assert main_func.kind == NodeKind.FUNCTION
+        assert main_func.name == "main"
     
     @pytest.mark.skip(reason="Named imports not implemented")
     def test_001_hello(self):

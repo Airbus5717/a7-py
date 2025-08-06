@@ -36,6 +36,20 @@ def main():
         help="Output compilation results in JSON format"
     )
     
+    # Analysis flags
+    analysis_group = parser.add_mutually_exclusive_group()
+    analysis_group.add_argument(
+        "--tokenize-only",
+        action="store_true",
+        help="Show lexical analysis (tokenization) output only, skip parsing"
+    )
+    
+    analysis_group.add_argument(
+        "--parse-only", 
+        action="store_true",
+        help="Show tokenization and syntax analysis (AST generation), skip code generation"
+    )
+    
     args = parser.parse_args()
     
     if not args.file:
@@ -57,7 +71,9 @@ def main():
         str(input_path),
         args.output,
         verbose=args.verbose,
-        json_output=args.json
+        json_output=args.json,
+        tokenize_only=args.tokenize_only,
+        parse_only=args.parse_only
     )
     
     if not success:

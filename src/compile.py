@@ -24,10 +24,13 @@ from .errors import CompilerError, display_error, create_error_handler
 class A7Compiler:
     """Main compiler class that handles the A7 compilation pipeline with pluggable backends."""
     
-    def __init__(self, backend: str = "zig", verbose: bool = False, json_output: bool = False):
+    def __init__(self, backend: str = "zig", verbose: bool = False, json_output: bool = False, 
+                 tokenize_only: bool = False, parse_only: bool = False):
         self.backend = backend
         self.verbose = verbose
         self.json_output = json_output
+        self.tokenize_only = tokenize_only
+        self.parse_only = parse_only
         # Tokenizer will be created per file during compilation
         # self.parser = Parser()  # Not yet implemented
         # self.codegen = get_backend(backend)  # Ignoring backend for now
@@ -132,6 +135,174 @@ class A7Compiler:
         
         return result
     
+    def _display_debug_output(self, tokens: list[Token], ast, source_code: str, input_path: str):
+        """Display debug output in Rich format based on current debug mode."""
+        from rich.console import Console
+        from rich.table import Table
+        from rich.panel import Panel
+        from rich.text import Text
+        from rich.tree import Tree
+        from rich.syntax import Syntax
+        
+        console = Console()
+        
+        # Always show source code panel in analysis modes
+        if self.tokenize_only:
+            title = f"Tokenization: {input_path}"
+        elif self.parse_only:
+            title = f"Parsing: {input_path}"
+        else:
+            title = f"Compilation: {input_path}"
+        
+        # Use syntax highlighting for A7 code (fallback to text)
+        try:
+            source_syntax = Syntax(source_code, "rust", theme="monokai", line_numbers=True)
+        except:
+            source_syntax = source_code
+        
+        code_panel = Panel(
+            source_syntax,
+            title=title,
+            border_style="blue"
+        )
+        console.print(code_panel)
+        
+        # Token analysis
+        console.print("\n[bold cyan]TOKENIZATION RESULTS[/bold cyan]")
+        
+        token_table = Table(show_header=True, header_style="bold magenta")
+        token_table.add_column("Pos", style="dim", width=6)
+        token_table.add_column("Line:Col", style="cyan", width=8)
+        token_table.add_column("Token Type", style="green", width=16)
+        token_table.add_column("Value", style="yellow")
+        token_table.add_column("Length", style="dim", width=6)
+        
+        for i, token in enumerate(tokens):
+            if token.type.name == "EOF":
+                continue  # Skip EOF for cleaner display
+                
+            token_table.add_row(
+                str(i),
+                f"{token.line}:{token.column}",
+                token.type.name,
+                repr(token.value) if token.value else "''",
+                str(token.length) if hasattr(token, 'length') else "?"
+            )
+        
+        console.print(token_table)
+        console.print(f"[dim]Total tokens: {len([t for t in tokens if t.type.name != 'EOF'])}[/dim]")
+        
+        # AST analysis (only if not tokenize-only mode)
+        if not self.tokenize_only:
+            console.print("\n[bold cyan]PARSING RESULTS[/bold cyan]")
+            
+            if ast:
+                console.print("[green]Successfully parsed into AST[/green]")
+                
+                # AST summary
+                summary_text = Text()
+                summary_text.append("AST Root: ", style="bold")
+                summary_text.append(f"{ast.kind.name}", style="cyan bold")
+                if hasattr(ast, 'declarations') and ast.declarations:
+                    summary_text.append(f" with {len(ast.declarations)} top-level declarations", style="dim")
+                console.print(summary_text)
+                
+                # AST tree structure
+                if hasattr(ast, 'declarations') and ast.declarations:
+                    tree = Tree("Program")
+                    for i, decl in enumerate(ast.declarations):
+                        decl_node = tree.add(self._format_declaration_node(decl))
+                        
+                        # Add function body details
+                        if hasattr(decl, 'body') and decl.body and hasattr(decl.body, 'statements'):
+                            self._add_statements_to_tree(decl_node, decl.body.statements)
+                
+                    console.print(tree)
+                
+                # Stop here for parse-only mode
+                if self.parse_only:
+                    console.print("\n[bold dim]Stopping before code generation[/bold dim]")
+            else:
+                console.print("[red]Failed to parse AST[/red]")
+                console.print("[dim]Check tokenization output above for potential issues[/dim]")
+        
+        # Summary footer
+        console.print(f"\n[bold dim]Analysis complete[/bold dim]")
+    
+    def _format_declaration_node(self, decl):
+        """Format a declaration node for tree display."""
+        label = f"[green]{decl.kind.name}[/green]"
+        
+        if hasattr(decl, 'name'):
+            label += f" [yellow]{decl.name}[/yellow]"
+            
+        # Add parameters inline for functions
+        if hasattr(decl, 'parameters') and decl.parameters:
+            params = []
+            for param in decl.parameters:
+                if hasattr(param, 'name'):
+                    params.append(param.name)
+            
+            if params:
+                label += f" [blue]({', '.join(params)})[/blue]"
+        
+        if hasattr(decl, 'span') and decl.span:
+            label += f" [dim](line {decl.span.start_line})[/dim]"
+            
+        return label
+    
+    def _format_type(self, type_node):
+        """Format a type node for display."""
+        if hasattr(type_node, 'kind'):
+            if type_node.kind.name == 'TYPE_PRIMITIVE':
+                return type_node.type_name if hasattr(type_node, 'type_name') else 'primitive'
+            elif type_node.kind.name == 'TYPE_ARRAY':
+                elem_type = self._format_type(type_node.element_type) if hasattr(type_node, 'element_type') else '?'
+                size = type_node.size if hasattr(type_node, 'size') else '?'
+                return f"[{size}]{elem_type}"
+            elif type_node.kind.name == 'TYPE_SLICE':
+                elem_type = self._format_type(type_node.element_type) if hasattr(type_node, 'element_type') else '?'
+                return f"[]{elem_type}"
+            elif type_node.kind.name == 'TYPE_POINTER':
+                target_type = self._format_type(type_node.target_type) if hasattr(type_node, 'target_type') else '?'
+                return f"ref {target_type}"
+        
+        # Fallback for simple types or unknown structures
+        if hasattr(type_node, 'type_name'):
+            return type_node.type_name
+        elif hasattr(type_node, 'name'):
+            return type_node.name
+        return str(type_node)
+    
+    def _add_statements_to_tree(self, parent_node, statements):
+        """Add statement nodes to the tree."""
+        for stmt in statements:
+            stmt_label = f"[blue]{stmt.kind.name}[/blue]"
+            
+            # Add details based on statement type
+            if hasattr(stmt, 'name') and stmt.name:
+                stmt_label += f" [yellow]{stmt.name}[/yellow]"
+            
+            # For assignments, show target
+            if hasattr(stmt, 'target') and hasattr(stmt.target, 'name') and stmt.target.name:
+                stmt_label += f" [yellow]{stmt.target.name}[/yellow]"
+                
+            # For function calls, show function name
+            if hasattr(stmt, 'function') and hasattr(stmt.function, 'name') and stmt.function.name:
+                stmt_label += f" [yellow]{stmt.function.name}()[/yellow]"
+            
+            stmt_node = parent_node.add(stmt_label)
+            
+            # Recursively add nested statements for blocks and control flow
+            if hasattr(stmt, 'statements') and stmt.statements:
+                self._add_statements_to_tree(stmt_node, stmt.statements)
+            elif hasattr(stmt, 'then_stmt') and stmt.then_stmt:
+                if hasattr(stmt.then_stmt, 'statements'):
+                    self._add_statements_to_tree(stmt_node, stmt.then_stmt.statements)
+                if hasattr(stmt, 'else_stmt') and stmt.else_stmt:
+                    if hasattr(stmt.else_stmt, 'statements'):
+                        self._add_statements_to_tree(stmt_node, stmt.else_stmt.statements)
+    
     def compile_file(self, input_path: str, output_path: Optional[str] = None) -> bool:
         """
         Compile a single A7 source file to the target backend.
@@ -169,73 +340,53 @@ class A7Compiler:
             tokenizer = Tokenizer(source_code, filename=str(input_path))
             tokens = tokenizer.tokenize()
             
-            # Parse tokens into AST
+            # Parse tokens into AST (unless tokenize-only mode)
             ast = None
-            try:
-                source_lines = source_code.splitlines() if source_code else []
-                parser = Parser(tokens, filename=str(input_path), source_lines=source_lines)
-                ast = parser.parse()
-                
-                if self.verbose:
-                    print(f"Successfully parsed {input_path}")
-            except Exception as e:
-                if self.verbose:
-                    print(f"Parse error in {input_path}: {e}")
-                # Continue with tokenization results even if parsing fails
-            
-            # Output in JSON or Rich format based on flag
-            if self.json_output:
-                # JSON output
-                json_result = self._compilation_to_json(tokens, ast, source_code, input_path)
-                print(json.dumps(json_result, indent=2))
-            else:
-                # Rich console output
-                from rich.console import Console
-                from rich.table import Table
-                from rich.text import Text
-                
-                console = Console()
-                
-                # Display source code
-                code_panel = Panel(
-                    source_code,
-                    title=f"Source: {input_path}",
-                    border_style="blue"
-                )
-                console.print(code_panel)
-                
-                # Display tokens
-                token_table = Table(title="Tokens", show_header=True)
-                token_table.add_column("Line", style="cyan", no_wrap=True)
-                token_table.add_column("Column", style="magenta", no_wrap=True)
-                token_table.add_column("Type", style="green")
-                token_table.add_column("Value", style="yellow")
-                
-                for token in tokens:
-                    token_table.add_row(
-                        str(token.line),
-                        str(token.column),
-                        token.type.name,
-                        repr(token.value) if token.value else ""
-                    )
-                
-                console.print(token_table)
-                
-                # Display AST information
-                if ast:
-                    ast_text = Text("✅ Successfully parsed into AST", style="green bold")
-                    console.print(ast_text)
+            if not self.tokenize_only:
+                try:
+                    source_lines = source_code.splitlines() if source_code else []
+                    parser = Parser(tokens, filename=str(input_path), source_lines=source_lines)
+                    ast = parser.parse()
                     
-                    # Simple AST display
-                    ast_info = Text()
-                    ast_info.append("AST Root: ", style="bold")
-                    ast_info.append(f"{ast.kind.name}", style="cyan")
-                    if ast.declarations:
-                        ast_info.append(f" ({len(ast.declarations)} declarations)", style="dim")
-                    console.print(ast_info)
+                    if self.verbose:
+                        print(f"Successfully parsed {input_path}")
+                except Exception as e:
+                    if self.verbose:
+                        print(f"Parse error in {input_path}: {e}")
+                    # Continue with tokenization results even if parsing fails
+            
+            # Output results based on debug mode and format
+            if self.json_output:
+                # JSON output for debug modes
+                json_result = self._compilation_to_json(tokens, ast, source_code, input_path)
+                
+                # Filter JSON output based on debug mode
+                if self.tokenize_only:
+                    # Only include tokenization data
+                    filtered_result = {
+                        "metadata": json_result["metadata"],
+                        "source_code": json_result["source_code"], 
+                        "tokens": json_result["tokens"],
+                        "debug_mode": "tokenize_only"
+                    }
+                    print(json.dumps(filtered_result, indent=2))
+                elif self.parse_only:
+                    # Include tokenization and parsing data
+                    filtered_result = {
+                        "metadata": json_result["metadata"],
+                        "source_code": json_result["source_code"],
+                        "tokens": json_result["tokens"],
+                        "ast": json_result["ast"],
+                        "debug_mode": "parse_only"
+                    }
+                    print(json.dumps(filtered_result, indent=2))
                 else:
-                    ast_text = Text("❌ Failed to parse AST", style="red bold")
-                    console.print(ast_text)
+                    # Full compilation data
+                    json_result["debug_mode"] = "full_compilation"
+                    print(json.dumps(json_result, indent=2))
+            else:
+                # Rich console output with debug modes
+                self._display_debug_output(tokens, ast, source_code, input_path)
             # Skip actual code generation for now
             target_code = "// Tokenization complete - no code generation yet\n"
             
@@ -317,7 +468,8 @@ class A7Compiler:
         return input_path.replace('.a7', '.zig')
 
 
-def compile_a7_file(input_path: str, output_path: Optional[str] = None, verbose: bool = False, json_output: bool = False) -> bool:
+def compile_a7_file(input_path: str, output_path: Optional[str] = None, verbose: bool = False, 
+                   json_output: bool = False, tokenize_only: bool = False, parse_only: bool = False) -> bool:
     """
     Convenience function to compile a single A7 file.
     
@@ -326,11 +478,14 @@ def compile_a7_file(input_path: str, output_path: Optional[str] = None, verbose:
         output_path: Optional output path for the .zig file
         verbose: Enable verbose output
         json_output: Output compilation results in JSON format
+        tokenize_only: Debug mode: only perform tokenization
+        parse_only: Debug mode: only perform tokenization and parsing
         
     Returns:
         True if compilation succeeded, False otherwise
     """
-    compiler = A7Compiler(verbose=verbose, json_output=json_output)
+    compiler = A7Compiler(verbose=verbose, json_output=json_output, 
+                         tokenize_only=tokenize_only, parse_only=parse_only)
     return compiler.compile_file(input_path, output_path)
 
 
