@@ -172,7 +172,8 @@ class A7Compiler:
             # Parse tokens into AST
             ast = None
             try:
-                parser = Parser(tokens, filename=str(input_path))
+                source_lines = source_code.splitlines() if source_code else []
+                parser = Parser(tokens, filename=str(input_path), source_lines=source_lines)
                 ast = parser.parse()
                 
                 if self.verbose:

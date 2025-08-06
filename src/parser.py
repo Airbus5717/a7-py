@@ -23,9 +23,10 @@ from .errors import ParseError, create_span_between_tokens
 class Parser:
     """Recursive descent parser for A7."""
     
-    def __init__(self, tokens: List[Token], filename: Optional[str] = None):
+    def __init__(self, tokens: List[Token], filename: Optional[str] = None, source_lines: Optional[List[str]] = None):
         self.tokens = tokens
         self.filename = filename
+        self.source_lines = source_lines or []
         self.position = 0
         self.current_token = self.tokens[0] if tokens else None
         
@@ -61,7 +62,7 @@ class Parser:
         if not self.match(token_type):
             if message is None:
                 message = f"Expected {token_type.name}, got {self.current().type.name}"
-            raise ParseError.from_token(message, self.current(), self.filename)
+            raise ParseError.from_token(message, self.current(), self.filename, self.source_lines)
         return self.advance()
     
     def skip_terminators(self):
@@ -955,5 +956,6 @@ def parse_a7(source_code: str, filename: Optional[str] = None) -> ASTNode:
     """Parse A7 source code and return an AST."""
     tokenizer = Tokenizer(source_code, filename)
     tokens = tokenizer.tokenize()
-    parser = Parser(tokens, filename)
+    source_lines = source_code.splitlines() if source_code else []
+    parser = Parser(tokens, filename, source_lines)
     return parser.parse()

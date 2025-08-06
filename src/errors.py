@@ -11,6 +11,15 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.text import Text
 from rich import box
+from rich.rule import Rule
+
+
+class ErrorSeverity(Enum):
+    """Error severity levels for different types of errors."""
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+    NOTE = "note"
 
 
 class LexErrorType(Enum):
@@ -111,31 +120,52 @@ class ErrorFormatter:
     
     def format_error(self, error: 'CompilerError', context_lines: int = 2) -> None:
         """Format and display an error with source code context."""
-        # Build the error message in format: "error: sentence, line: x, col: y"
+        # Determine error type and severity for styling
+        if isinstance(error, LexError):
+            severity = ErrorSeverity.ERROR
+        elif isinstance(error, ParseError):
+            severity = ErrorSeverity.ERROR
+        elif isinstance(error, SemanticError):
+            severity = ErrorSeverity.ERROR
+        else:
+            severity = ErrorSeverity.ERROR
+        
+        # Build enhanced error message with improved styling
         error_msg = Text()
-        error_msg.append("error: ", style="red bold")
+        error_msg.append("error", style="red bold")
+        error_msg.append(": ", style="red")
         error_msg.append(error.message, style="red")
         
         if error.span:
-            error_msg.append(", line: ", style="red")
-            error_msg.append(str(error.span.start_line), style="red bold")
-            error_msg.append(", col: ", style="red")
-            error_msg.append(str(error.span.start_column), style="red bold")
+            error_msg.append(" ", style="red")
+            error_msg.append("[line ", style="dim white")
+            error_msg.append(str(error.span.start_line), style="yellow bold")
+            error_msg.append(": col ", style="dim white")
+            error_msg.append(str(error.span.start_column), style="yellow bold")
+            error_msg.append("]", style="dim white")
         
         self.console.print(error_msg)
         
-        # Show advice if available (for LexError with error_type)
+        # Show source code context if available
+        if error.source_lines and error.span:
+            # Add a subtle separator before source context
+            separator = Rule(characters="┈", style="dim white")
+            self.console.print(separator)
+            
+            context_text = self._build_source_context(error.source_lines, error.span, context_lines)
+            self.console.print(context_text)
+            
+            # Add subtle separator after context
+            self.console.print(separator)
+        
+        # Show advice if available (for LexError with error_type) - after context
         if hasattr(error, 'error_type') and error.error_type:
             advice = get_lexer_error_advice(error.error_type)
             advice_msg = Text()
-            advice_msg.append("help: ", style="cyan bold")
-            advice_msg.append(advice, style="cyan")
+            advice_msg.append("hint", style="cyan bold")
+            advice_msg.append(": ", style="cyan")
+            advice_msg.append(advice, style="cyan dim")
             self.console.print(advice_msg)
-        
-        # Show source code context if available
-        if error.source_lines and error.span:
-            context_text = self._build_source_context(error.source_lines, error.span, context_lines)
-            self.console.print(context_text)
     
     def _build_source_context(self, source_lines: List[str], span: SourceSpan, context_lines: int) -> Text:
         """Build syntax-highlighted source code context with error highlighting."""
@@ -162,11 +192,17 @@ class ErrorFormatter:
         for line_num in range(start_show, end_show + 1):
             line_content = source_lines[line_num - 1] if line_num <= len(source_lines) else ""
             line_num_str = f"{line_num:4d}"
-            separator = " │ "
+            separator = " ┃ "
             
-            # Yellow color for line numbers and separators
-            context_text.append(line_num_str, style="yellow")
-            context_text.append(separator, style="yellow")
+            # Enhanced styling: blue for line numbers and separators
+            if span.start_line <= line_num <= span.end_line:
+                # Error line - use brighter colors
+                context_text.append(line_num_str, style="blue bold")
+                context_text.append(separator, style="blue bold")
+            else:
+                # Context line - use dimmer colors
+                context_text.append(line_num_str, style="blue dim")
+                context_text.append(separator, style="blue dim")
             
             # Determine line styling
             if span.start_line <= line_num <= span.end_line:
@@ -200,12 +236,17 @@ class ErrorFormatter:
                 
                 # Add underline pointer line for single-line errors
                 if line_num == span.start_line == span.end_line:
-                    pointer_prefix = " " * 4 + " │ "
+                    pointer_prefix = " " * 4 + " ┃ "
                     # Column is 1-based, so subtract 1 for 0-based spacing
                     pointer_spaces = " " * (span.start_column - 1)
-                    underline = "^" * max(1, span.length)
+                    # Use a mix of characters dynamically sized to the error
+                    if span.length > 1:
+                        # Create underline that matches the exact error span length, pointing up
+                        underline = "└" + "─" * max(0, span.length - 2) + "┘"
+                    else:
+                        underline = "▲"
                     
-                    context_text.append(pointer_prefix, style="yellow")
+                    context_text.append(pointer_prefix, style="blue dim")
                     context_text.append(pointer_spaces, style="white")
                     context_text.append(underline, style="red bold")
                     context_text.append("\n")
