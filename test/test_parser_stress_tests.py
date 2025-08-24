@@ -13,7 +13,7 @@ from src.errors import LexError, ParseError
 
 class TestParserStressTests:
     """Stress tests for parser robustness."""
-    
+
     def test_extreme_nesting_depth(self):
         """Test parser with extreme nesting depth."""
         # Create deeply nested block structure
@@ -25,10 +25,10 @@ class TestParserStressTests:
         for i in range(depth):
             source += "    " * (depth - i - 1) + "}\n"
         source += "}"
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_very_long_identifier_chains(self):
         """Test parsing of very long identifier chains."""
         source = """
@@ -39,38 +39,38 @@ class TestParserStressTests:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_many_function_parameters(self):
         """Test functions with many parameters."""
         params = []
         for i in range(50):
             params.append(f"param{i}: i32")
-        
+
         source = f"""
-        many_params :: fn({', '.join(params)}) i32 {{
+        many_params :: fn({", ".join(params)}) i32 {{
             ret param0 + param49
         }}
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_deeply_nested_expressions(self):
         """Test deeply nested arithmetic expressions."""
         expr = "1"
         for i in range(2, 50):
             expr = f"({expr} + {i})"
-        
+
         source = f"""
         complex_expr :: fn() i32 {{
             result := {expr}
             ret result
         }}
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_generic_constraints(self):
         """Test complex generic type constraints."""
         source = """
@@ -85,20 +85,20 @@ class TestParserStressTests:
             assert ast is not None
         except ParseError:
             pytest.skip("Parser may not support complex generics yet")
-    
+
     def test_very_large_array_literals(self):
         """Test parsing of large array literals."""
         # Create an array with 100 elements
         elements = [str(i) for i in range(100)]
         source = f"""
         large_array :: fn() {{
-            arr := [{', '.join(elements)}]
+            arr := [{", ".join(elements)}]
         }}
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_multiple_nested_match_statements(self):
         """Test multiple levels of nested match statements."""
         source = """
@@ -122,10 +122,10 @@ class TestParserStressTests:
             }
         }
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_struct_hierarchies(self):
         """Test complex nested struct definitions."""
         source = """
@@ -165,14 +165,14 @@ class TestParserStressTests:
             }
         }
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
 
 
 class TestParserBoundaryConditions:
     """Test parser boundary conditions and limits."""
-    
+
     def test_empty_blocks_everywhere(self):
         """Test handling of empty blocks in various contexts."""
         source = """
@@ -203,10 +203,10 @@ class TestParserBoundaryConditions:
             }
         }
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_minimal_valid_constructs(self):
         """Test minimal but valid language constructs."""
         source = """
@@ -215,10 +215,10 @@ class TestParserBoundaryConditions:
         u :: union { i: i32 }
         f :: fn() {}
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_maximum_complexity_function(self):
         """Test a function with maximum complexity."""
         source = """
@@ -234,7 +234,7 @@ class TestParserBoundaryConditions:
                     case 0: {
                         if current > result {
                             result = current
-                            temp.* = current
+                            temp.val = current
                         }
                     }
                     case 1: {
@@ -248,7 +248,7 @@ class TestParserBoundaryConditions:
                     }
                     else: {
                         inner_loop: for j := 0; j < 10; j += 1 {
-                            if temp.* * cast(T, j) > current {
+                            if temp.val * cast(T, j) > current {
                                 break inner_loop
                             }
                             result = result + cast(T, j)
@@ -260,13 +260,13 @@ class TestParserBoundaryConditions:
             ret result
         }
         """
-        
+
         try:
             ast = parse_a7(source)
             assert ast is not None
         except ParseError:
             pytest.skip("Parser may not support all complex constructs yet")
-    
+
     def test_unicode_in_comments_and_strings(self):
         """Test handling of unicode characters in comments and strings."""
         source = """
@@ -279,12 +279,12 @@ class TestParserBoundaryConditions:
             ret chinese
         }
         """
-        
+
         # This should tokenize without issues
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
         assert len(tokens) > 10
-    
+
     def test_all_operators_precedence(self):
         """Test all operators in complex precedence scenarios."""
         source = """
@@ -317,14 +317,14 @@ class TestParserBoundaryConditions:
             complex := (a + b * c - d) & 0xFF | (e << 2) ^ (~f >> 1)
         }
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None
 
 
 class TestParserRecoveryAndErrors:
     """Test parser error recovery capabilities."""
-    
+
     def test_missing_semicolons_recovery(self):
         """Test recovery from missing semicolons."""
         source = """
@@ -334,11 +334,11 @@ class TestParserRecoveryAndErrors:
             ret x + y
         }
         """
-        
+
         # Should parse successfully as A7 uses newlines/braces for termination
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_unmatched_braces_error(self):
         """Test error handling for unmatched braces."""
         source = """
@@ -348,10 +348,10 @@ class TestParserRecoveryAndErrors:
             // Missing closing brace
         }
         """
-        
+
         with pytest.raises(ParseError):
             parse_a7(source)
-    
+
     def test_invalid_generic_syntax(self):
         """Test error handling for invalid generic syntax."""
         invalid_cases = [
@@ -359,11 +359,11 @@ class TestParserRecoveryAndErrors:
             "fn($T, $T) {}",  # Duplicate generic parameter
             "fn($123) {}",  # Invalid generic name
         ]
-        
+
         for source in invalid_cases:
             with pytest.raises(ParseError):
                 parse_a7(source)
-    
+
     def test_invalid_struct_definitions(self):
         """Test error handling for invalid struct definitions."""
         invalid_cases = [
@@ -372,11 +372,11 @@ class TestParserRecoveryAndErrors:
             "S :: struct { : i32 }",  # Missing field name
             "S :: struct { x i32 }",  # Missing colon
         ]
-        
+
         for source in invalid_cases:
             with pytest.raises(ParseError):
                 parse_a7(source)
-    
+
     def test_deeply_nested_error_context(self):
         """Test error context preservation in deeply nested structures."""
         source = """
@@ -394,17 +394,17 @@ class TestParserRecoveryAndErrors:
             }
         }
         """
-        
+
         with pytest.raises(ParseError) as exc_info:
             parse_a7(source)
-        
+
         # Error should contain context about where it occurred
         assert exc_info.value.message is not None
 
 
 class TestParserPerformance:
     """Test parser performance with large inputs."""
-    
+
     def test_large_function_count(self):
         """Test parsing many functions."""
         functions = []
@@ -414,11 +414,11 @@ class TestParserPerformance:
                 ret {i}
             }}
             """)
-        
-        source = '\n'.join(functions)
+
+        source = "\n".join(functions)
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_large_struct_count(self):
         """Test parsing many struct definitions."""
         structs = []
@@ -429,23 +429,23 @@ class TestParserPerformance:
                 data{i}: [10]f32
             }}
             """)
-        
-        source = '\n'.join(structs)
+
+        source = "\n".join(structs)
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_very_long_single_statement(self):
         """Test parsing a very long single statement."""
         # Create a very long arithmetic expression
         terms = [f"var{i}" for i in range(200)]
         expression = " + ".join(terms)
-        
+
         source = f"""
         long_expression :: fn() i32 {{
             result := {expression}
             ret result
         }}
         """
-        
+
         ast = parse_a7(source)
         assert ast is not None

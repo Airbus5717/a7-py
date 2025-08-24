@@ -12,7 +12,7 @@ from src.errors import LexError, ParseError
 
 class TestArrayProgrammingTokenization:
     """Test tokenization of array programming syntax."""
-    
+
     def test_multidimensional_array_literals(self):
         """Test parsing of multidimensional array literals."""
         source = """
@@ -22,11 +22,13 @@ class TestArrayProgrammingTokenization:
         """
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Should have nested brackets
-        bracket_count = sum(1 for token in tokens if token.type == TokenType.LEFT_BRACKET)
+        bracket_count = sum(
+            1 for token in tokens if token.type == TokenType.LEFT_BRACKET
+        )
         assert bracket_count >= 4  # Outer array + 3 inner arrays
-    
+
     def test_array_function_calls(self):
         """Test array function call syntax using existing identifiers."""
         test_cases = [
@@ -35,7 +37,7 @@ class TestArrayProgrammingTokenization:
             "array_reshape(a, [6])",
             "array_sum(data)",
         ]
-        
+
         for source in test_cases:
             tokenizer = Tokenizer(source)
             tokens = tokenizer.tokenize()
@@ -47,7 +49,7 @@ class TestArrayProgrammingTokenization:
         source = "array_sum(a, dim: 1)"
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Should find colon for named parameter
         colon_found = any(token.type == TokenType.COLON for token in tokens)
         assert colon_found
@@ -55,17 +57,17 @@ class TestArrayProgrammingTokenization:
 
 class TestArraySyntaxEdgeCases:
     """Test edge cases in array syntax."""
-    
+
     def test_deeply_nested_arrays(self):
         """Test parsing of deeply nested array literals."""
         source = "data := [[[[1, 2], [3, 4]], [[5, 6], [7, 8]]], [[[9, 10], [11, 12]], [[13, 14], [15, 16]]]]"
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Should parse without error
         assert len(tokens) > 0
         assert tokens[-1].type == TokenType.EOF
-    
+
     def test_mixed_array_operations(self):
         """Test complex array operation chains."""
         source = """
@@ -76,10 +78,10 @@ class TestArraySyntaxEdgeCases:
         """
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Should parse complex nested function calls
         assert len(tokens) > 20
-    
+
     def test_broadcasting_syntax(self):
         """Test broadcasting operation syntax with standard operators."""
         source = """
@@ -89,32 +91,34 @@ class TestArraySyntaxEdgeCases:
         """
         tokenizer = Tokenizer(source)
         tokens = tokenizer.tokenize()
-        
+
         # Find plus operator for broadcasting
         plus_found = any(token.type == TokenType.PLUS for token in tokens)
         assert plus_found
-    
+
     def test_array_indexing_syntax(self):
         """Test advanced array indexing."""
         test_cases = [
             "array[i, j, k]",
             "matrix[i, ..]",
-            "data[.., j]", 
+            "data[.., j]",
             "block[i..i+3, j..j+3]",
             "filtered[mask]",
             "selected[indices]",
-            "elements[row_idx, col_idx]"
+            "elements[row_idx, col_idx]",
         ]
-        
+
         for source in test_cases:
             tokenizer = Tokenizer(source)
             tokens = tokenizer.tokenize()
-            assert len(tokens) > 3  # At least identifier, bracket, something, bracket, EOF
+            assert (
+                len(tokens) > 3
+            )  # At least identifier, bracket, something, bracket, EOF
 
 
 class TestParserArraySupport:
     """Test parser support for array constructs."""
-    
+
     def test_multidimensional_array_types(self):
         """Test parsing of multidimensional array type declarations."""
         source = """
@@ -128,7 +132,7 @@ class TestParserArraySupport:
         except ParseError:
             # Expected - parser may not fully support this yet
             pytest.skip("Parser does not yet support complex array types")
-    
+
     def test_array_literal_parsing(self):
         """Test parsing of multidimensional array literals."""
         source = """
@@ -140,7 +144,7 @@ class TestParserArraySupport:
             assert ast is not None
         except ParseError:
             pytest.skip("Parser does not yet support multidimensional arrays")
-    
+
     def test_array_function_parsing(self):
         """Test parsing of array function calls."""
         source = """
@@ -156,7 +160,7 @@ class TestParserArraySupport:
 
 class TestParserGeneralEdgeCases:
     """Test general parser edge cases and stress scenarios."""
-    
+
     def test_deeply_nested_expressions(self):
         """Test parsing of deeply nested expressions."""
         source = """
@@ -164,7 +168,7 @@ class TestParserGeneralEdgeCases:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_generic_constraints(self):
         """Test complex generic type constraints."""
         source = """
@@ -177,7 +181,7 @@ class TestParserGeneralEdgeCases:
             assert ast is not None
         except ParseError:
             pytest.skip("Parser may not fully support complex generics")
-    
+
     def test_nested_match_statements(self):
         """Test nested match statements."""
         source = """
@@ -197,20 +201,20 @@ class TestParserGeneralEdgeCases:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_pointer_chains(self):
-        """Test complex pointer dereferencing chains.""" 
+        """Test complex pointer dereferencing chains."""
         source = """
         complex_ptr :: fn() {
-            ptr := &x
-            ptr_ptr := &ptr
-            ptr_ptr_ptr := &ptr_ptr
-            value := ptr_ptr_ptr.*.*.*
+            ptr := x.adr
+            ptr_ptr := ptr.adr
+            ptr_ptr_ptr := ptr_ptr.adr
+            value := ptr_ptr_ptr.val.val.val
         }
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_mixed_array_slice_operations(self):
         """Test mixed array and slice operations."""
         source = """
@@ -223,7 +227,7 @@ class TestParserGeneralEdgeCases:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_struct_initialization(self):
         """Test complex struct initialization patterns."""
         source = """
@@ -248,7 +252,7 @@ class TestParserGeneralEdgeCases:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_recursive_function_calls(self):
         """Test recursive function definitions."""
         source = """
@@ -269,36 +273,36 @@ class TestParserGeneralEdgeCases:
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_complex_generic_function_calls(self):
         """Test complex generic function instantiation."""
         source = """
         swap :: fn($T, a: ref T, b: ref T) {
-            temp := a.*
-            a.* = b.*
-            b.* = temp
+            temp := a.val
+            a.val = b.val
+            b.val = temp
         }
         
         use_swap :: fn() {
             x := 42
             y := 84
-            swap(i32, &x, &y)
+            swap(i32, x.adr, y.adr)
             
             s1 := "hello"
             s2 := "world"
-            swap(string, &s1, &s2)
+            swap(string, s1.adr, s2.adr)
         }
         """
         ast = parse_a7(source)
         assert ast is not None
-    
+
     def test_memory_management_patterns(self):
         """Test complex memory management scenarios."""
         source = """
         memory_test :: fn() {
             // Heap allocation
             ptr := new i32
-            ptr.* = 42
+            ptr.val = 42
             defer del ptr
             
             // Array allocation
@@ -318,7 +322,7 @@ class TestParserGeneralEdgeCases:
             assert ast is not None
         except ParseError:
             pytest.skip("Parser may not fully support complex memory management")
-    
+
     def test_operator_precedence_edge_cases(self):
         """Test complex operator precedence scenarios."""
         test_cases = [
@@ -329,59 +333,59 @@ class TestParserGeneralEdgeCases:
             "result := a & 0xFF | b ^ c",
             "result := a == b and c != d or e < f",
         ]
-        
+
         for source in test_cases:
             full_source = f"test :: fn() {{ {source} }}"
             ast = parse_a7(full_source)
             assert ast is not None
-    
+
     def test_malformed_syntax_recovery(self):
         """Test parser error recovery on malformed syntax."""
         malformed_cases = [
             "fn incomplete(",  # Incomplete function
-            "struct { x: }",   # Incomplete struct field
-            "match x { }",     # Empty match
-            "for { break }",   # Invalid for loop
-            "[1, 2, 3,]",     # Trailing comma
+            "struct { x: }",  # Incomplete struct field
+            "match x { }",  # Empty match
+            "for { break }",  # Invalid for loop
+            "[1, 2, 3,]",  # Trailing comma
         ]
-        
+
         for source in malformed_cases:
             tokenizer = Tokenizer(source)
             tokens = tokenizer.tokenize()
-            
+
             with pytest.raises(ParseError):
                 parse_a7(source)
 
 
 class TestArrayErrorHandling:
     """Test error handling for array-related syntax errors."""
-    
+
     def test_invalid_array_dimensions(self):
         """Test error handling for invalid array dimensions."""
         invalid_cases = [
-            "data := [[[[]]]]]",    # Unmatched brackets
-            "mixed := [1, [2, 3]]", # Mixed dimensions
-            "empty := []",          # Empty array
+            "data := [[[[]]]]]",  # Unmatched brackets
+            "mixed := [1, [2, 3]]",  # Mixed dimensions
+            "empty := []",  # Empty array
         ]
-        
+
         for source in invalid_cases:
             tokenizer = Tokenizer(source)
             tokens = tokenizer.tokenize()
             # Should tokenize but may fail in parser
             assert len(tokens) > 0
-    
+
     def test_array_function_argument_errors(self):
         """Test error handling for array function arguments."""
         invalid_cases = [
-            "create_array()",         # Missing arguments
-            "reshape_array(a)",       # Missing shape argument
-            "sum_array(a, dim:)",     # Missing dimension value
+            "create_array()",  # Missing arguments
+            "reshape_array(a)",  # Missing shape argument
+            "sum_array(a, dim:)",  # Missing dimension value
         ]
-        
+
         for source in invalid_cases:
             with pytest.raises(ParseError):
                 parse_a7(source)
-    
+
     def test_broadcasting_syntax_errors(self):
         """Test error handling for broadcasting syntax."""
         source = """
@@ -389,14 +393,14 @@ class TestArrayErrorHandling:
         b := create_array([2, 5])
         result := a +  # Incomplete expression
         """
-        
+
         with pytest.raises(ParseError):
             parse_a7(source)
 
 
 class TestArraySemanticValidation:
     """Test semantic validation of array operations (when implemented)."""
-    
+
     def test_array_shape_compatibility(self):
         """Test array shape compatibility checking."""
         # These would require semantic analysis to validate
@@ -413,14 +417,14 @@ class TestArraySemanticValidation:
             result := a + b  // Should require broadcasting or error
         }
         """
-        
+
         # For now, just test that it parses
         try:
             ast = parse_a7(source)
             assert ast is not None
         except ParseError:
             pytest.skip("Parser does not yet support array operations")
-    
+
     def test_array_type_inference(self):
         """Test array type inference scenarios."""
         source = """
@@ -433,7 +437,7 @@ class TestArraySemanticValidation:
             zeros := create_zeros([3, 3], f32)   // f32 array
         }
         """
-        
+
         try:
             ast = parse_a7(source)
             assert ast is not None

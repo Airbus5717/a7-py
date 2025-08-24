@@ -13,7 +13,7 @@ from src.errors import ParseError
 
 class TestMissingStructs:
     """Test struct declarations - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="Struct declarations not yet implemented")
     def test_simple_struct_declaration(self):
         """Test parsing simple struct declarations."""
@@ -28,7 +28,7 @@ class TestMissingStructs:
         assert struct_decl.kind == NodeKind.STRUCT
         assert struct_decl.name == "Person"
         assert len(struct_decl.fields) == 2
-    
+
     @pytest.mark.skip(reason="Generic structs not yet implemented")
     def test_generic_struct_declaration(self):
         """Test parsing generic struct declarations."""
@@ -43,8 +43,8 @@ class TestMissingStructs:
         assert struct_decl.kind == NodeKind.STRUCT
         assert struct_decl.name == "Pair"
         assert len(struct_decl.generic_params) == 2
-    
-    @pytest.mark.skip(reason="Struct initialization not yet implemented") 
+
+    @pytest.mark.skip(reason="Struct initialization not yet implemented")
     def test_struct_initialization(self):
         """Test parsing struct initialization expressions."""
         code = """
@@ -62,7 +62,7 @@ class TestMissingStructs:
 
 class TestMissingEnums:
     """Test enum declarations - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="Enum declarations not yet implemented")
     def test_simple_enum_declaration(self):
         """Test parsing simple enum declarations."""
@@ -78,7 +78,7 @@ class TestMissingEnums:
         assert enum_decl.kind == NodeKind.ENUM
         assert enum_decl.name == "Color"
         assert len(enum_decl.variants) == 3
-    
+
     @pytest.mark.skip(reason="Enum with explicit values not yet implemented")
     def test_enum_with_explicit_values(self):
         """Test parsing enums with explicit values."""
@@ -97,7 +97,7 @@ class TestMissingEnums:
 
 class TestMissingUnions:
     """Test union declarations - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="Union declarations not yet implemented")
     def test_simple_union_declaration(self):
         """Test parsing simple union declarations."""
@@ -112,7 +112,7 @@ class TestMissingUnions:
         assert union_decl.kind == NodeKind.UNION
         assert union_decl.name == "Number"
         assert len(union_decl.fields) == 2
-    
+
     @pytest.mark.skip(reason="Tagged unions not yet implemented")
     def test_tagged_union_declaration(self):
         """Test parsing tagged union declarations."""
@@ -131,7 +131,7 @@ class TestMissingUnions:
 
 class TestMissingMatchStatements:
     """Test match statements - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="Match statements not yet implemented")
     def test_simple_match_statement(self):
         """Test parsing simple match statements."""
@@ -157,7 +157,7 @@ class TestMissingMatchStatements:
         assert match_stmt.kind == NodeKind.MATCH
         assert len(match_stmt.cases) == 2
         assert match_stmt.else_case is not None
-    
+
     @pytest.mark.skip(reason="Multiple patterns not yet implemented")
     def test_match_multiple_patterns(self):
         """Test parsing match with multiple patterns."""
@@ -180,7 +180,7 @@ class TestMissingMatchStatements:
 
 class TestMissingDeferStatements:
     """Test defer statements - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="Defer statements not yet implemented")
     def test_defer_statement(self):
         """Test parsing defer statements."""
@@ -188,7 +188,7 @@ class TestMissingDeferStatements:
         main :: fn() {
             ptr := new i32
             defer del ptr
-            ptr.* = 42
+            ptr.val = 42
         }
         """
         ast = parse_a7(code)
@@ -200,7 +200,7 @@ class TestMissingDeferStatements:
 
 class TestMissingForLoopVariants:
     """Test complex for loop variants - CURRENTLY NOT IMPLEMENTED."""
-    
+
     @pytest.mark.skip(reason="C-style for loops not yet implemented")
     def test_c_style_for_loop(self):
         """Test parsing C-style for loops."""
@@ -218,7 +218,7 @@ class TestMissingForLoopVariants:
         assert for_stmt.init is not None
         assert for_stmt.condition is not None
         assert for_stmt.update is not None
-    
+
     @pytest.mark.skip(reason="Range-based for loops not yet implemented")
     def test_range_based_for_loop(self):
         """Test parsing range-based for loops."""
@@ -236,7 +236,7 @@ class TestMissingForLoopVariants:
         assert for_stmt.kind == NodeKind.FOR
         assert for_stmt.iterator is not None
         assert for_stmt.iterable is not None
-    
+
     @pytest.mark.skip(reason="For loops with index not yet implemented")
     def test_for_loop_with_index(self):
         """Test parsing for loops with index."""
@@ -258,7 +258,7 @@ class TestMissingForLoopVariants:
 
 class TestMissingExpressionConstructs:
     """Test missing expression constructs."""
-    
+
     @pytest.mark.skip(reason="Array initialization not yet implemented")
     def test_array_initialization(self):
         """Test parsing array initialization expressions."""
@@ -273,7 +273,7 @@ class TestMissingExpressionConstructs:
         array_init = var_decl.value
         assert array_init.kind == NodeKind.ARRAY_INIT
         assert len(array_init.elements) == 5
-    
+
     @pytest.mark.skip(reason="Cast expressions not yet implemented")
     def test_cast_expressions(self):
         """Test parsing cast expressions."""
@@ -287,7 +287,7 @@ class TestMissingExpressionConstructs:
         var_decl = func_decl.body.statements[0]
         cast_expr = var_decl.value
         assert cast_expr.kind == NodeKind.CAST
-    
+
     @pytest.mark.skip(reason="Field access chaining not fully tested")
     def test_nested_field_access(self):
         """Test parsing nested field access."""
@@ -302,7 +302,7 @@ class TestMissingExpressionConstructs:
 
 class TestMissingTypeAnnotations:
     """Test missing explicit type annotations."""
-    
+
     @pytest.mark.skip(reason="Explicit type annotations not yet implemented")
     def test_variable_with_explicit_type(self):
         """Test parsing variables with explicit type annotations."""
@@ -321,15 +321,15 @@ class TestMissingTypeAnnotations:
 
 class TestMissingGenericFunctions:
     """Test missing generic function constructs."""
-    
+
     @pytest.mark.skip(reason="Generic function parameters not fully implemented")
     def test_generic_function_declaration(self):
         """Test parsing generic function declarations."""
         code = """
         swap :: fn($T, a: ref T, b: ref T) {
-            temp := a.*
-            a.* = b.*
-            b.* = temp
+            temp := a.val
+            a.val = b.val
+            b.val = temp
         }
         """
         ast = parse_a7(code)
@@ -337,7 +337,7 @@ class TestMissingGenericFunctions:
         assert func_decl.name == "swap"
         assert len(func_decl.generic_params) == 1
         assert func_decl.generic_params[0].name == "T"
-    
+
     @pytest.mark.skip(reason="Generic constraints not yet implemented")
     def test_generic_function_with_constraints(self):
         """Test parsing generic functions with type constraints."""
@@ -354,7 +354,7 @@ class TestMissingGenericFunctions:
 
 class TestMissingNamedImports:
     """Test missing named import constructs."""
-    
+
     @pytest.mark.skip(reason="Named imports not yet implemented")
     def test_named_import(self):
         """Test parsing named import statements."""
@@ -368,25 +368,25 @@ class TestMissingNamedImports:
 
 class TestCurrentlyWorkingFeatures:
     """Test cases that demonstrate implemented A7 language features."""
-    
+
     def test_struct_keyword_works(self):
         """Demonstrate that struct keyword is now recognized."""
         ast = parse_a7("Person :: struct { name: string }")
         assert ast.declarations[0].kind == NodeKind.STRUCT
         assert ast.declarations[0].name == "Person"
-    
+
     def test_enum_keyword_works(self):
-        """Demonstrate that enum keyword is now recognized."""  
+        """Demonstrate that enum keyword is now recognized."""
         ast = parse_a7("Color :: enum { Red, Green, Blue }")
         assert ast.declarations[0].kind == NodeKind.ENUM
         assert ast.declarations[0].name == "Color"
-    
+
     def test_union_keyword_works(self):
         """Demonstrate that union keyword is now recognized."""
         ast = parse_a7("Data :: union { i: i32, f: f32 }")
         assert ast.declarations[0].kind == NodeKind.UNION
         assert ast.declarations[0].name == "Data"
-    
+
     def test_match_keyword_works(self):
         """Demonstrate that match keyword is now recognized."""
         code = """
@@ -400,7 +400,7 @@ class TestCurrentlyWorkingFeatures:
         func = ast.declarations[0]
         match_stmt = func.body.statements[0]
         assert match_stmt.kind == NodeKind.MATCH
-    
+
     def test_defer_keyword_works(self):
         """Demonstrate that defer keyword is now recognized."""
         code = """
@@ -412,7 +412,7 @@ class TestCurrentlyWorkingFeatures:
         func = ast.declarations[0]
         defer_stmt = func.body.statements[0]
         assert defer_stmt.kind == NodeKind.DEFER
-    
+
     def test_simple_for_loop_works(self):
         """Demonstrate that simple for loops work."""
         code = """
@@ -427,7 +427,7 @@ class TestCurrentlyWorkingFeatures:
         for_stmt = func.body.statements[0]
         assert for_stmt.kind == NodeKind.FOR
         assert for_stmt.body is not None
-    
+
     def test_array_literal_works(self):
         """Demonstrate that array literals are now implemented."""
         code = """
@@ -440,7 +440,7 @@ class TestCurrentlyWorkingFeatures:
         var_decl = func.body.statements[0]
         assert var_decl.kind == NodeKind.VAR
         assert var_decl.name == "arr"
-    
+
     def test_struct_literal_works(self):
         """Demonstrate that struct literals are now implemented."""
         code = """
@@ -453,7 +453,7 @@ class TestCurrentlyWorkingFeatures:
         var_decl = func.body.statements[0]
         assert var_decl.kind == NodeKind.VAR
         assert var_decl.name == "p"
-    
+
     def test_explicit_type_annotation_works(self):
         """Demonstrate that explicit type annotations are now implemented."""
         code = """
@@ -466,8 +466,8 @@ class TestCurrentlyWorkingFeatures:
         var_decl = func.body.statements[0]
         assert var_decl.kind == NodeKind.VAR
         assert var_decl.name == "x"
-        assert hasattr(var_decl, 'explicit_type') and var_decl.explicit_type is not None
-    
+        assert hasattr(var_decl, "explicit_type") and var_decl.explicit_type is not None
+
     def test_fails_named_import(self):
         """Demonstrate that named imports are not implemented."""
         with pytest.raises(ParseError):
