@@ -54,16 +54,16 @@ main :: fn() {
     v2 := Vec2{1.0, 2.0}
     
     // Call methods using dot notation (syntactic sugar)
-    len1 := v1.length()  // Equivalent to length(&v1)
+    len1 := v1.length()  // Equivalent to length(v1.adr)
     printf("Vector v1 length: {}\n", len1)
     
     // Method that modifies
     printf("Before normalize: v1 = ({}, {})\n", v1.x, v1.y)
-    v1.normalize()  // Equivalent to normalize(&v1)
+    v1.normalize()  // Equivalent to normalize(v1.adr)
     printf("After normalize: v1 = ({}, {})\n", v1.x, v1.y)
     
     // Method returning new value
-    v3 := v1.add(v2)  // Equivalent to add(&v1, v2)
+    v3 := v1.add(v2)  // Equivalent to add(v1.adr, v2)
     printf("v1 + v2 = ({}, {})\n", v3.x, v3.y)
     
     // Method with parameter
@@ -80,7 +80,7 @@ main :: fn() {
     printf("Rectangle perimeter: {}\n", rect.perimeter())
     
     // Direct function call (equivalent forms)
-    len2 := length(&v1)  // Direct call
+    len2 := length(v1.adr)  // Direct call
     len3 := v1.length()  // Method syntax
     printf("Direct call: {}, Method call: {}\n", len2, len3)
 }

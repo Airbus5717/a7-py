@@ -158,6 +158,22 @@ class Parser:
                 if len(declarations) == 0:
                     raise e
 
+                # Check for specific error patterns that should not be recovered from
+                error_msg = str(e)
+                
+                # Case 1: Single declaration with unexpected tokens after complete program
+                if len(declarations) == 1 and "Expected declaration" in error_msg:
+                    current_token = self.current()
+                    raise ParseError.from_token(
+                        f"Unexpected token '{current_token.value}' after parsing complete program",
+                        current_token, self.filename
+                    )
+                
+                # Case 2: Incomplete expressions (missing operand after operator) 
+                if "Expected expression after" in error_msg:
+                    # These are syntax errors that shouldn't be recovered from
+                    raise e
+
                 # Otherwise do error recovery for multi-declaration programs
                 self.synchronize()
 
@@ -172,6 +188,14 @@ class Parser:
                 print(
                     f"Warning: Parser stopped after {max_iterations} iterations in {self.filename}"
                 )
+
+        # Check if there are unparsed tokens remaining
+        if not self.at_end():
+            current_token = self.current()
+            raise ParseError.from_token(
+                f"Unexpected token '{current_token.value}' after parsing complete program",
+                current_token, self.filename
+            )
 
         return create_program(declarations)
 
@@ -882,6 +906,11 @@ class Parser:
             TokenType.MULTIPLY_ASSIGN,
             TokenType.DIVIDE_ASSIGN,
             TokenType.MODULO_ASSIGN,
+            TokenType.BITWISE_AND_ASSIGN,
+            TokenType.BITWISE_OR_ASSIGN,
+            TokenType.BITWISE_XOR_ASSIGN,
+            TokenType.LEFT_SHIFT_ASSIGN,
+            TokenType.RIGHT_SHIFT_ASSIGN,
         ):
             op_token = self.advance()
             assign_op = token_to_assign_op(op_token.type)
@@ -1248,6 +1277,9 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE)
         field_inits = []
 
+        # Skip terminators after opening brace
+        self.skip_terminators()
+
         if not self.match(TokenType.RIGHT_BRACE):
             # Check if this is named field initialization or positional initialization
             # Look ahead to see if we have identifier followed by colon
@@ -1269,6 +1301,7 @@ class Parser:
 
                 while self.match(TokenType.COMMA):
                     self.advance()
+                    self.skip_terminators()  # Skip terminators after comma
                     if self.match(TokenType.RIGHT_BRACE):  # Handle trailing comma
                         break
                     field_name_token = self.consume(TokenType.IDENTIFIER)
@@ -1306,6 +1339,8 @@ class Parser:
                     )
                     field_inits.append(field_init)
 
+        # Skip terminators before closing brace
+        self.skip_terminators()
         self.consume(TokenType.RIGHT_BRACE)
 
         return ASTNode(

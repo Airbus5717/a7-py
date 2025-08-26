@@ -18,12 +18,12 @@ EXAMPLES_DIR = Path(__file__).parent.parent / "examples"
 
 class TestExampleFiles:
     """Test parsing of A7 example files."""
-    
+
     def read_example(self, filename: str) -> str:
         """Read an example file."""
         example_path = EXAMPLES_DIR / filename
         return example_path.read_text()
-    
+
     def test_000_empty(self):
         """Test parsing minimal program with empty main function."""
         code = self.read_example("000_empty.a7")
@@ -34,7 +34,7 @@ class TestExampleFiles:
         main_func = ast.declarations[0]
         assert main_func.kind == NodeKind.FUNCTION
         assert main_func.name == "main"
-    
+
     @pytest.mark.skip(reason="Named imports not implemented")
     def test_001_hello(self):
         """Test parsing hello world program."""
@@ -44,7 +44,7 @@ class TestExampleFiles:
         assert len(ast.declarations) == 2
         assert ast.declarations[0].kind == NodeKind.IMPORT
         assert ast.declarations[1].kind == NodeKind.FUNCTION
-    
+
     @pytest.mark.skip(reason="Named imports and explicit types not implemented")
     def test_002_var(self):
         """Test parsing variable declarations."""
@@ -52,7 +52,7 @@ class TestExampleFiles:
         # Contains: io :: import "std/io", variables with explicit types
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     def test_003_comments(self):
         """Test parsing file with comments."""
         code = self.read_example("003_comments.a7")
@@ -62,7 +62,7 @@ class TestExampleFiles:
             assert ast.kind == NodeKind.PROGRAM
         except ParseError as e:
             pytest.skip(f"Comments example failed: {e}")
-    
+
     def test_004_func_basic_parsing(self):
         """Test basic function parsing (ignoring call issues)."""
         # Simplified version of 004_func.a7 without problematic calls
@@ -79,15 +79,25 @@ class TestExampleFiles:
         assert len(ast.declarations) == 2
         assert ast.declarations[0].name == "add"
         assert ast.declarations[1].name == "main"
-    
-    @pytest.mark.skip(reason="Complex for loops not implemented")
+
     def test_005_for_loop(self):
         """Test parsing for loop examples."""
         code = self.read_example("005_for_loop.a7")
-        # Contains C-style and range-based for loops
-        with pytest.raises(ParseError):
-            parse_a7(code)
-    
+        # Contains C-style, range-based, and indexed for loops
+        ast = parse_a7(code)
+        func_decl = ast.declarations[0]
+        assert func_decl.kind == NodeKind.FUNCTION
+        
+        # Verify all three for loop types are parsed
+        statements = func_decl.body.statements
+        for_loops = [stmt for stmt in statements if stmt.kind in (NodeKind.FOR, NodeKind.FOR_IN, NodeKind.FOR_IN_INDEXED)]
+        assert len(for_loops) == 3
+        
+        # Verify specific for loop types
+        assert any(stmt.kind == NodeKind.FOR for stmt in for_loops)  # C-style
+        assert any(stmt.kind == NodeKind.FOR_IN for stmt in for_loops)  # Range-based
+        assert any(stmt.kind == NodeKind.FOR_IN_INDEXED for stmt in for_loops)  # Indexed
+
     def test_006_if_basic(self):
         """Test basic if statement parsing."""
         # Simplified version without complex expressions
@@ -104,7 +114,7 @@ class TestExampleFiles:
         assert len(func_decl.body.statements) == 2
         if_stmt = func_decl.body.statements[1]
         assert if_stmt.kind == NodeKind.IF_STMT
-    
+
     def test_007_while_basic(self):
         """Test basic while loop parsing."""
         code = """
@@ -119,7 +129,7 @@ class TestExampleFiles:
         func_decl = ast.declarations[0]
         while_stmt = func_decl.body.statements[1]
         assert while_stmt.kind == NodeKind.WHILE
-    
+
     @pytest.mark.skip(reason="Match statements not implemented")
     def test_008_switch(self):
         """Test parsing match/switch statements."""
@@ -127,7 +137,7 @@ class TestExampleFiles:
         # Contains match statements
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Struct declarations not implemented")
     def test_009_struct(self):
         """Test parsing struct declarations."""
@@ -135,7 +145,7 @@ class TestExampleFiles:
         # Contains struct declarations and initialization
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Enum declarations not implemented")
     def test_010_enum(self):
         """Test parsing enum declarations."""
@@ -143,7 +153,7 @@ class TestExampleFiles:
         # Contains enum declarations
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Memory management keywords not implemented")
     def test_011_memory(self):
         """Test parsing memory management constructs."""
@@ -151,7 +161,7 @@ class TestExampleFiles:
         # Contains new, del, defer
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Array literals not implemented")
     def test_012_arrays(self):
         """Test parsing array operations."""
@@ -159,7 +169,7 @@ class TestExampleFiles:
         # Contains array literals and operations
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Pointer operations need testing")
     def test_013_pointers(self):
         """Test parsing pointer operations."""
@@ -170,7 +180,7 @@ class TestExampleFiles:
             pytest.skip("Need to verify pointer operations work correctly")
         except ParseError:
             pytest.skip("Pointer operations parsing failed")
-    
+
     @pytest.mark.skip(reason="Generic functions not fully implemented")
     def test_014_generics(self):
         """Test parsing generic functions and types."""
@@ -178,7 +188,7 @@ class TestExampleFiles:
         # Contains generic functions and structs
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     def test_015_types_basic(self):
         """Test basic type parsing."""
         # Simplified version focusing on type parsing
@@ -192,7 +202,7 @@ class TestExampleFiles:
         assert len(func_decl.parameters) == 4
         assert func_decl.parameters[0].param_type.type_name == "i32"
         assert func_decl.parameters[1].param_type.type_name == "f64"
-    
+
     @pytest.mark.skip(reason="Union declarations not implemented")
     def test_016_unions(self):
         """Test parsing union declarations."""
@@ -200,7 +210,7 @@ class TestExampleFiles:
         # Contains union declarations
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Method declarations not implemented")
     def test_017_methods(self):
         """Test parsing method declarations."""
@@ -208,7 +218,7 @@ class TestExampleFiles:
         # Contains method declarations (functions with self parameter)
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     @pytest.mark.skip(reason="Module system not implemented")
     def test_018_modules(self):
         """Test parsing module system."""
@@ -216,7 +226,7 @@ class TestExampleFiles:
         # Contains module imports and usage
         with pytest.raises(ParseError):
             parse_a7(code)
-    
+
     def test_019_literals_basic(self):
         """Test basic literal parsing."""
         # Simplified version focusing on literals that should work
@@ -234,7 +244,7 @@ class TestExampleFiles:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         assert len(func_decl.body.statements) == 7
-    
+
     def test_020_operators_basic(self):
         """Test basic operator parsing."""
         # Test arithmetic and comparison operators
@@ -251,7 +261,7 @@ class TestExampleFiles:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         assert len(func_decl.body.statements) == 6
-    
+
     @pytest.mark.skip(reason="Advanced control flow not implemented")
     def test_021_control_flow(self):
         """Test parsing advanced control flow."""
@@ -263,12 +273,12 @@ class TestExampleFiles:
 
 class TestExampleFileStatistics:
     """Generate statistics about which examples work."""
-    
+
     def test_example_success_rate(self):
         """Generate a report of which examples can be parsed."""
         examples = [
             "000_empty.a7",
-            "001_hello.a7", 
+            "001_hello.a7",
             "002_var.a7",
             "003_comments.a7",
             "004_func.a7",
@@ -288,42 +298,46 @@ class TestExampleFileStatistics:
             "018_modules.a7",
             "019_literals.a7",
             "020_operators.a7",
-            "021_control_flow.a7"
+            "021_control_flow.a7",
         ]
-        
+
         successful = []
         failed = []
-        
+
         for example in examples:
             try:
                 example_path = EXAMPLES_DIR / example
                 if not example_path.exists():
                     failed.append(example + " (file not found)")
                     continue
-                    
+
                 code = example_path.read_text()
                 parse_a7(code)
                 successful.append(example)
             except Exception as e:
                 failed.append(f"{example} ({type(e).__name__})")
-        
+
         print(f"\n=== PARSER EXAMPLE ANALYSIS ===")
-        print(f"Successful: {len(successful)}/{len(examples)} ({len(successful)/len(examples)*100:.1f}%)")
-        print(f"Failed: {len(failed)}/{len(examples)} ({len(failed)/len(examples)*100:.1f}%)")
+        print(
+            f"Successful: {len(successful)}/{len(examples)} ({len(successful) / len(examples) * 100:.1f}%)"
+        )
+        print(
+            f"Failed: {len(failed)}/{len(examples)} ({len(failed) / len(examples) * 100:.1f}%)"
+        )
         print(f"\nSuccessful examples:")
         for example in successful:
             print(f"  ✓ {example}")
         print(f"\nFailed examples:")
         for example in failed:
             print(f"  ✗ {example}")
-        
+
         # This test will pass but print the statistics
         assert True  # Always pass, just print info
 
 
 class TestSpecificParsingIssues:
     """Test specific parsing issues found in examples."""
-    
+
     def test_simple_function_works(self):
         """Verify that simple function parsing works."""
         code = """
@@ -334,7 +348,7 @@ class TestSpecificParsingIssues:
         ast = parse_a7(code)
         assert ast.declarations[0].kind == NodeKind.FUNCTION
         assert ast.declarations[0].name == "main"
-    
+
     def test_function_with_parameters_works(self):
         """Verify that functions with parameters work."""
         code = """
@@ -346,7 +360,7 @@ class TestSpecificParsingIssues:
         func_decl = ast.declarations[0]
         assert len(func_decl.parameters) == 2
         assert func_decl.return_type is not None
-    
+
     def test_basic_expressions_work(self):
         """Verify that basic expressions work."""
         code = """
@@ -359,7 +373,7 @@ class TestSpecificParsingIssues:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         assert len(func_decl.body.statements) == 3
-    
+
     def test_function_calls_work(self):
         """Verify that function calls work."""
         code = """
@@ -371,7 +385,7 @@ class TestSpecificParsingIssues:
         func_decl = ast.declarations[0]
         var_decl = func_decl.body.statements[0]
         assert var_decl.value.kind == NodeKind.CALL
-    
+
     def test_if_statements_work(self):
         """Verify that if statements work."""
         code = """

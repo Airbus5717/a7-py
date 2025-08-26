@@ -77,8 +77,8 @@ uv run python main.py examples/001_hello.a7
 uv run pytest
 ```
 
-The compiler currently implements a complete lexer/tokenizer. Parser and code
-generation are not yet implemented.
+The compiler currently implements a complete lexer/tokenizer and recursive descent parser 
+with AST generation. Code generation is not yet implemented.
 
 A7 programs use the `.a7` file extension. See the `examples/` directory for 
 sample programs demonstrating language features.

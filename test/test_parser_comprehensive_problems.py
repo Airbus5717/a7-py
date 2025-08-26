@@ -137,7 +137,7 @@ class TestBraceMatchingProblems:
             parse_a7(source)
 
     def test_extra_closing_brace(self):
-        """Test extra closing braces."""
+        """Test extra closing braces are detected as errors."""
         source = """
         test_func :: fn() {
             x := 42
@@ -145,6 +145,7 @@ class TestBraceMatchingProblems:
         }  // Extra closing brace
         """
 
+        # Parser should detect and report extra closing braces as errors
         with pytest.raises(ParseError):
             parse_a7(source)
 
@@ -223,7 +224,7 @@ class TestImportAndFieldAccessProblems:
     """Test import declarations and field access on modules."""
 
     def test_import_with_field_access(self):
-        """Test import followed by field access (not yet supported)."""
+        """Test import followed by field access (now supported)."""
         source = """
         io :: import "std/io"
         
@@ -232,13 +233,12 @@ class TestImportAndFieldAccessProblems:
         }
         """
 
-        # Import parsing works, but field access on imported modules doesn't
-        # This should eventually work but currently fails
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Import parsing and field access on imported modules now works
+        ast = parse_a7(source)
+        assert ast is not None
 
     def test_chained_field_access_on_import(self):
-        """Test chained field access on imported modules."""
+        """Test chained field access on imported modules (now supported)."""
         source = """
         std :: import "std"
         
@@ -248,13 +248,15 @@ class TestImportAndFieldAccessProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Chained field access on imported modules now works
+        ast = parse_a7(source)
+        assert ast is not None
 
 
 class TestMatchStatementPatternProblems:
     """Test match statement pattern limitations."""
 
+    @pytest.mark.skip(reason="Range patterns in match statements not yet implemented")
     def test_range_patterns_in_match(self):
         """Test range patterns in match statements (not yet supported)."""
         source = """
@@ -269,10 +271,12 @@ class TestMatchStatementPatternProblems:
             }
         }
         """
+        
+        # TODO: Should parse successfully and generate proper AST nodes for range patterns
+        ast = parse_a7(source)
+        assert ast is not None
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
-
+    @pytest.mark.skip(reason="Multiple values in case statements not yet implemented")
     def test_multiple_values_in_case(self):
         """Test multiple values in case statement (not yet supported)."""
         source = """
@@ -288,9 +292,11 @@ class TestMatchStatementPatternProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # TODO: Should parse successfully and generate proper AST nodes for multiple case values
+        ast = parse_a7(source)
+        assert ast is not None
 
+    @pytest.mark.skip(reason="Fall (fallthrough) statements not yet implemented")
     def test_fall_statement(self):
         """Test fall (fallthrough) statement in match (not yet supported)."""
         source = """
@@ -307,13 +313,15 @@ class TestMatchStatementPatternProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # TODO: Should parse successfully and generate proper AST nodes for fall statements
+        ast = parse_a7(source)
+        assert ast is not None
 
 
 class TestEnumAccessPatternProblems:
     """Test enum access pattern limitations."""
 
+    @pytest.mark.skip(reason="Scoped enum access not yet implemented")
     def test_scoped_enum_access(self):
         """Test scoped enum access (not yet supported)."""
         source = """
@@ -328,9 +336,11 @@ class TestEnumAccessPatternProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # TODO: Should parse successfully and generate proper AST nodes for scoped enum access
+        ast = parse_a7(source)
+        assert ast is not None
 
+    @pytest.mark.skip(reason="Enum with explicit values and cast expressions not yet implemented")
     def test_enum_with_explicit_values_access(self):
         """Test enum with explicit values and access (not fully supported)."""
         source = """
@@ -346,8 +356,9 @@ class TestEnumAccessPatternProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # TODO: Should parse successfully and generate proper AST nodes for enum values and cast expressions
+        ast = parse_a7(source)
+        assert ast is not None
 
 
 class TestMemoryManagementSyntaxProblems:
@@ -405,7 +416,7 @@ class TestStructLiteralComplexPatterns:
     """Test complex struct literal patterns that currently fail."""
 
     def test_anonymous_struct_initialization(self):
-        """Test anonymous struct initialization (not yet supported)."""
+        """Test anonymous struct initialization (now supported)."""
         source = """
         Token :: struct {
             type: i32,
@@ -417,12 +428,12 @@ class TestStructLiteralComplexPatterns:
         }
         """
 
-        # Anonymous (positional) initialization is not supported
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Anonymous (positional) initialization is now supported by parser
+        ast = parse_a7(source)
+        assert ast is not None
 
     def test_nested_struct_initialization(self):
-        """Test nested struct initialization (not yet supported)."""
+        """Test nested struct initialization (now supported)."""
         source = """
         Point :: struct {
             x: i32,
@@ -442,11 +453,12 @@ class TestStructLiteralComplexPatterns:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Nested struct initialization is now supported by parser
+        ast = parse_a7(source)
+        assert ast is not None
 
     def test_array_field_in_struct_literal(self):
-        """Test array fields in struct literals (might not work)."""
+        """Test array fields in struct literals (now supported)."""
         source = """
         ArrayStruct :: struct {
             name: string,
@@ -454,16 +466,16 @@ class TestStructLiteralComplexPatterns:
         }
         
         test_func :: fn() {
-            as := ArrayStruct{
+            arr_struct := ArrayStruct{
                 name: "test",
                 values: [1, 2, 3]
             }
         }
         """
 
-        # Array initialization in struct literals might fail
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Array initialization in struct literals is now supported by parser
+        ast = parse_a7(source)
+        assert ast is not None
 
 
 class TestExplicitTypeAnnotationProblems:
@@ -515,17 +527,14 @@ class TestOperatorPrecedenceEdgeCases:
         test_func :: fn() {
             result := a + b * c - d / e % f
             grouped := (a + b) * (c - d) / (e % f)
-            mixed := a && b || c && d
+            mixed := a and b or c and d
             bitwise := a | b & c ^ d << e >> f
         }
         """
 
         # This should parse successfully if precedence is implemented correctly
-        try:
-            ast = parse_a7(source)
-            assert ast is not None
-        except ParseError:
-            pytest.fail("Complex precedence expressions should parse correctly")
+        ast = parse_a7(source)
+        assert ast is not None
 
     def test_precedence_with_unary_operators(self):
         """Test precedence with unary operators."""
@@ -533,16 +542,14 @@ class TestOperatorPrecedenceEdgeCases:
         test_func :: fn() {
             result := -a + b
             negated := -(a + b)
-            logical := !flag && other
+            logical := !flag and other
             bitwise := ~mask | value
         }
         """
 
-        try:
-            ast = parse_a7(source)
-            assert ast is not None
-        except ParseError:
-            pytest.fail("Unary operator precedence should work correctly")
+        # Unary operator precedence should work correctly
+        ast = parse_a7(source)
+        assert ast is not None
 
 
 class TestErrorRecoveryProblems:

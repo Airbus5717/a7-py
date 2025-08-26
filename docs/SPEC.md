@@ -1,5 +1,7 @@
 # A7 Programming Language Specification 
 
+> **Implementation Status**: This specification describes the complete A7 language design. The current Python implementation (`a7-py`) implements the complete lexer/tokenizer and most of the parser, with AST generation for core language constructs. See `CLAUDE.md` for detailed implementation status.
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -113,7 +115,7 @@ and  or   !
 =    +=   -=   *=   /=   %=   &=   |=   ^=   <<=  >>=
 
 // Memory
-*    &    .    
+.adr .val .    
 
 // Generics  
 $    // Generic type parameter prefix
@@ -259,8 +261,8 @@ fn_ptr: ref fn(i32, i32) i32
 
 // All pointers can be modified through dereferencing
 x := 42
-ptr := &x
-ptr.* = 100  // Modifies the value x points to (using . syntax)
+ptr := x.adr
+ptr.val = 100  // Modifies the value x points to (using . syntax)
 ```
 
 #### Structs
@@ -330,22 +332,22 @@ Matrix :: [4][4]f32
 ```a7
 // All pointers allow modification through dereferencing
 x := 42
-ptr := &x
-ptr.* = 100  // OK: modifies the value x points to
+ptr := x.adr
+ptr.val = 100  // OK: modifies the value x points to
 
 // Pointer reassignment
 y := 50
-ptr = &y    // OK: pointer now points to y
+ptr = y.adr    // OK: pointer now points to y
 
 // Function parameters are immutable (including pointers)
 modify_value :: fn(p: ref i32) {
-    p.* = 200    // OK: modifying through dereference
-    // p = &other_var  // ERROR: cannot reassign parameter
+    p.val = 200    // OK: modifying through dereference
+    // p = other_var.adr  // ERROR: cannot reassign parameter
 }
 
 // To reassign a pointer in a function, use ref ref
 reassign_pointer :: fn(p: ref ref i32, new_target: ref i32) {
-    p.* = new_target  // OK: changes what the original pointer points to
+    p.val = new_target  // OK: changes what the original pointer points to
 }
 ```
 
@@ -417,13 +419,12 @@ can_exit := !running and cleanup_done
 - Array subscript: `arr[i]`
 - Slice: `arr[1..5]`, `arr[..3]`, `arr[2..]`
 - Field access: `point.x`
-- Pointer dereference: `ptr.*`
+- Address access: `variable.adr`
+- Pointer dereference: `ptr.val`
 - Method call: `vec.length()`
 - Function call: `max(a, b)`
 
 #### Unary Expressions
-- Address-of: `&x`
-- Dereference: `ptr.*`
 - Negation: `-x`
 - Logical NOT: `!flag`
 - Bitwise NOT: `~bits`
@@ -624,9 +625,9 @@ sincos :: fn(angle: f64) struct { sin: f64, cos: f64 } {
 
 // Generic function examples
 swap :: fn($T, a: ref T, b: ref T) {
-    temp := a.*
-    a.* = b.*
-    b.* = temp
+    temp := a.val
+    a.val = b.val
+    b.val = temp
 }
 
 // Generic function with type constraint
@@ -653,7 +654,7 @@ bad_function :: fn(x: i32) i32 {
 
 // Pointers can be dereferenced to modify data
 increment :: fn(x: ref i32) {
-    x.* += 1  // OK: modifying through pointer dereference
+    x.val += 1  // OK: modifying through pointer dereference
 }
 
 // To work with a mutable copy, create a local variable
@@ -666,7 +667,7 @@ good_function :: fn(x: i32) i32 {
 // Usage example
 main :: fn() {
     value := 10
-    increment(&value)  // Pass pointer to modify original
+    increment(value.adr)  // Pass pointer to modify original
     printf("Value: {}\n", value)  // Prints: Value: 11
 }
 ```
@@ -708,7 +709,7 @@ normalize :: fn(self: ref Vec2) {
 
 // Method call
 v := Vec2{3.0, 4.0}
-len := v.length()     // Syntactic sugar for length(&v)
+len := v.length()     // Syntactic sugar for length(v.adr)
 v.normalize()         // Modifies v through pointer
 ```
 
@@ -736,12 +737,18 @@ printf :: fn(format: string, args: ..)
 
 A7 uses a simple generic system with type parameters prefixed by `$` and built-in type sets defined using `@set()`.
 
+**Generic Type Parameter Syntax Rules:**
+- Must start with `$` followed immediately by a letter (a-z, A-Z)
+- Can contain only letters and underscores after the initial letter
+- No digits allowed: `$T`, `$MY_TYPE` ✅ but `$T1`, `$123` ❌
+- Standalone `$` is invalid and produces a compilation error
+
 ```a7
 // Simple type parameter
 swap :: fn($T, a: ref T, b: ref T) {
-    temp := a.*
-    a.* = b.*
-    b.* = temp
+    temp := a.val
+    a.val = b.val
+    b.val = temp
 }
 
 // Multiple type parameters
@@ -836,7 +843,7 @@ fn example() {
 ```a7
 // Allocate single value
 ptr := new i32
-ptr.* = 42
+ptr.val = 42
 del ptr
 
 // Allocate array
@@ -1357,7 +1364,7 @@ and  or   !
 =    +=   -=   *=   /=   %=   &=   |=   ^=   <<=  >>=
 
 // Memory
-*    &    .    
+.adr .val .    
 
 // Generics  
 $    // Generic type parameter prefix
@@ -1503,8 +1510,8 @@ fn_ptr: ref fn(i32, i32) i32
 
 // All pointers can be modified through dereferencing
 x := 42
-ptr := &x
-ptr.* = 100  // Modifies the value x points to (using . syntax)
+ptr := x.adr
+ptr.val = 100  // Modifies the value x points to (using . syntax)
 ```
 
 #### Structs
@@ -1574,22 +1581,22 @@ Matrix :: [4][4]f32
 ```a7
 // All pointers allow modification through dereferencing
 x := 42
-ptr := &x
-ptr.* = 100  // OK: modifies the value x points to
+ptr := x.adr
+ptr.val = 100  // OK: modifies the value x points to
 
 // Pointer reassignment
 y := 50
-ptr = &y    // OK: pointer now points to y
+ptr = y.adr    // OK: pointer now points to y
 
 // Function parameters are immutable (including pointers)
 modify_value :: fn(p: ref i32) {
-    p.* = 200    // OK: modifying through dereference
-    // p = &other_var  // ERROR: cannot reassign parameter
+    p.val = 200    // OK: modifying through dereference
+    // p = other_var.adr  // ERROR: cannot reassign parameter
 }
 
 // To reassign a pointer in a function, use ref ref
 reassign_pointer :: fn(p: ref ref i32, new_target: ref i32) {
-    p.* = new_target  // OK: changes what the original pointer points to
+    p.val = new_target  // OK: changes what the original pointer points to
 }
 ```
 
@@ -1656,13 +1663,12 @@ counter = counter + 1   // OK
 - Array subscript: `arr[i]`
 - Slice: `arr[1..5]`, `arr[..3]`, `arr[2..]`
 - Field access: `point.x`
-- Pointer dereference: `ptr.*`
+- Address access: `variable.adr`
+- Pointer dereference: `ptr.val`
 - Method call: `vec.length()`
 - Function call: `max(a, b)`
 
 #### Unary Expressions
-- Address-of: `&x`
-- Dereference: `ptr.*`
 - Negation: `-x`
 - Logical NOT: `!flag`
 - Bitwise NOT: `~bits`
@@ -1845,7 +1851,7 @@ bad_function :: fn(x: i32) i32 {
 
 // Pointers can be dereferenced to modify data
 increment :: fn(x: ref i32) {
-    x.* += 1  // OK: modifying through pointer dereference
+    x.val += 1  // OK: modifying through pointer dereference
 }
 
 // To work with a mutable copy, create a local variable
@@ -1858,7 +1864,7 @@ good_function :: fn(x: i32) i32 {
 // Usage example
 main :: fn() {
     value := 10
-    increment(&value)  // Pass pointer to modify original
+    increment(value.adr)  // Pass pointer to modify original
     printf("Value: {}\n", value)  // Prints: Value: 11
 }
 ```
@@ -1900,7 +1906,7 @@ normalize :: fn(self: ref Vec2) {
 
 // Method call
 v := Vec2{3.0, 4.0}
-len := v.length()     // Syntactic sugar for length(&v)
+len := v.length()     // Syntactic sugar for length(v.adr)
 v.normalize()         // Modifies v through pointer
 ```
 
@@ -1929,9 +1935,9 @@ printf :: fn(format: string, args: ..)
 ```a7
 // Simple type parameter
 swap :: fn($T, a: ref T, b: ref T) {
-    temp := a.*
-    a.* = b.*
-    b.* = temp
+    temp := a.val
+    a.val = b.val
+    b.val = temp
 }
 
 // Multiple type parameters
@@ -2026,7 +2032,7 @@ fn example() {
 ```a7
 // Allocate single value
 ptr := new i32
-ptr.* = 42
+ptr.val = 42
 del ptr
 
 // Allocate array
@@ -2399,12 +2405,12 @@ AST_TYPE_UNION          // Anonymous union types
 AST_EXPR_LITERAL        // Literal values
 AST_EXPR_IDENTIFIER     // Variable/function names
 AST_EXPR_BINARY         // Binary operations (a + b)
-AST_EXPR_UNARY          // Unary operations (-a, !b, &c)
+AST_EXPR_UNARY          // Unary operations (-a, !b)
 AST_EXPR_CALL           // Function calls
 AST_EXPR_INDEX          // Array/slice indexing
 AST_EXPR_SLICE          // Slice expressions [start..end]
 AST_EXPR_FIELD          // Struct field access (a.field)
-AST_EXPR_DEREF          // Pointer dereference (ptr.*)
+AST_EXPR_DEREF          // Pointer dereference (ptr.val)
 AST_EXPR_CAST           // Type casting
 AST_EXPR_IF             // Conditional expressions
 AST_EXPR_MATCH          // Match expressions
@@ -2513,7 +2519,7 @@ TypeSetData :: struct {
 Operator precedence (highest to lowest):
 1. Primary expressions (literals, identifiers, parentheses)
 2. Postfix (function calls, array access, field access, deref)
-3. Unary prefix (-, !, ~, &, cast)
+3. Unary prefix (-, !, ~, cast)
 4. Multiplicative (*, /, %)
 5. Additive (+, -)
 6. Shift (<<, >>)
@@ -2618,7 +2624,7 @@ postfix_expr =
     | postfix_expr "[" expr "]"
     | postfix_expr "[" expr? ".." expr? "]"
     | postfix_expr "." identifier
-    | postfix_expr "." "*"
+    | postfix_expr "." "val"
     | postfix_expr "(" expr_list? ")"
 
 primary_expr = 
@@ -2851,7 +2857,7 @@ The **a7-py** implementation (Python-based A7 compiler) currently provides a ful
 
 6. **Memory Management Expressions** (`examples/011_memory.a7`):
    - `new` expressions for allocation not implemented
-   - Pointer dereference: `ptr.*` syntax not fully integrated
+   - Pointer dereference: `ptr.val` syntax not fully integrated
    - Complex defer statement integration needs work
 
 7. **Advanced Type Annotations**:

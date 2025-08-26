@@ -82,8 +82,8 @@ main :: fn() {
     
     // Address-of and dereference operators
     value := 42
-    ptr := &value
-    printf("Value: {}, *ptr: {}\n", value, ptr.*)
+    ptr := value.adr
+    printf("Value: {}, *ptr: {}\n", value, ptr.val)
     
     // Unary operators
     positive := 5

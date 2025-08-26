@@ -468,7 +468,7 @@ class TestCurrentlyWorkingFeatures:
         assert var_decl.name == "x"
         assert hasattr(var_decl, "explicit_type") and var_decl.explicit_type is not None
 
-    def test_fails_named_import(self):
-        """Demonstrate that named imports are not implemented."""
-        with pytest.raises(ParseError):
-            parse_a7('io :: import "std/io"')
+    def test_named_import_now_works(self):
+        """Demonstrate that named imports now work."""
+        ast = parse_a7('io :: import "std/io"')
+        assert ast is not None

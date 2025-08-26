@@ -9,63 +9,53 @@ from src.compile import compile_a7_file
 
 def main():
     parser = argparse.ArgumentParser(
-        description="A7 Programming Language Compiler/Interpreter",
-        prog="a7-py"
+        description="A7 Programming Language Compiler/Interpreter", prog="a7-py"
     )
-    
+
+    parser.add_argument("file", nargs="?", help="A7 source file (.a7) to compile")
+
     parser.add_argument(
-        "file",
-        nargs="?",
-        help="A7 source file (.a7) to compile"
+        "-o", "--output", help="Output file path (default: auto-generated)"
     )
-    
+
     parser.add_argument(
-        "-o", "--output",
-        help="Output file path (default: auto-generated)"
+        "-v", "--verbose", action="store_true", help="Enable verbose output"
     )
-    
+
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output"
+        "--json", action="store_true", help="Output compilation results in JSON format"
     )
-    
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output compilation results in JSON format"
-    )
-    
+
     # Analysis flags
     analysis_group = parser.add_mutually_exclusive_group()
     analysis_group.add_argument(
         "--tokenize-only",
         action="store_true",
-        help="Show lexical analysis (tokenization) output only, skip parsing"
+        help="Show lexical analysis (tokenization) output only, skip parsing",
     )
-    
+
     analysis_group.add_argument(
-        "--parse-only", 
+        "--parse-only",
         action="store_true",
-        help="Show tokenization and syntax analysis (AST generation), skip code generation"
+        help="Show tokenization and syntax analysis (AST generation), skip code generation",
     )
-    
+
     args = parser.parse_args()
-    
+
     if not args.file:
         print("Usage: python main.py <file.a7> [-o output] [-v]")
         return
-    
+
     # Validate input file
     input_path = Path(args.file)
     if not input_path.exists():
         print(f"Error: File not found: {args.file}", file=sys.stderr)
         sys.exit(1)
-    
+
     if not input_path.suffix == ".a7":
         print(f"Error: Expected .a7 file, got: {args.file}", file=sys.stderr)
         sys.exit(1)
-    
+
     # Compile the file
     success = compile_a7_file(
         str(input_path),
@@ -73,9 +63,9 @@ def main():
         verbose=args.verbose,
         json_output=args.json,
         tokenize_only=args.tokenize_only,
-        parse_only=args.parse_only
+        parse_only=args.parse_only,
     )
-    
+
     if not success:
         sys.exit(1)
 

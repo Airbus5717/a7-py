@@ -2,9 +2,9 @@
 
 // Generic swap function
 swap :: fn($T, a: ref T, b: ref T) {
-    temp := a.*
-    a.* = b.*
-    b.* = temp
+    temp := a.val
+    a.val = b.val
+    b.val = temp
 }
 
 // Generic function with type constraint
@@ -28,14 +28,14 @@ main :: fn() {
     a := 10
     b := 20
     printf("Before swap: a={}, b={}\n", a, b)
-    swap($i32, &a, &b)
+    swap($i32, a.adr, b.adr)
     printf("After swap: a={}, b={}\n", a, b)
     
     // Test with different types
     x := 3.14
     y := 2.71
     printf("Before swap: x={}, y={}\n", x, y)
-    swap($f64, &x, &y)
+    swap($f64, x.adr, y.adr)
     printf("After swap: x={}, y={}\n", x, y)
     
     // Test generic abs function

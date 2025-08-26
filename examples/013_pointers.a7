@@ -1,45 +1,135 @@
-// Pointers and references demonstration
+// A7 Pointer Syntax Demonstration
+// Shows the intuitive property-based pointer operations
 
 main :: fn() {
-    // Basic pointer usage
-    x := 42
-    ptr: ref i32 = &x
+    printf("=== A7 Property-Based Pointer Syntax ===\n\n")
     
-    printf("x = {}\n", x)
-    printf("*ptr = {}\n", ptr.*)
+    // Basic pointer operations
+    printf("1. Basic Address-of and Dereference:\n")
+    x := 42
+    ptr: ref i32 = x.adr    // Get address: variable.adr
+    
+    printf("   x = {}\n", x)
+    printf("   ptr points to address of x\n")
+    printf("   ptr.val = {} (dereference with .val)\n", ptr.val)
+    printf("   // C equivalent: ptr = &x; *ptr\n\n")
     
     // Modify through pointer
-    ptr.* = 100
-    printf("After modification: x = {}\n", x)
+    printf("2. Modifying Through Pointer:\n")
+    printf("   Before: x = {}\n", x)
+    ptr.val = 100           // Assignment through pointer: ptr.val = value
+    printf("   After ptr.val = 100: x = {}\n", x)
+    printf("   // C equivalent: *ptr = 100\n\n")
     
-    // Multiple indirection
-    ptr_ptr: ref ref i32 = &ptr
-    printf("**ptr_ptr = {}\n", ptr_ptr.*.*)
+    // Multiple indirection (pointer to pointer)
+    printf("3. Multiple Indirection (Pointer to Pointer):\n")
+    ptr_ptr: ref ref i32 = ptr.adr    // Address of pointer: ptr.adr
+    printf("   ptr_ptr.val.val = {} (double dereference)\n", ptr_ptr.val.val)
+    printf("   // C equivalent: **ptr_ptr\n\n")
     
-    // Null pointer
-    null_ptr: ref i32 = nil
-    if null_ptr == nil {
-        print("Pointer is null\n")
-    }
+    // Triple indirection for demonstration
+    printf("4. Triple Indirection:\n")
+    ptr_ptr_ptr: ref ref ref i32 = ptr_ptr.adr
+    printf("   ptr_ptr_ptr.val.val.val = {} (triple dereference)\n", ptr_ptr_ptr.val.val.val)
+    printf("   // C equivalent: ***ptr_ptr_ptr\n\n")
+    
+    // Pointer reassignment
+    printf("5. Pointer Reassignment:\n")
+    y := 200
+    z := 300
+    printf("   y = {}, z = {}\n", y, z)
+    ptr = y.adr             // Point to different variable
+    printf("   After ptr = y.adr: ptr.val = {}\n", ptr.val)
+    ptr = z.adr             // Point to another variable  
+    printf("   After ptr = z.adr: ptr.val = {}\n", ptr.val)
+    printf("   // C equivalent: ptr = &y; ptr = &z\n\n")
+    
+    // Function parameters
+    printf("6. Function Parameters with Pointers:\n")
     
     // Function that modifies through pointer
     increment :: fn(p: ref i32) {
-        p.* += 1
+        printf("   Inside increment: before p.val = {}\n", p.val)
+        p.val += 1          // Modify through parameter pointer
+        printf("   Inside increment: after p.val = {}\n", p.val)
+    }
+    
+    // Function that works with pointer to pointer
+    swap_pointers :: fn(p1: ref ref i32, p2: ref ref i32) {
+        temp := p1.val      // Save first pointer
+        p1.val = p2.val     // Point first to second's target
+        p2.val = temp       // Point second to saved target
     }
     
     value := 10
-    printf("Before increment: {}\n", value)
-    increment(&value)
-    printf("After increment: {}\n", value)
+    printf("   Before increment: value = {}\n", value)
+    increment(value.adr)    // Pass address: value.adr
+    printf("   After increment: value = {}\n", value)
+    printf("   // C equivalent: increment(&value)\n\n")
     
-    // Pointer reassignment
-    y := 50
-    ptr = &y    // Now points to y
-    printf("ptr now points to y: {}\n", ptr.*)
-    
-    // Array pointer
+    // Array pointers
+    printf("7. Array Pointers:\n")
     arr: [3]i32 = [10, 20, 30]
-    arr_ptr: ref [3]i32 = &arr
-    printf("Array through pointer: {} {} {}\n", 
-           arr_ptr.*[0], arr_ptr.*[1], arr_ptr.*[2])
+    arr_ptr: ref [3]i32 = arr.adr    // Address of entire array
+    
+    printf("   Original array: [{}, {}, {}]\n", arr[0], arr[1], arr[2])
+    printf("   Through pointer: [{}, {}, {}]\n", 
+           arr_ptr.val[0], arr_ptr.val[1], arr_ptr.val[2])
+    
+    // Modify array through pointer
+    arr_ptr.val[1] = 99
+    printf("   After arr_ptr.val[1] = 99: [{}, {}, {}]\n",
+           arr[0], arr[1], arr[2])
+    printf("   // C equivalent: (*arr_ptr)[1] = 99\n\n")
+    
+    // Struct pointers  
+    printf("8. Struct Pointers:\n")
+    
+    Point :: struct {
+        x: f32
+        y: f32
+    }
+    
+    point := Point{3.14, 2.71}
+    point_ptr: ref Point = point.adr
+    
+    printf("   Original point: ({}, {})\n", point.x, point.y)
+    printf("   Through pointer: ({}, {})\n", point_ptr.val.x, point_ptr.val.y)
+    
+    // Modify struct through pointer
+    point_ptr.val.x = 10.0
+    point_ptr.val.y = 20.0
+    printf("   After modification: ({}, {})\n", point.x, point.y)
+    printf("   // C equivalent: ptr->x = 10.0; ptr->y = 20.0\n\n")
+    
+    // Null pointer safety
+    printf("9. Null Pointer Safety:\n")
+    null_ptr: ref i32 = nil
+    if null_ptr == nil {
+        printf("   null_ptr is safely nil\n")
+        printf("   // Always check before using: if (ptr != nil)\n")
+    }
+    
+    safe_ptr: ref i32 = value.adr
+    if safe_ptr != nil {
+        printf("   safe_ptr.val = {} (verified non-null)\n", safe_ptr.val)
+    }
+    printf("\n")
+    
+    // Pointer comparison
+    printf("10. Pointer Comparison:\n")
+    ptr1: ref i32 = x.adr
+    ptr2: ref i32 = y.adr
+    ptr3: ref i32 = x.adr
+    
+    printf("    ptr1 == ptr3 (both point to x): {}\n", ptr1 == ptr3)
+    printf("    ptr1 == ptr2 (point to different vars): {}\n", ptr1 == ptr2)
+    printf("    // Comparing addresses, not values\n\n")
+    
+    printf("=== Summary of A7 Pointer Syntax ===\n")
+    printf("• Address-of: variable.adr (instead of &variable)\n")
+    printf("• Dereference: ptr.val (instead of *ptr)\n")
+    printf("• Assignment: ptr.val = value (instead of *ptr = value)\n") 
+    printf("• Multiple: ptr.val.val (instead of **ptr)\n")
+    printf("• Self-documenting and beginner-friendly!\n")
 }

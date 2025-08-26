@@ -366,9 +366,7 @@ class Tokenizer:
             # Single line comment - consume but don't add token
             while self.current_char() and self.current_char() != "\n":
                 self.advance()
-            # Also consume the newline to prevent TERMINATOR token
-            if self.current_char() == "\n":
-                self.advance()
+            # Leave newline for main tokenizer to handle as TERMINATOR
             return True
 
         if self.current_char() == "/" and self.peek_char() == "*":
@@ -394,9 +392,7 @@ class Tokenizer:
             # Alternative single line comment - consume but don't add token
             while self.current_char() and self.current_char() != "\n":
                 self.advance()
-            # Also consume the newline to prevent TERMINATOR token
-            if self.current_char() == "\n":
-                self.advance()
+            # Leave newline for main tokenizer to handle as TERMINATOR
             return True
 
         return False
@@ -858,44 +854,48 @@ class Tokenizer:
 
         self.advance()  # consume '$'
 
-        # Must start with letter (upper for generic parameters, lower for concrete types)
+        # Check if character after '$' is valid (must be a letter)
         if not (self.current_char() and self.current_char().isalpha()):
-            # Restore position and let operator handling deal with standalone '$'
-            self.position = saved_pos
-            self.line = saved_line
-            self.column = saved_column
-            return False
+            # Create error for invalid generic syntax
+            if self.current_char():
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_GENERIC_SYNTAX,
+                    self.line,
+                    saved_column,
+                    self.position - saved_pos + 1,
+                    self.filename,
+                    self.source_lines,
+                    f"Invalid generic syntax: generic types must start with a letter after '$'",
+                )
+            else:
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_GENERIC_SYNTAX,
+                    self.line,
+                    saved_column,
+                    1,
+                    self.filename,
+                    self.source_lines,
+                    f"Invalid generic syntax: '$' cannot be used alone",
+                )
+            return True
 
         # Collect the type name
         start_pos = self.position - 1  # Include the '$'
         type_name = "$"
 
-        # For generic parameters: uppercase letters and underscores ($T, $TYPE, $MY_TYPE)
-        # For generic arguments: any valid identifier ($i32, $string, $MyType)
+        # For generic types: only letters and underscores allowed ($T, $TYPE, $MY_TYPE)
         while self.current_char() and (
-            self.current_char().isalnum() or self.current_char() == "_"
+            self.current_char().isalpha() or self.current_char() == "_"
         ):
             type_name += self.current_char()
             self.advance()
 
-        # Validate the pattern
-        if len(type_name) > 1 and not type_name.endswith("_"):
-            type_part = type_name[1:]  # Skip the '$'
-            
-            # Check for valid generic parameter (all uppercase with underscores)
-            is_generic_param = all(c.isupper() or c == "_" for c in type_part) and type_part[0].isupper()
-            
-            # Check for valid concrete type (starts with lowercase, like i32, f64, string)
-            is_concrete_type = type_part[0].islower() and type_part.replace("_", "").isalnum()
-            
-            # Check for valid custom type (starts with uppercase, mixed case allowed)
-            is_custom_type = type_part[0].isupper() and not is_generic_param
-            
-            if is_generic_param or is_concrete_type or is_custom_type:
-                self._add_token(TokenType.GENERIC_TYPE, type_name)
-                return True
+        # Always create generic token, let parser validate the pattern
+        if len(type_name) > 1:
+            self._add_token(TokenType.GENERIC_TYPE, type_name)
+            return True
 
-        # Invalid pattern, restore position
+        # Should not reach here due to earlier checks, but handle as fallback
         self.position = saved_pos
         self.line = saved_line
         self.column = saved_column
