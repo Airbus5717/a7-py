@@ -4,6 +4,10 @@ This is a Python implementation of a compiler for the A7 programming language.
 A7 is a statically-typed, procedural language with C-style syntax, manual 
 memory management, and compile-time generics.
 
+**Current Status**: The compiler has a complete tokenizer and a working recursive 
+descent parser that generates ASTs for most A7 language constructs. Code generation 
+to Zig is planned but not yet implemented.
+
 ## Setup
 
 ### Prerequisites
@@ -73,18 +77,43 @@ uv run python main.py examples/001_hello.a7
 
 ## Testing
 
+Run the full test suite:
 ```bash
 uv run pytest
 ```
 
-The compiler currently implements a complete lexer/tokenizer and recursive descent parser 
-with AST generation. Code generation is not yet implemented.
+Run specific tests:
+```bash
+uv run pytest test/test_tokenizer.py -v
+uv run pytest test/test_parser_basic.py -v
+```
 
-A7 programs use the `.a7` file extension. See the `examples/` directory for 
-sample programs demonstrating language features.
+**Test Status**: 264 passing tests, 0 failing, 37 skipped
 
-The language specification is in `docs/SPEC.md`. Implementation guidance for
-this codebase is in `CLAUDE.md`.
+## Features
+
+### Currently Implemented
+- ✅ Complete tokenizer with all A7 token types
+- ✅ Recursive descent parser with AST generation
+- ✅ Function declarations with generics
+- ✅ Variable and constant declarations
+- ✅ Control flow (if/else, while, for loops, match statements)
+- ✅ Expressions with proper operator precedence
+- ✅ Struct, enum, and union declarations
+- ✅ Cast expressions (`cast(type, value)`)
+- ✅ Import statements
+- ✅ Rich error messages with source context
+
+### In Development
+- 🚧 Code generation to Zig
+- 🚧 Type checking and semantic analysis
+- 🚧 Standard library implementation
+
+## Documentation
+
+- **Language Specification**: `docs/SPEC.md` - Complete A7 language design
+- **Implementation Guide**: `CLAUDE.md` - Detailed status and development guidance
+- **Examples**: `examples/` directory - 22 sample A7 programs
 
 ## Dependencies
 

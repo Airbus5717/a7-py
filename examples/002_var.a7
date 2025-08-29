@@ -3,7 +3,7 @@ io :: import "std/io"
 main :: fn() {
     a := 1         // Inferred variable (mutable)
     b :: 2         // Inferred constant (immutable)
-    c: i32 := 3    // Integer variable with explicit type
+    c: i32 = 3     // Integer variable with explicit type
 
     // Using proper A7 standard library functions
     printf("{}", a)

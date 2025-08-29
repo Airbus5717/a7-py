@@ -1257,44 +1257,6 @@ integrate_2d :: fn(f: fn(f64, f64) f64, bounds: [4]f64, steps: [2]usize) f64 {
 ---
 
 ## 10. Modules and Visibility
-2. [Lexical Structure](#lexical-structure)
-3. [Type System](#type-system)
-4. [Declarations and Expressions](#declarations-and-expressions)
-5. [Control Flow](#control-flow)
-6. [Functions](#functions)
-7. [Generics](#generics)
-8. [Memory Management](#memory-management)
-9. [Modules and Visibility](#modules-and-visibility)
-10. [Built-in Functions and Operators](#built-in-functions-and-operators)
-11. [Tokens and AST Components](#tokens-and-ast-components)
-12. [Grammar Summary](#grammar-summary)
-
----
-
-## 1. Introduction
-
-### 1.1 Language Overview
-
-A7 is a statically-typed, procedural programming language that currently compiles to Zig, with plans for C and native machine code targets.
-It features:
-- **Static typing** with type inference
-- **Compile-time generics** via monomorphization
-- **Manual memory management** with safety features
-- **File-based module system** with controlled visibility
-- **Zero-cost abstractions**
-- **Platform-aware integer types** (isize/usize)
-
-### 1.2 Design Philosophy
-
-1. **Simplicity over features**: Every feature must justify its complexity
-2. **Explicit over implicit**: No hidden allocations or conversions
-3. **Performance**: Zero-cost abstractions, predictable performance
-4. **Safety**: Prevent common errors at compile time
-5. **Interoperability**: Clean C ABI compatibility
-
----
-
-## 2. Lexical Structure
 
 ### 2.1 Source Encoding
 
@@ -2083,9 +2045,7 @@ if large == nil {
 
 ---
 
-## 9. Modules and Visibility
-
-### 9.1 File-Based Module System
+### 10.1 File-Based Module System
 
 Every A7 source file is a module. There is no explicit `module` keyword.
 
@@ -2114,7 +2074,7 @@ normalize :: fn(v: ref Vec3) {
 }
 ```
 
-### 9.2 Import Statements
+### 10.2 Import Statements
 
 ```a7
 // Import by filename (without .a7 extension)
@@ -2139,7 +2099,7 @@ parent :: import "../utils"
 subfolder :: import "subfolder/helper"
 ```
 
-### 9.3 Standard Library Files
+### 10.3 Standard Library Files
 
 The standard library consists of individual `.a7` files in a predefined path:
 - `math.a7` - Mathematical functions
@@ -2148,7 +2108,7 @@ The standard library consists of individual `.a7` files in a predefined path:
 - `memory.a7` - Memory utilities
 - `collections.a7` - Data structures
 
-### 9.4 Visibility Rules
+### 10.4 Visibility Rules
 
 - `pub` items are exported from the file/module
 - Non-pub items are file-private
@@ -2813,12 +2773,13 @@ The **a7-py** implementation (Python-based A7 compiler) currently provides a ful
 - ✅ **Match statements**: basic parsing with case branches
 - ✅ **Defer statements**: `defer statement`
 - ✅ **Generic parameters**: `fn($T, ...)`
+- ✅ **Cast expressions**: `cast(type, value)` fully implemented
 
 **Developer Tools:**
 - Rich console output with syntax highlighting and AST tree visualization
 - JSON output mode (`--json` flag) with comprehensive metadata and AST serialization
 - Debug modes: `--tokenize-only`, `--parse-only` for analysis at different stages
-- Comprehensive test suite with 238+ tests across multiple categories
+- Comprehensive test suite with 301 tests (264 passing, 37 skipped)
 - CLI with verbose and error recovery options
 
 ### E.2 Parser Success Rate 📊
@@ -2853,7 +2814,6 @@ The **a7-py** implementation (Python-based A7 compiler) currently provides a ful
 5. **Enum Value Access** (`examples/010_enum.a7`):
    - Scoped enum access: `TknType.Id` not supported  
    - Explicit enum values: `Ok = 200` parsing works but access patterns fail
-   - `cast(i32, status)` expressions not implemented
 
 6. **Memory Management Expressions** (`examples/011_memory.a7`):
    - `new` expressions for allocation not implemented

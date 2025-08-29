@@ -12,9 +12,8 @@ from src.errors import ParseError
 
 
 class TestMissingStructs:
-    """Test struct declarations - CURRENTLY NOT IMPLEMENTED."""
+    """Test struct declarations - BASIC STRUCTS NOW IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="Struct declarations not yet implemented")
     def test_simple_struct_declaration(self):
         """Test parsing simple struct declarations."""
         code = """
@@ -44,7 +43,6 @@ class TestMissingStructs:
         assert struct_decl.name == "Pair"
         assert len(struct_decl.generic_params) == 2
 
-    @pytest.mark.skip(reason="Struct initialization not yet implemented")
     def test_struct_initialization(self):
         """Test parsing struct initialization expressions."""
         code = """
@@ -61,9 +59,8 @@ class TestMissingStructs:
 
 
 class TestMissingEnums:
-    """Test enum declarations - CURRENTLY NOT IMPLEMENTED."""
+    """Test enum declarations - BASIC ENUMS NOW IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="Enum declarations not yet implemented")
     def test_simple_enum_declaration(self):
         """Test parsing simple enum declarations."""
         code = """
@@ -79,7 +76,6 @@ class TestMissingEnums:
         assert enum_decl.name == "Color"
         assert len(enum_decl.variants) == 3
 
-    @pytest.mark.skip(reason="Enum with explicit values not yet implemented")
     def test_enum_with_explicit_values(self):
         """Test parsing enums with explicit values."""
         code = """
@@ -130,9 +126,8 @@ class TestMissingUnions:
 
 
 class TestMissingMatchStatements:
-    """Test match statements - CURRENTLY NOT IMPLEMENTED."""
+    """Test match statements - BASIC MATCH NOW IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="Match statements not yet implemented")
     def test_simple_match_statement(self):
         """Test parsing simple match statements."""
         code = """
@@ -158,7 +153,6 @@ class TestMissingMatchStatements:
         assert len(match_stmt.cases) == 2
         assert match_stmt.else_case is not None
 
-    @pytest.mark.skip(reason="Multiple patterns not yet implemented")
     def test_match_multiple_patterns(self):
         """Test parsing match with multiple patterns."""
         code = """
@@ -199,9 +193,8 @@ class TestMissingDeferStatements:
 
 
 class TestMissingForLoopVariants:
-    """Test complex for loop variants - CURRENTLY NOT IMPLEMENTED."""
+    """Test complex for loop variants - NOW IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="C-style for loops not yet implemented")
     def test_c_style_for_loop(self):
         """Test parsing C-style for loops."""
         code = """
@@ -219,7 +212,6 @@ class TestMissingForLoopVariants:
         assert for_stmt.condition is not None
         assert for_stmt.update is not None
 
-    @pytest.mark.skip(reason="Range-based for loops not yet implemented")
     def test_range_based_for_loop(self):
         """Test parsing range-based for loops."""
         code = """
@@ -233,11 +225,10 @@ class TestMissingForLoopVariants:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         for_stmt = func_decl.body.statements[1]
-        assert for_stmt.kind == NodeKind.FOR
+        assert for_stmt.kind == NodeKind.FOR_IN
         assert for_stmt.iterator is not None
         assert for_stmt.iterable is not None
 
-    @pytest.mark.skip(reason="For loops with index not yet implemented")
     def test_for_loop_with_index(self):
         """Test parsing for loops with index."""
         code = """
@@ -251,7 +242,7 @@ class TestMissingForLoopVariants:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         for_stmt = func_decl.body.statements[1]
-        assert for_stmt.kind == NodeKind.FOR
+        assert for_stmt.kind == NodeKind.FOR_IN_INDEXED
         assert for_stmt.index_var is not None
         assert for_stmt.iterator is not None
 

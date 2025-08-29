@@ -27,6 +27,7 @@ from .ast_nodes import (
     create_assignment_stmt,
     create_var_decl,
     create_const_decl,
+    create_cast_expr,
     create_literal_from_token,
     create_span_from_token,
     create_span_from_tokens,
@@ -681,7 +682,7 @@ class Parser:
                 name_token = self.advance()
                 self.consume(TokenType.COLON)
                 explicit_type = self.parse_type()
-                self.consume(TokenType.ASSIGN)  # Use = not :=
+                self.consume(TokenType.ASSIGN)  # Use = for explicit type declarations
                 value = self.parse_expression()
                 var_decl = create_var_decl(
                     name=name_token.value,
@@ -1200,9 +1201,14 @@ class Parser:
         if self.match(TokenType.LEFT_BRACKET):
             return self.parse_array_literal()
 
-        # Identifiers or struct literals
+        # Identifiers, cast expressions, or struct literals
         if self.match(TokenType.IDENTIFIER):
             name = self.advance().value
+            
+            # Check for cast expression: cast(type, expr)
+            if name == "cast" and self.match(TokenType.LEFT_PAREN):
+                return self.parse_cast_expression(start_token)
+            
             # Check for struct literal: Person{...}
             # Only parse as struct literal if we're in an appropriate context
             # (not in a statement context where { would start a block)
@@ -1228,6 +1234,28 @@ class Parser:
             "Expected expression", self.current(), self.filename
         )
 
+    def parse_cast_expression(self, start_token: Token) -> ASTNode:
+        """Parse cast expression: cast(type, expr)"""
+        self.advance()  # consume '('
+        
+        # Parse the target type
+        target_type = self.parse_type()
+        
+        # Expect comma
+        self.consume(TokenType.COMMA, "Expected ',' after type in cast expression")
+        
+        # Parse the expression to cast
+        expression = self.parse_expression()
+        
+        # Expect closing paren
+        self.consume(TokenType.RIGHT_PAREN, "Expected ')' after cast expression")
+        
+        return create_cast_expr(
+            target_type=target_type,
+            expression=expression,
+            span=create_span_from_token(start_token)
+        )
+    
     def parse_if_expression(self) -> ASTNode:
         """Parse if expressions."""
         if_token = self.consume(TokenType.IF)

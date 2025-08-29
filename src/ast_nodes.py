@@ -279,6 +279,15 @@ def create_binary_expr(
     return ASTNode(kind=NodeKind.BINARY, left=left, operator=op, right=right, span=span)
 
 
+def create_cast_expr(
+    target_type: ASTNode, expression: ASTNode, span: SourceSpan = None
+) -> ASTNode:
+    """Create a cast expression node."""
+    return ASTNode(
+        kind=NodeKind.CAST, target_type=target_type, expression=expression, span=span
+    )
+
+
 def create_function_decl(
     name: str,
     parameters: List[ASTNode] = None,

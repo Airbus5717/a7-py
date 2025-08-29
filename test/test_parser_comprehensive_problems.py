@@ -506,7 +506,7 @@ class TestExplicitTypeAnnotationProblems:
             parse_a7(source)
 
     def test_cast_expression(self):
-        """Test cast expressions (not yet implemented)."""
+        """Test cast expressions are now implemented."""
         source = """
         test_func :: fn() {
             x := 42
@@ -514,8 +514,10 @@ class TestExplicitTypeAnnotationProblems:
         }
         """
 
-        with pytest.raises(ParseError):
-            parse_a7(source)
+        # Cast expressions are now implemented and should parse successfully
+        result = parse_a7(source)
+        assert result is not None
+        assert result.kind == NodeKind.PROGRAM
 
 
 class TestOperatorPrecedenceEdgeCases:
