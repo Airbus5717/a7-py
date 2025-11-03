@@ -51,6 +51,7 @@ class NodeKind(Enum):
     IF_EXPR = auto()
     STRUCT_INIT = auto()
     ARRAY_INIT = auto()
+    NEW_EXPR = auto()  # new allocation expression
 
     # Statements
     EXPRESSION_STMT = auto()
@@ -66,6 +67,7 @@ class NodeKind(Enum):
     FALL = auto()  # fallthrough statement
     RETURN = auto()
     DEFER = auto()
+    DEL = auto()  # del statement for memory deallocation
     ASSIGNMENT = auto()
 
     # Patterns
@@ -331,9 +333,40 @@ def create_parameter(
     )
 
 
+def create_function_type(
+    param_types: List[ASTNode], return_type: ASTNode = None, span: SourceSpan = None
+) -> ASTNode:
+    """Create a function type node for function pointers/type declarations.
+
+    Args:
+        param_types: List of type nodes for function parameters
+        return_type: Type node for return value (None for void)
+        span: Source span for error reporting
+
+    Returns:
+        ASTNode with kind=TYPE_FUNCTION
+    """
+    return ASTNode(
+        kind=NodeKind.TYPE_FUNCTION,
+        parameter_types=param_types,
+        return_type=return_type,
+        span=span,
+    )
+
+
 def create_return_stmt(value: ASTNode = None, span: SourceSpan = None) -> ASTNode:
     """Create a return statement node."""
     return ASTNode(kind=NodeKind.RETURN, value=value, span=span)
+
+
+def create_new_expr(type_node: ASTNode, span: SourceSpan = None) -> ASTNode:
+    """Create a new (allocation) expression node."""
+    return ASTNode(kind=NodeKind.NEW_EXPR, target_type=type_node, span=span)
+
+
+def create_del_stmt(expr: ASTNode, span: SourceSpan = None) -> ASTNode:
+    """Create a del (deallocation) statement node."""
+    return ASTNode(kind=NodeKind.DEL, expression=expr, span=span)
 
 
 def create_call_expr(

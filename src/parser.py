@@ -7,6 +7,7 @@ It uses a simple recursive descent approach with precedence climbing for express
 
 from typing import List, Optional, Union
 from .tokens import Token, TokenType, Tokenizer
+from .errors import SourceSpan
 from .ast_nodes import (
     ASTNode,
     NodeKind,
@@ -22,12 +23,15 @@ from .ast_nodes import (
     create_primitive_type,
     create_block,
     create_parameter,
+    create_function_type,
     create_return_stmt,
     create_call_expr,
     create_assignment_stmt,
     create_var_decl,
     create_const_decl,
     create_cast_expr,
+    create_new_expr,
+    create_del_stmt,
     create_literal_from_token,
     create_span_from_token,
     create_span_from_tokens,
@@ -105,25 +109,45 @@ class Parser:
         Determine if we should parse identifier{ as a struct literal.
 
         Returns False if we're likely in a statement context where { starts a block,
-        such as in if conditions, while conditions, etc.
+        such as immediately after if/while/for keywords at statement level.
+        Returns True if we're in an expression context (after := or = or other operators).
         """
-        # For now, use a simple heuristic: if we see common statement keywords
-        # in recent tokens, we're likely in a statement context
+        # CRITICAL: Check for assignment operators first - these strongly indicate expressions
+        # Looking back 1-3 tokens for := or = means we're definitely in an assignment
+        assignment_lookback = min(3, self.position)
+        for i in range(1, assignment_lookback + 1):
+            if self.position - i >= 0:
+                prev_token = self.tokens[self.position - i]
+                if prev_token.type in (TokenType.DECLARE_VAR, TokenType.ASSIGN):
+                    return True
 
-        # Look back a few tokens to see if we're in a statement context  
-        # Use a larger lookback distance to handle complex for loop syntax like "for i, value in arr"
+        # Check if we're immediately after control flow keywords
+        # This handles: if expr { block }, for x in y { block }, etc.
+        # We look back through the recent tokens, and if we find a control keyword
+        # without finding an assignment operator first, we block struct literals
         lookback_distance = min(8, self.position)
+        found_control_keyword = False
+
         for i in range(1, lookback_distance + 1):
             if self.position - i >= 0:
                 prev_token = self.tokens[self.position - i]
-                if prev_token.type in (
-                    TokenType.IF,
-                    TokenType.WHILE,
-                    TokenType.FOR,
-                    TokenType.MATCH,
-                    TokenType.ELSE,
-                ):
-                    return False
+
+                # Stop at statement boundaries - don't look past terminators
+                if prev_token.type == TokenType.TERMINATOR:
+                    break
+
+                # If we see assignment, allow struct literals (expression context)
+                if prev_token.type in (TokenType.DECLARE_VAR, TokenType.ASSIGN):
+                    return True
+
+                # If we see control flow keywords, mark it but keep searching
+                if prev_token.type in (TokenType.IF, TokenType.WHILE, TokenType.FOR, TokenType.MATCH, TokenType.ELSE):
+                    found_control_keyword = True
+                    # Don't break - keep looking for assignments
+
+        # If we found a control keyword and no assignment, block struct literals
+        if found_control_keyword:
+            return False
 
         # Default to allowing struct literals
         return True
@@ -198,7 +222,24 @@ class Parser:
                 current_token, self.filename
             )
 
-        return create_program(declarations)
+        # Create span for program node
+        if declarations:
+            first_span = declarations[0].span
+            last_span = declarations[-1].span
+            if first_span and last_span:
+                span = SourceSpan(
+                    start_line=first_span.start_line,
+                    start_column=first_span.start_column,
+                    end_line=last_span.end_line,
+                    end_column=last_span.end_column
+                )
+            else:
+                # Default span if declarations don't have spans
+                span = SourceSpan(1, 0, 1, 0)
+        else:
+            # Empty program - use default span
+            span = SourceSpan(1, 0, 1, 0)
+        return create_program(declarations, span)
 
     def synchronize(self):
         """Synchronize after a parse error."""
@@ -324,7 +365,7 @@ class Parser:
                 module_path = self.advance().value[1:-1]  # Remove quotes
                 return ASTNode(
                     kind=NodeKind.IMPORT,
-                    name=name,
+                    alias=name,
                     module_path=module_path,
                     is_public=is_public,
                     span=create_span_from_token(name_token),
@@ -446,26 +487,19 @@ class Parser:
         return params
 
     def parse_mixed_parameters(self) -> tuple[List[ASTNode], List[ASTNode]]:
-        """Parse mixed generic and function parameters from the same parentheses.
-        Returns (generic_params, regular_params)."""
-        generic_params = []
+        """Parse function parameters.
+        Returns (generic_params, regular_params).
+        Note: With new syntax, generic params are not declared in parameter list."""
+        generic_params = []  # Always empty with new syntax
         regular_params = []
 
         while not self.match(TokenType.RIGHT_PAREN) and not self.at_end():
             self.skip_terminators()
             if self.match(TokenType.RIGHT_PAREN):
                 break
-            if self.match(TokenType.GENERIC_TYPE):
-                # Parse generic parameter
-                generic_token = self.advance()  # consume GENERIC_TYPE (e.g., $T)
-                # Extract the name without the $ prefix for consistency
-                param_name = generic_token.value[1:]  # Remove '$' prefix
-                param = ASTNode(kind=NodeKind.GENERIC_PARAM, name=param_name)
-                generic_params.append(param)
-            else:
-                # Parse regular function parameter
-                param = self.parse_parameter()
-                regular_params.append(param)
+            # Parse regular function parameter (which may use generic types like $T)
+            param = self.parse_parameter()
+            regular_params.append(param)
 
             # Handle comma
             if self.match(TokenType.COMMA):
@@ -530,9 +564,46 @@ class Parser:
 
         # Function types: fn(params) return_type
         if self.match(TokenType.FN):
-            self.advance()
-            # TODO: Implement function type parsing
-            pass
+            fn_token = self.advance()
+
+            # Parse parameter types (not full parameters with names)
+            self.consume(TokenType.LEFT_PAREN)
+            param_types = []
+
+            while not self.match(TokenType.RIGHT_PAREN) and not self.at_end():
+                self.skip_terminators()
+                if self.match(TokenType.RIGHT_PAREN):
+                    break
+
+                # Parse just the type, no parameter name
+                param_type = self.parse_type()
+                param_types.append(param_type)
+
+                # Handle comma
+                if self.match(TokenType.COMMA):
+                    self.advance()
+                elif not self.match(TokenType.RIGHT_PAREN):
+                    break
+
+            self.skip_terminators()
+            self.consume(TokenType.RIGHT_PAREN)
+
+            # Parse return type (optional, defaults to void)
+            return_type = None
+            if not self.match(
+                TokenType.TERMINATOR,
+                TokenType.ASSIGN,
+                TokenType.RIGHT_PAREN,
+                TokenType.RIGHT_BRACKET,
+                TokenType.COMMA,
+            ):
+                return_type = self.parse_type()
+
+            return create_function_type(
+                param_types=param_types,
+                return_type=return_type,
+                span=create_span_from_token(fn_token),
+            )
 
         # Generic types: $T, $TYPE, etc.
         if self.match(TokenType.GENERIC_TYPE):
@@ -547,11 +618,31 @@ class Parser:
 
         # Primitive or identifier types
         if self.match(TokenType.IDENTIFIER):
-            type_name = self.advance().value
+            type_name_token = self.advance()
+            type_name = type_name_token.value
+
+            # Check for generic parameters: Type(T1, T2, ...)
+            if self.match(TokenType.LEFT_PAREN):
+                self.advance()
+                generic_params = []
+                while not self.match(TokenType.RIGHT_PAREN) and not self.at_end():
+                    generic_params.append(self.parse_type())
+                    if self.match(TokenType.COMMA):
+                        self.advance()
+                self.consume(TokenType.RIGHT_PAREN)
+
+                # Create a generic type instantiation node
+                return ASTNode(
+                    kind=NodeKind.TYPE_IDENTIFIER,
+                    name=type_name,
+                    generic_params=generic_params,
+                    span=create_span_from_token(type_name_token),
+                )
+
             return ASTNode(
                 kind=NodeKind.TYPE_IDENTIFIER,
                 name=type_name,
-                span=create_span_from_token(start_token),
+                span=create_span_from_token(type_name_token),
             )
 
         # Primitive types
@@ -647,6 +738,10 @@ class Parser:
         if self.match(TokenType.DEFER):
             return self.parse_defer_statement()
 
+        # Del statement
+        if self.match(TokenType.DEL):
+            return self.parse_del_statement()
+
         # If statement
         if self.match(TokenType.IF):
             return self.parse_if_statement()
@@ -678,12 +773,17 @@ class Parser:
                     span=create_span_from_token(name_token),
                 )
             elif lookahead.type == TokenType.COLON:
-                # Explicit type annotation: name: type = value
+                # Explicit type annotation: name: type = value (initialization optional)
                 name_token = self.advance()
                 self.consume(TokenType.COLON)
                 explicit_type = self.parse_type()
-                self.consume(TokenType.ASSIGN)  # Use = for explicit type declarations
-                value = self.parse_expression()
+
+                # Make initialization optional - allow uninitialized declarations
+                value = None
+                if self.match(TokenType.ASSIGN):
+                    self.advance()
+                    value = self.parse_expression()
+
                 var_decl = create_var_decl(
                     name=name_token.value,
                     value=value,
@@ -693,17 +793,20 @@ class Parser:
                 var_decl.explicit_type = explicit_type
                 return var_decl
             elif lookahead.type == TokenType.DECLARE_CONST:
-                # Constant or local type declaration: name :: value|struct|enum|union
+                # Constant or local type declaration: name :: value|struct|enum|union|fn
                 name_token = self.advance()
                 self.consume(TokenType.DECLARE_CONST)
                 
-                # Check for struct/enum/union declarations
+                # Check for struct/enum/union/function declarations
                 if self.match(TokenType.STRUCT):
                     return self.parse_struct_decl_with_name(name_token.value, False, name_token)
                 elif self.match(TokenType.ENUM):
                     return self.parse_enum_decl_with_name(name_token.value, False, name_token)
                 elif self.match(TokenType.UNION):
                     return self.parse_union_decl_with_name(name_token.value, False, name_token)
+                elif self.match(TokenType.FN):
+                    # Local function declaration
+                    return self.parse_function_decl_with_name(name_token.value, False, name_token)
                 else:
                     # Regular constant declaration
                     value = self.parse_expression()
@@ -1087,6 +1190,7 @@ class Parser:
             arguments.append(self.parse_expression())
             while self.match(TokenType.COMMA):
                 self.advance()
+                self.skip_terminators()  # Skip newlines after comma for multi-line calls
                 arguments.append(self.parse_expression())
 
         self.consume(TokenType.RIGHT_PAREN)
@@ -1197,6 +1301,10 @@ class Parser:
         ):
             return create_literal_from_token(self.advance())
 
+        # New expression: new Type or new [size]Type
+        if self.match(TokenType.NEW):
+            return self.parse_new_expression()
+
         # Array literals: [1, 2, 3]
         if self.match(TokenType.LEFT_BRACKET):
             return self.parse_array_literal()
@@ -1254,6 +1362,18 @@ class Parser:
             target_type=target_type,
             expression=expression,
             span=create_span_from_token(start_token)
+        )
+    
+    def parse_new_expression(self) -> ASTNode:
+        """Parse new expression: new Type or new [size]Type"""
+        new_token = self.consume(TokenType.NEW)
+        
+        # Parse the type (which may include array dimensions)
+        type_node = self.parse_type()
+        
+        return create_new_expr(
+            type_node=type_node,
+            span=create_span_from_token(new_token)
         )
     
     def parse_if_expression(self) -> ASTNode:
@@ -1384,13 +1504,8 @@ class Parser:
         """Parse struct declarations when name is already parsed."""
         struct_token = self.consume(TokenType.STRUCT)
 
-        # Generic parameters (optional)
+        # No generic parameter declarations needed - $T used directly in fields
         generic_params = []
-        if (
-            self.match(TokenType.LEFT_PAREN)
-            and self.peek().type == TokenType.GENERIC_TYPE
-        ):
-            generic_params = self.parse_generic_parameters()
 
         # Struct body
         self.consume(TokenType.LEFT_BRACE)
@@ -1494,6 +1609,10 @@ class Parser:
         fields = []
 
         while not self.match(TokenType.RIGHT_BRACE) and not self.at_end():
+            self.skip_terminators()
+            if self.match(TokenType.RIGHT_BRACE):
+                break
+
             field_name_token = self.consume(TokenType.IDENTIFIER)
             self.consume(TokenType.COLON)
             field_type = self.parse_type()
@@ -1648,6 +1767,15 @@ class Parser:
             kind=NodeKind.DEFER,
             statement=statement,
             span=create_span_from_token(defer_token),
+        )
+
+    def parse_del_statement(self) -> ASTNode:
+        """Parse del statements."""
+        del_token = self.consume(TokenType.DEL)
+        expr = self.parse_expression()
+        return create_del_stmt(
+            expr=expr,
+            span=create_span_from_token(del_token),
         )
 
 
