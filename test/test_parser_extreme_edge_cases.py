@@ -547,20 +547,226 @@ main :: fn() {
         ast = parser.parse()
         assert ast is not None
 
-    @pytest.mark.skip(reason="Inline/anonymous struct types not yet implemented - see TODOLIST.md")
     def test_inline_struct_types(self):
-        """Test inline struct type expressions (NOT YET IMPLEMENTED).
+        """Test inline struct type expressions.
 
-        This feature is documented in TODOLIST.md and MISSING_FEATURES.md:
-        - Inline/anonymous struct types (struct { ... }) in type position
+        Inline struct types allow anonymous struct definitions in type position.
+        Syntax: struct { field1: type1, field2: type2, ... }
+
+        Note: Inline structs are value types, cannot be assigned nil.
+        Only pointers (ref T) and function pointers can be nil.
         """
         code = """main :: fn() {
-    // Inline struct type (NOT IMPLEMENTED)
+    // Inline struct type - uninitialized declaration
     data: struct {
         id: u64
         values: [100]f32
-        next: ref struct
+    }
+
+    // Pointer to inline struct type - can be nil
+    ptr_data: ref struct {
+        id: u64
+        values: [100]f32
     } = nil
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+
+class TestInlineStructTypeEdgeCases:
+    """Comprehensive tests for inline struct type parsing edge cases."""
+
+    def test_inline_struct_single_field(self):
+        """Test inline struct with single field."""
+        code = """main :: fn() {
+    point: struct { x: i32 }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_multiple_fields(self):
+        """Test inline struct with multiple fields."""
+        code = """main :: fn() {
+    person: struct {
+        name: string
+        age: i32
+        height: f64
+        active: bool
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_with_complex_field_types(self):
+        """Test inline struct with complex field types."""
+        code = """main :: fn() {
+    data: struct {
+        values: [100]i32
+        names: []string
+        ptr: ref i32
+        callback: fn(i32) bool
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_nested(self):
+        """Test nested inline struct types."""
+        code = """main :: fn() {
+    outer: struct {
+        id: i32
+        inner: struct {
+            x: f64
+            y: f64
+        }
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_in_array(self):
+        """Test inline struct as array element type."""
+        code = """main :: fn() {
+    points: [10]struct {
+        x: i32
+        y: i32
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_in_slice(self):
+        """Test inline struct as slice element type."""
+        code = """main :: fn() {
+    people: []struct {
+        name: string
+        age: i32
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_pointer(self):
+        """Test pointer to inline struct type."""
+        code = """main :: fn() {
+    ptr: ref struct {
+        id: u64
+        data: [256]u8
+    } = nil
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_in_function_parameter(self):
+        """Test inline struct in function parameter type."""
+        code = """
+process :: fn(data: struct { id: i32, value: f64 }) void {
+    ret
+}
+"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_as_return_type(self):
+        """Test inline struct as function return type."""
+        code = """
+get_point :: fn() struct { x: i32, y: i32 } {
+    ret cast(struct { x: i32, y: i32 }, nil)
+}
+"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_with_function_field(self):
+        """Test inline struct containing function type field."""
+        code = """main :: fn() {
+    handler: struct {
+        name: string
+        callback: fn(i32) bool
+        cleanup: fn() void
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_multi_dimensional_array(self):
+        """Test inline struct in multi-dimensional arrays."""
+        code = """main :: fn() {
+    grid: [10][10]struct {
+        occupied: bool
+        value: i32
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_complex_nesting(self):
+        """Test deeply nested inline struct types."""
+        code = """main :: fn() {
+    complex: struct {
+        id: i32
+        data: struct {
+            values: [5]i32
+            meta: struct {
+                created: i64
+                modified: i64
+            }
+        }
+        refs: []ref struct {
+            key: string
+            value: i32
+        }
+    }
+}"""
+        lexer = Tokenizer(code)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens, code)
+        ast = parser.parse()
+        assert ast is not None
+
+    def test_inline_struct_with_generic_fields(self):
+        """Test inline struct with generic type fields."""
+        code = """main :: fn() {
+    container: struct {
+        data: $T
+        size: i32
+    }
 }"""
         lexer = Tokenizer(code)
         tokens = lexer.tokenize()

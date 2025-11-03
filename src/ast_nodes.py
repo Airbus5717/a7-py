@@ -34,6 +34,7 @@ class NodeKind(Enum):
     TYPE_ARRAY = auto()
     TYPE_SLICE = auto()
     TYPE_FUNCTION = auto()
+    TYPE_STRUCT = auto()  # Inline/anonymous struct types
     TYPE_SET = auto()
 
     # Expressions
@@ -350,6 +351,28 @@ def create_function_type(
         kind=NodeKind.TYPE_FUNCTION,
         parameter_types=param_types,
         return_type=return_type,
+        span=span,
+    )
+
+
+def create_inline_struct_type(
+    fields: List[ASTNode], span: SourceSpan = None
+) -> ASTNode:
+    """Create an inline/anonymous struct type node.
+
+    Args:
+        fields: List of FIELD nodes defining the struct's fields
+        span: Source span for error reporting
+
+    Returns:
+        ASTNode with kind=TYPE_STRUCT
+
+    Note: Inline struct types are VALUE types, not reference types.
+    They cannot be assigned nil. Use ref struct {...} for nullable struct types.
+    """
+    return ASTNode(
+        kind=NodeKind.TYPE_STRUCT,
+        fields=fields,
         span=span,
     )
 

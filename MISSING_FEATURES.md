@@ -1,8 +1,8 @@
 # A7 Parser Missing Features Analysis
 
-**Last Updated**: 2025-11-03 (Function types implemented!)
-**Parser Completeness**: ~68% of spec features
-**Test Success Rate**: 353/354 (100% active tests, 1 skipped for unimplemented features)
+**Last Updated**: 2025-11-03 (Function types + Inline struct types implemented!)
+**Parser Completeness**: ~72% of spec features
+**Test Success Rate**: 411/411 (100% test success!)
 
 ---
 
@@ -11,7 +11,9 @@
 The A7 parser has **excellent foundational implementation** with 100% success on all tests and all 22 example files. Track 1 (tactical parser fixes) is complete and function type parsing is now fully implemented. This document identifies remaining strategic features to implement for production readiness.
 
 **Recent Improvements**:
+- ✅ **Inline struct types implemented** (`struct { id: i32, data: string }`)
 - ✅ **Function type parsing implemented** (`fn(i32) i32`, `fn() void`, arrays of function pointers)
+- ✅ **48 comprehensive tests added** (type combinations, edge cases, stress tests)
 - ✅ Generic type instantiation now works (`List($T)`, `Map(K, V)`)
 - ✅ Uninitialized variable declarations supported
 - ✅ All parser edge cases resolved
@@ -25,7 +27,7 @@ The A7 parser has **excellent foundational implementation** with 100% success on
 | **Declarations** | 6/7 | 1 (type sets) | 86% |
 | **Control Flow** | 7/7 | 0 | **100%** ✅ |
 | **Expressions** | 13/13 | 0 | **100%** ✅ |
-| **Types** | 7/9 | 2 (type sets, anonymous structs) | **78%** ⬆️ |
+| **Types** | 8/9 | 1 (type sets) | **89%** ⬆️ |
 | **Memory Management** | 4/4 | 0 | **100%** ✅ |
 | **Imports** | 1/4 | 3 (aliases, named, using) | **25%** ⚠️ |
 | **Generics** | 3/5 | 2 (type sets, struct literal instantiation) | **60%** ⬆️ |
@@ -127,13 +129,21 @@ import "vector" { Vec3, dot }
 **Spec**: Section 10.1
 **Token**: BUILTIN_ID exists but no parsing
 
-### 10. Anonymous Struct Types
+### 10. ✅ Anonymous/Inline Struct Types - **COMPLETE**
 ```a7
 sincos :: fn(angle: f64) struct { sin: f64, cos: f64 }
+data: struct { id: u64, values: [100]i32 }
 ```
-**Status**: Not implemented
+**Status**: ✅ Fully implemented as of 2025-11-03
+**Implementation**: 40 lines in parser.py + 19 lines helper in ast_nodes.py
+**Tests**: 411/411 passing (13 inline struct edge cases + 35 type combination tests)
 **Spec**: Section 6.1
-**Use case**: Return multiple values
+**Use case**: Return multiple values, anonymous type definitions
+
+**Important**: Inline struct types are **value types**, not reference types:
+- ❌ INVALID: `data: struct { id: u64 } = nil` (value types cannot be nil)
+- ✅ VALID: `data: struct { id: u64 }` (uninitialized)
+- ✅ VALID: `ptr: ref struct { id: u64 } = nil` (pointer to struct can be nil)
 
 ### 11. Using Imports
 ```a7
@@ -265,8 +275,9 @@ Missing features:
 - ✅ Generic type parameters (`$T`)
 - ✅ Generic type instantiation (`List($T)`, `Map(K, V)`)
 - ✅ Function types (`fn(i32, i32) i32`, `fn() void`, `[10]fn() void`) - **NEW!**
+- ✅ Inline/anonymous struct types (`struct { id: i32, data: string }`) - **NEW!**
 - ✅ Multi-dimensional arrays (`[M][N]T`)
-- ✅ Complex combinations (`[N]ref T`, `ref [N]T`, `ref ref T`)
+- ✅ Complex combinations (`[N]ref T`, `ref [N]T`, `ref ref T`, nested inline structs)
 
 ---
 

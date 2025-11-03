@@ -24,6 +24,7 @@ from .ast_nodes import (
     create_block,
     create_parameter,
     create_function_type,
+    create_inline_struct_type,
     create_return_stmt,
     create_call_expr,
     create_assignment_stmt,
@@ -434,7 +435,9 @@ class Parser:
                 TokenType.GENERIC_TYPE,
                 TokenType.REF,
                 TokenType.LEFT_BRACKET,
-            ) or (self.match(TokenType.FN)):  # Function type
+                TokenType.FN,  # Function type
+                TokenType.STRUCT,  # Inline struct type
+            ):
                 return_type = self.parse_type()
 
         # Function body (required)
@@ -603,6 +606,41 @@ class Parser:
                 param_types=param_types,
                 return_type=return_type,
                 span=create_span_from_token(fn_token),
+            )
+
+        # Inline struct types: struct { field: type, ... }
+        if self.match(TokenType.STRUCT):
+            struct_token = self.advance()
+            self.consume(TokenType.LEFT_BRACE)
+
+            fields = []
+            self.skip_terminators()
+
+            while not self.match(TokenType.RIGHT_BRACE) and not self.at_end():
+                # Parse field: name: type
+                field_name_token = self.consume(TokenType.IDENTIFIER)
+                self.consume(TokenType.COLON)
+                field_type = self.parse_type()
+
+                field = ASTNode(
+                    kind=NodeKind.FIELD,
+                    name=field_name_token.value,
+                    field_type=field_type,
+                    span=create_span_from_token(field_name_token),
+                )
+                fields.append(field)
+
+                # Skip comma if present
+                if self.match(TokenType.COMMA):
+                    self.advance()
+
+                self.skip_terminators()
+
+            self.consume(TokenType.RIGHT_BRACE)
+
+            return create_inline_struct_type(
+                fields=fields,
+                span=create_span_from_token(struct_token),
             )
 
         # Generic types: $T, $TYPE, etc.
