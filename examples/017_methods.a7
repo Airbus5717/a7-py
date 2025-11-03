@@ -1,5 +1,7 @@
 // Methods demonstration
 
+io :: import "std/io"
+
 Vec2 :: struct {
     x: f32
     y: f32
@@ -55,32 +57,32 @@ main :: fn() {
     
     // Call methods using dot notation (syntactic sugar)
     len1 := v1.length()  // Equivalent to length(v1.adr)
-    printf("Vector v1 length: {}\n", len1)
+    io.println("Vector v1 length: {}", len1)
     
     // Method that modifies
-    printf("Before normalize: v1 = ({}, {})\n", v1.x, v1.y)
+    io.println("Before normalize: v1 = ({}, {})", v1.x, v1.y)
     v1.normalize()  // Equivalent to normalize(v1.adr)
-    printf("After normalize: v1 = ({}, {})\n", v1.x, v1.y)
+    io.println("After normalize: v1 = ({}, {})", v1.x, v1.y)
     
     // Method returning new value
     v3 := v1.add(v2)  // Equivalent to add(v1.adr, v2)
-    printf("v1 + v2 = ({}, {})\n", v3.x, v3.y)
+    io.println("v1 + v2 = ({}, {})", v3.x, v3.y)
     
     // Method with parameter
     v2.scale(2.0)
-    printf("v2 scaled by 2: ({}, {})\n", v2.x, v2.y)
+    io.println("v2 scaled by 2: ({}, {})", v2.x, v2.y)
     
     // Static-like method call
     origin := zero()  // No receiver needed 
-    printf("Zero vector: ({}, {})\n", origin.x, origin.y)
+    io.println("Zero vector: ({}, {})", origin.x, origin.y)
     
     // Methods on other types
     rect := Rectangle{5.0, 3.0}
-    printf("Rectangle area: {}\n", rect.area())
-    printf("Rectangle perimeter: {}\n", rect.perimeter())
+    io.println("Rectangle area: {}", rect.area())
+    io.println("Rectangle perimeter: {}", rect.perimeter())
     
     // Direct function call (equivalent forms)
     len2 := length(v1.adr)  // Direct call
     len3 := v1.length()  // Method syntax
-    printf("Direct call: {}, Method call: {}\n", len2, len3)
+    io.println("Direct call: {}, Method call: {}", len2, len3)
 }

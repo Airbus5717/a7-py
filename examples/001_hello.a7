@@ -1,5 +1,7 @@
+// Hello World - The simplest A7 program
+
 io :: import "std/io"
 
 main :: fn() {
-    io.println("Hello World");
+    io.println("Hello, World!")
 }

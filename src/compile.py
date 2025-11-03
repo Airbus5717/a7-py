@@ -139,7 +139,7 @@ class A7Compiler:
 
             for field in list_fields:
                 field_value = getattr(node, field, None)
-                if field_value:
+                if field_value is not None:
                     result[field] = [ast_to_dict(child) for child in field_value]
 
             # Add single node fields
@@ -293,6 +293,7 @@ class A7Compiler:
                             hasattr(decl, "body")
                             and decl.body
                             and hasattr(decl.body, "statements")
+                            and decl.body.statements is not None
                         ):
                             self._add_statements_to_tree(
                                 decl_node, decl.body.statements
@@ -377,6 +378,8 @@ class A7Compiler:
 
     def _add_statements_to_tree(self, parent_node, statements):
         """Add statement nodes to the tree."""
+        if statements is None:
+            return
         for stmt in statements:
             stmt_label = f"[blue]{stmt.kind.name}[/blue]"
 

@@ -177,6 +177,27 @@ false
 nil
 ```
 
+**Usage**: `nil` can **only** be used with reference/pointer types (`ref T`). It represents a null pointer.
+
+**Invalid**: Arrays, structs, primitives, and other value types cannot be assigned `nil`.
+
+```a7
+// ✅ Valid - nil with reference types
+ptr: ref i32 = nil
+fn_ptr: ref fn() void = nil
+if ptr == nil { }
+
+// ❌ Invalid - nil with value types
+arr: [5]i32 = nil      // ERROR: arrays cannot be nil
+x: i32 = nil           // ERROR: primitives cannot be nil
+s: MyStruct = nil      // ERROR: value structs cannot be nil
+```
+
+**Array Initialization**: Arrays must be initialized with:
+- No initializer (zero-initialized): `arr: [5]i32`
+- Single value (all elements): `arr: [5]i32 = 0`
+- Array literal: `arr: [5]i32 = [1, 2, 3, 4, 5]`
+
 ---
 
 ## 3. Type System
@@ -396,7 +417,7 @@ buffer := new [1024]u8
 
 // Explicit typing works with both
 MAX_SIZE: i32 = 1000    // Immutable with explicit type
-counter: i32 := 0       // Mutable with explicit type (note := still used)
+counter: i32 = 0        // Mutable with explicit type (uses = not :=)
 
 // Variables can be reassigned
 counter = counter + 1   // OK
@@ -1388,6 +1409,27 @@ false
 nil
 ```
 
+**Usage**: `nil` can **only** be used with reference/pointer types (`ref T`). It represents a null pointer.
+
+**Invalid**: Arrays, structs, primitives, and other value types cannot be assigned `nil`.
+
+```a7
+// ✅ Valid - nil with reference types
+ptr: ref i32 = nil
+fn_ptr: ref fn() void = nil
+if ptr == nil { }
+
+// ❌ Invalid - nil with value types
+arr: [5]i32 = nil      // ERROR: arrays cannot be nil
+x: i32 = nil           // ERROR: primitives cannot be nil
+s: MyStruct = nil      // ERROR: value structs cannot be nil
+```
+
+**Array Initialization**: Arrays must be initialized with:
+- No initializer (zero-initialized): `arr: [5]i32`
+- Single value (all elements): `arr: [5]i32 = 0`
+- Array literal: `arr: [5]i32 = [1, 2, 3, 4, 5]`
+
 ---
 
 ## 3. Type System
@@ -1607,7 +1649,7 @@ buffer := new [1024]u8
 
 // Explicit typing works with both
 MAX_SIZE: i32 = 1000    // Immutable with explicit type
-counter: i32 := 0       // Mutable with explicit type (note := still used)
+counter: i32 = 0        // Mutable with explicit type (uses = not :=)
 
 // Variables can be reassigned
 counter = counter + 1   // OK
@@ -2110,10 +2152,15 @@ The standard library consists of individual `.a7` files in a predefined path:
 
 ### 10.4 Visibility Rules
 
-- `pub` items are exported from the file/module
-- Non-pub items are file-private
+- `public` modifier only applies to **global/top-level declarations**:
+  - Global functions
+  - Global variables and constants
+  - Type declarations (struct, enum, union)
+- `public` items are exported from the file/module
+- Non-public items are file-private
 - No protected/internal visibility
-- Struct fields can be individually public
+- **Struct fields are always file-private** (cannot be marked `public`)
+- Function parameters and local variables cannot be marked `public`
 
 ---
 

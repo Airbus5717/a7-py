@@ -1,5 +1,7 @@
 // Unions demonstration
 
+io :: import "std/io"
+
 // Simple union
 Number :: union {
     i: i32
@@ -25,10 +27,10 @@ main :: fn() {
     // Simple union usage
     num: Number
     num.i = 42
-    printf("Union as int: {}\n", num.i)
+    io.println("Union as int: {}", num.i)
     
     // Same memory interpreted as float (unsafe!)
-    printf("Same memory as float: {}\n", num.f)
+    io.println("Same memory as float: {}", num.f)
     
     // Tagged union
     success := Result(ok: 100)
@@ -36,21 +38,21 @@ main :: fn() {
     
     // Check tag to determine which variant is active
     if success.tag == Result.ok {
-        printf("Success with value: {}\n", success.ok)
+        io.println("Success with value: {}", success.ok)
     }
     
     if failure.tag == Result.err {
-        printf("Failure with error: {}\n", failure.err)
+        io.println("Failure with error: {}", failure.err)
     }
     
     // Function that processes tagged union
     process_result :: fn(r: Result) {
         match r.tag {
             case Result.ok: {
-                printf("Processing success: {}\n", r.ok)
+                io.println("Processing success: {}", r.ok)
             }
             case Result.err: {
-                printf("Processing error: {}\n", r.err)
+                io.println("Processing error: {}", r.err)
             }
         }
     }
@@ -61,10 +63,10 @@ main :: fn() {
     // Large union
     data: Data
     data.byte_val = 255
-    printf("Data as byte: {}\n", data.byte_val)
+    io.println("Data as byte: {}", data.byte_val)
     
     data.array_val = [1, 2, 3, 4]
-    printf("Data as array: {} {} {} {}\n", 
-           data.array_val[0], data.array_val[1], 
+    io.println("Data as array: {} {} {} {}",
+           data.array_val[0], data.array_val[1],
            data.array_val[2], data.array_val[3])
 }

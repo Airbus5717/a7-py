@@ -1,0 +1,193 @@
+// Matrix operations
+
+io :: import "std/io"
+
+// Matrix type (using 2D array)
+Matrix :: struct {
+    rows: i32
+    cols: i32
+    data: [100]f64  // Flat array for matrix data
+}
+
+// Create matrix
+create_matrix :: fn(rows: i32, cols: i32) Matrix {
+    m := Matrix{rows, cols, nil}
+    // Initialize to zeros
+    for i := 0; i < rows * cols; i += 1 {
+        m.data[i] = 0.0
+    }
+    ret m
+}
+
+// Get element at (row, col)
+get :: fn(m: ref Matrix, row: i32, col: i32) f64 {
+    index := row * m.val.cols + col
+    ret m.val.data[index]
+}
+
+// Set element at (row, col)
+set :: fn(m: ref Matrix, row: i32, col: i32, value: f64) {
+    index := row * m.val.cols + col
+    m.val.data[index] = value
+}
+
+// Print matrix
+print_matrix :: fn(m: ref Matrix, name: string) {
+    io.println("Matrix {}:", name)
+    for i := 0; i < m.val.rows; i += 1 {
+        io.println("  ")
+        for j := 0; j < m.val.cols; j += 1 {
+            value := get(m, i, j)
+            io.println("{} ", value)
+        }
+        io.println("")
+    }
+}
+
+// Matrix addition
+add_matrices :: fn(a: ref Matrix, b: ref Matrix, result: ref Matrix) bool {
+    if a.val.rows != b.val.rows  or  a.val.cols != b.val.cols {
+        io.println("Error: Matrix dimensions must match for addition")
+        ret false
+    }
+
+    for i := 0; i < a.val.rows; i += 1 {
+        for j := 0; j < a.val.cols; j += 1 {
+            sum := get(a, i, j) + get(b, i, j)
+            set(result, i, j, sum)
+        }
+    }
+
+    ret true
+}
+
+// Matrix multiplication
+multiply_matrices :: fn(a: ref Matrix, b: ref Matrix, result: ref Matrix) bool {
+    if a.val.cols != b.val.rows {
+        io.println("Error: Invalid dimensions for multiplication")
+        ret false
+    }
+
+    for i := 0; i < a.val.rows; i += 1 {
+        for j := 0; j < b.val.cols; j += 1 {
+            sum := 0.0
+            for k := 0; k < a.val.cols; k += 1 {
+                sum = sum + get(a, i, k) * get(b, k, j)
+            }
+            set(result, i, j, sum)
+        }
+    }
+
+    ret true
+}
+
+// Scalar multiplication
+scalar_multiply :: fn(m: ref Matrix, scalar: f64, result: ref Matrix) {
+    for i := 0; i < m.val.rows; i += 1 {
+        for j := 0; j < m.val.cols; j += 1 {
+            value := get(m, i, j) * scalar
+            set(result, i, j, value)
+        }
+    }
+}
+
+// Transpose matrix
+transpose :: fn(m: ref Matrix, result: ref Matrix) {
+    for i := 0; i < m.val.rows; i += 1 {
+        for j := 0; j < m.val.cols; j += 1 {
+            value := get(m, i, j)
+            set(result, j, i, value)
+        }
+    }
+}
+
+// Identity matrix
+identity :: fn(size: i32, result: ref Matrix) {
+    for i := 0; i < size; i += 1 {
+        for j := 0; j < size; j += 1 {
+            value := if i == j { 1.0 } else { 0.0 }
+            set(result, i, j, value)
+        }
+    }
+}
+
+// Trace (sum of diagonal)
+trace :: fn(m: ref Matrix) f64 {
+    if m.val.rows != m.val.cols {
+        io.println("Error: Trace only defined for square matrices")
+        ret 0.0
+    }
+
+    sum := 0.0
+    for i := 0; i < m.val.rows; i += 1 {
+        sum = sum + get(m, i, i)
+    }
+    ret sum
+}
+
+main :: fn() {
+    io.println("=== Matrix Operations ===")
+    io.println("")
+
+    // Create matrices
+    a := create_matrix(2, 2)
+    a_ref := a.adr
+    set(a_ref, 0, 0, 1.0)
+    set(a_ref, 0, 1, 2.0)
+    set(a_ref, 1, 0, 3.0)
+    set(a_ref, 1, 1, 4.0)
+
+    b := create_matrix(2, 2)
+    b_ref := b.adr
+    set(b_ref, 0, 0, 5.0)
+    set(b_ref, 0, 1, 6.0)
+    set(b_ref, 1, 0, 7.0)
+    set(b_ref, 1, 1, 8.0)
+
+    print_matrix(a_ref, "A")
+    io.println("")
+    print_matrix(b_ref, "B")
+    io.println("")
+
+    // Addition
+    sum := create_matrix(2, 2)
+    sum_ref := sum.adr
+    if add_matrices(a_ref, b_ref, sum_ref) {
+        print_matrix(sum_ref, "A + B")
+        io.println("")
+    }
+
+    // Multiplication
+    product := create_matrix(2, 2)
+    product_ref := product.adr
+    if multiply_matrices(a_ref, b_ref, product_ref) {
+        print_matrix(product_ref, "A * B")
+        io.println("")
+    }
+
+    // Scalar multiplication
+    scaled := create_matrix(2, 2)
+    scaled_ref := scaled.adr
+    scalar_multiply(a_ref, 2.0, scaled_ref)
+    print_matrix(scaled_ref, "2 * A")
+    io.println("")
+
+    // Transpose
+    transposed := create_matrix(2, 2)
+    transposed_ref := transposed.adr
+    transpose(a_ref, transposed_ref)
+    print_matrix(transposed_ref, "A^T")
+    io.println("")
+
+    // Identity matrix
+    id := create_matrix(3, 3)
+    id_ref := id.adr
+    identity(3, id_ref)
+    print_matrix(id_ref, "I_3")
+    io.println("")
+
+    // Trace
+    io.println("Trace:")
+    io.println("  tr(A) = {}", trace(a_ref))
+    io.println("  tr(I_3) = {}", trace(id_ref))
+}

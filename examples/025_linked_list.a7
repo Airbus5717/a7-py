@@ -1,0 +1,119 @@
+// Generic linked list implementation
+
+io :: import "std/io"
+
+// Generic linked list node
+Node :: struct {
+    data: $T
+    next: ref Node
+}
+
+// Generic linked list
+List :: struct {
+    head: ref Node
+    tail: ref Node
+    length: i32
+}
+
+// Create empty list
+create_list :: fn() List {
+    ret List{nil, nil, 0}
+}
+
+// Append element to list
+append :: fn(list: ref List, value: $T) {
+    node := new Node
+    node.val.data = value
+    node.val.next = nil
+
+    if list.val.head == nil {
+        // First node
+        list.val.head = node
+        list.val.tail = node
+    } else {
+        // Append to tail
+        list.val.tail.val.next = node
+        list.val.tail = node
+    }
+
+    list.val.length += 1
+}
+
+// Prepend element to list
+prepend :: fn(list: ref List, value: $T) {
+    node := new Node
+    node.val.data = value
+    node.val.next = list.val.head
+
+    list.val.head = node
+    if list.val.tail == nil {
+        list.val.tail = node
+    }
+
+    list.val.length += 1
+}
+
+// Print list
+print_list :: fn(list: ref List) {
+    io.println("List (length: {}):", list.val.length)
+    current := list.val.head
+    i := 0
+
+    while current != nil {
+        io.println("  [{}] = {}", i, current.val.data)
+        current = current.val.next
+        i += 1
+    }
+}
+
+// Find element in list
+find :: fn(list: ref List, value: $T) bool {
+    current := list.val.head
+
+    while current != nil {
+        if current.val.data == value {
+            ret true
+        }
+        current = current.val.next
+    }
+
+    ret false
+}
+
+// Free list memory
+free_list :: fn(list: ref List) {
+    current := list.val.head
+
+    while current != nil {
+        next := current.val.next
+        del current
+        current = next
+    }
+
+    list.val.head = nil
+    list.val.tail = nil
+    list.val.length = 0
+}
+
+main :: fn() {
+    io.println("=== Linked List Example ===")
+
+    // Integer list
+    numbers := create_list()
+    numbers_ref := numbers.adr
+
+    append(numbers_ref, 10)
+    append(numbers_ref, 20)
+    append(numbers_ref, 30)
+    prepend(numbers_ref, 5)
+
+    print_list(numbers_ref)
+
+    // Find elements
+    io.println("Find 20: {}", find(numbers_ref, 20))
+    io.println("Find 99: {}", find(numbers_ref, 99))
+
+    // Cleanup
+    free_list(numbers_ref)
+    io.println("List freed")
+}

@@ -1,3 +1,5 @@
+io :: import "std/io"
+
 Token :: struct {
     id: i32
     data: [3]i32
@@ -23,9 +25,9 @@ main :: fn() {
     }
     
     // Accessing struct fields
-    printf("Token ID: {}\n", t.id)
-    printf("Token data[0]: {}\n", t.data[0])
-    printf("Person: {} age {} height {}\n", person.name, person.age, person.height)
+    io.println("Token ID: {}", t.id)
+    io.println("Token data[0]: {}", t.data[0])
+    io.println("Person: {} age {} height {}", person.name, person.age, person.height)
     
     // Nested struct
     Employee :: struct {
@@ -40,5 +42,5 @@ main :: fn() {
         salary: 75000.0
     }
     
-    printf("Employee: {} (ID: {})\n", emp.person.name, emp.id)
+    io.println("Employee: {} (ID: {})", emp.person.name, emp.id)
 }

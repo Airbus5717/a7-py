@@ -1,11 +1,25 @@
+// Comments in A7
 
-// SINGLE LINE COMMENTS
-/* 
- multi line comments
-*/
+// Single-line comments start with //
+// They extend to the end of the line
 
-main :: fn() {}
+/*
+ * Multi-line comments use /* and */
+ * They can span multiple lines
+ * Useful for documentation blocks
+ */
 
-/* multi line comments do not need to have an
- ending delimiter because EOF is enough for 
- as a comment delimiter
+/* Multi-line comments can also be inline */
+
+main :: fn() {
+    x := 42  // Inline comment after code
+
+    /*
+     * Comments can be used to temporarily disable code:
+     * y := 100
+     * io.println("This won't run")
+     */
+}
+
+/* Note: Multi-line comments do not need closing delimiter
+ * if they extend to EOF (end of file)

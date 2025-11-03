@@ -1,0 +1,146 @@
+// State machine with function pointers
+
+io :: import "std/io"
+
+// States
+State :: enum {
+    IDLE
+    RUNNING
+    PAUSED
+    STOPPED
+}
+
+// State handler function type
+StateHandler :: fn(ref StateMachine) void
+
+// State machine
+StateMachine :: struct {
+    current_state: State
+    previous_state: State
+    handlers: [4]StateHandler
+}
+
+// Create state machine
+create_state_machine :: fn() StateMachine {
+    machine := StateMachine{State.IDLE, State.IDLE, nil}
+
+    // Register state handlers
+    machine.handlers[0] = on_idle
+    machine.handlers[1] = on_running
+    machine.handlers[2] = on_paused
+    machine.handlers[3] = on_stopped
+
+    ret machine
+}
+
+// State handlers
+on_idle :: fn(machine: ref StateMachine) {
+    io.println("[IDLE] Waiting for start...")
+}
+
+on_running :: fn(machine: ref StateMachine) {
+    io.println("[RUNNING] Processing...")
+}
+
+on_paused :: fn(machine: ref StateMachine) {
+    io.println("[PAUSED] Temporarily stopped")
+}
+
+on_stopped :: fn(machine: ref StateMachine) {
+    io.println("[STOPPED] Finished")
+}
+
+// Transition to new state
+transition :: fn(machine: ref StateMachine, new_state: State) {
+    if machine.val.current_state == new_state {
+        io.println("Already in state: {}", new_state)
+        ret
+    }
+
+    io.println("Transition: {} -> {}", machine.val.current_state, new_state)
+    machine.val.previous_state = machine.val.current_state
+    machine.val.current_state = new_state
+
+    // Execute handler for new state
+    handler := machine.val.handlers[cast(i32, new_state)]
+    if handler != nil {
+        handler(machine)
+    }
+}
+
+// Update state machine
+update :: fn(machine: ref StateMachine) {
+    handler := machine.val.handlers[cast(i32, machine.val.current_state)]
+    if handler != nil {
+        handler(machine)
+    }
+}
+
+// Traffic light example
+TrafficLight :: enum {
+    RED
+    YELLOW
+    GREEN
+}
+
+TrafficController :: struct {
+    light: TrafficLight
+    timer: i32
+}
+
+handle_red :: fn(controller: ref TrafficController) {
+    io.println("  [RED] Stop!")
+    controller.val.timer += 1
+    if controller.val.timer > 3 {
+        controller.val.light = TrafficLight.GREEN
+        controller.val.timer = 0
+    }
+}
+
+handle_yellow :: fn(controller: ref TrafficController) {
+    io.println("  [YELLOW] Slow down!")
+    controller.val.timer += 1
+    if controller.val.timer > 1 {
+        controller.val.light = TrafficLight.RED
+        controller.val.timer = 0
+    }
+}
+
+handle_green :: fn(controller: ref TrafficController) {
+    io.println("  [GREEN] Go!")
+    controller.val.timer += 1
+    if controller.val.timer > 4 {
+        controller.val.light = TrafficLight.YELLOW
+        controller.val.timer = 0
+    }
+}
+
+main :: fn() {
+    io.println("=== State Machine Example ===")
+
+    // Basic state machine
+    machine := create_state_machine()
+    machine_ref := machine.adr
+
+    transition(machine_ref, State.RUNNING)
+    transition(machine_ref, State.PAUSED)
+    transition(machine_ref, State.RUNNING)
+    transition(machine_ref, State.STOPPED)
+
+    // Traffic light simulation
+    io.println("")
+    io.println("--- Traffic Light Simulation ---")
+
+    traffic := TrafficController{TrafficLight.RED, 0}
+    handlers: [3]fn(ref TrafficController) void  // Zero-initialized (null function pointers)
+    handlers[0] = handle_red
+    handlers[1] = handle_yellow
+    handlers[2] = handle_green
+
+    // Simulate 15 time steps
+    for step := 0; step < 15; step += 1 {
+        io.println("Step {}: Light = {}", step, traffic.light)
+        handler := handlers[cast(i32, traffic.light)]
+        handler(traffic.adr)
+    }
+}

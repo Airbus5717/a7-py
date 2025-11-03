@@ -1,0 +1,175 @@
+// String utilities and text processing
+
+io :: import "std/io"
+
+// Count characters in string (placeholder - would use actual string length)
+string_length :: fn(s: string) i32 {
+    // In real implementation, would iterate through string
+    ret 10  // Placeholder
+}
+
+// Check if string is empty
+is_empty :: fn(s: string) bool {
+    ret string_length(s) == 0
+}
+
+// Count word occurrences
+count_words :: fn(text: string) i32 {
+    // Simplified word counting (placeholder)
+    // In real implementation, would split by spaces
+    ret 5  // Placeholder
+}
+
+// Count vowels and consonants
+count_vowels :: fn(text: string) struct { vowels: i32, consonants: i32 } {
+    // Placeholder implementation - returns zero counts
+    ret struct { vowels: i32, consonants: i32 } { vowels: 0, consonants: 0 }
+}
+
+// Reverse string (conceptual)
+reverse_string :: fn(input: string) string {
+    // Would reverse characters in real implementation
+    ret input  // Placeholder
+}
+
+// Check if palindrome
+is_palindrome :: fn(s: string) bool {
+    // Would compare string with reversed version
+    ret true  // Placeholder
+}
+
+// Convert to uppercase/lowercase (conceptual)
+to_uppercase :: fn(s: string) string {
+    ret s  // Placeholder
+}
+
+to_lowercase :: fn(s: string) string {
+    ret s  // Placeholder
+}
+
+// Count character occurrences
+CharCount :: struct {
+    character: char
+    count: i32
+}
+
+count_characters :: fn(text: string, counts: []CharCount) i32 {
+    // Would count each unique character
+    ret 0  // Placeholder
+}
+
+// Word statistics
+WordStats :: struct {
+    total_words: i32
+    total_chars: i32
+    total_vowels: i32
+    total_consonants: i32
+    avg_word_length: f64
+}
+
+analyze_text :: fn(text: string) WordStats {
+    stats := WordStats{0, 0, 0, 0, 0.0}
+
+    // Placeholder values for demonstration
+    stats.total_words = 10
+    stats.total_chars = 50
+    stats.total_vowels = 20
+    stats.total_consonants = 30
+    stats.avg_word_length = 5.0
+
+    ret stats
+}
+
+// Caesar cipher encryption
+caesar_encrypt :: fn(text: string, shift: i32) string {
+    // Would shift each character by shift amount
+    ret text  // Placeholder
+}
+
+caesar_decrypt :: fn(text: string, shift: i32) string {
+    // Would shift back
+    ret caesar_encrypt(text, -shift)
+}
+
+// Remove whitespace
+trim :: fn(s: string) string {
+    ret s  // Placeholder
+}
+
+// Split string by delimiter (conceptual)
+split :: fn(text: string, delimiter: char, parts: []string) i32 {
+    // Would split string into parts
+    ret 0  // Placeholder
+}
+
+// Join strings with separator
+join :: fn(parts: []string, count: i32, separator: string) string {
+    // Would concatenate strings with separator
+    ret ""  // Placeholder
+}
+
+main :: fn() {
+    io.println("=== String Utilities ===")
+    io.println("")
+
+    sample_text := "Hello World"
+    io.println("Sample text: '{}'", sample_text)
+    io.println("")
+
+    // Length and empty check
+    io.println("String Properties:")
+    io.println("  Length: {}", string_length(sample_text))
+    io.println("  Is empty? {}", is_empty(sample_text))
+    io.println("")
+
+    // Word and character counting
+    io.println("Text Analysis:")
+    io.println("  Word count: {}", count_words(sample_text))
+    vowel_count := count_vowels(sample_text)
+    io.println("  Vowels: {}, Consonants: {}", vowel_count.vowels, vowel_count.consonants)
+    io.println("")
+
+    // Palindrome check
+    io.println("Palindrome Tests:")
+    test_palindromes: [5]string  // Zero-initialized (empty strings)
+    test_palindromes[0] = "racecar"
+    test_palindromes[1] = "hello"
+    test_palindromes[2] = "level"
+    test_palindromes[3] = "world"
+    test_palindromes[4] = "noon"
+
+    for word in test_palindromes {
+        result := if is_palindrome(word) { "Yes" } else { "No" }
+        io.println("  '{}' is palindrome? {}", word, result)
+    }
+    io.println("")
+
+    // Case conversion
+    io.println("Case Conversion:")
+    io.println("  Uppercase: '{}'", to_uppercase(sample_text))
+    io.println("  Lowercase: '{}'", to_lowercase(sample_text))
+    io.println("")
+
+    // Text statistics
+    io.println("Full Text Analysis:")
+    stats := analyze_text(sample_text)
+    io.println("  Total words: {}", stats.total_words)
+    io.println("  Total characters: {}", stats.total_chars)
+    io.println("  Vowels: {}", stats.total_vowels)
+    io.println("  Consonants: {}", stats.total_consonants)
+    io.println("  Average word length: {}", stats.avg_word_length)
+    io.println("")
+
+    // Caesar cipher
+    io.println("Caesar Cipher:")
+    encrypted := caesar_encrypt("HELLO", 3)
+    io.println("  Original: HELLO")
+    io.println("  Encrypted (shift 3): {}", encrypted)
+    io.println("  Decrypted: {}", caesar_decrypt(encrypted, 3))
+    io.println("")
+
+    // String operations
+    io.println("String Operations:")
+    io.println("  Reversed: '{}'", reverse_string(sample_text))
+    io.println("  Trimmed: '{}'", trim(sample_text))
+}

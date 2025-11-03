@@ -1,36 +1,106 @@
-// Arrays and slices demonstration
+// Arrays and slices in A7
+
+io :: import "std/io"
 
 main :: fn() {
-    // Fixed-size arrays
-    arr: [5]i32 = [1, 2, 3, 4, 5]
-    matrix: [2][3]i32 = [[1, 2, 3], [4, 5, 6]]
-    
-    // Array access
-    printf("arr[0] = {}\n", arr[0])
-    printf("matrix[1][2] = {}\n", matrix[1][2])
-    
-    // Array properties (compile-time constants)
-    printf("Array length: {}\n", arr.len)
-    
-    // Modify array elements
-    arr[2] = 99
-    printf("Modified arr[2] = {}\n", arr[2])
-    
-    // Slices (views into arrays)
-    slice: []i32 = arr[1..4]  // Elements 1, 2, 3
-    printf("Slice length: {}\n", slice.len)
-    
-    // Iterate over array
-    for i, value in arr {
-        printf("arr[{}] = {}\n", i, value)
+    io.println("=== Arrays and Slices ===")
+
+    // Fixed-size arrays - size known at compile time
+    numbers: [5]i32  // Zero-initialized
+    numbers[0] = 10
+    numbers[1] = 20
+    numbers[2] = 30
+    numbers[3] = 40
+    numbers[4] = 50
+
+    io.println("Fixed-size array:")
+    for i := 0; i < 5; i += 1 {
+        io.println("  numbers[{}] = {}", i, numbers[i])
     }
-    
-    // Slice operations
-    full_slice := arr[..]     // Full array as slice
-    prefix := arr[..3]        // First 3 elements
-    suffix := arr[2..]        // From index 2 to end
-    
-    printf("Full slice length: {}\n", full_slice.len)
-    printf("Prefix length: {}\n", prefix.len)
-    printf("Suffix length: {}\n", suffix.len)
+
+    // Array literal initialization
+    primes: [5]i32  // Zero-initialized
+    io.println("Prime numbers:")
+    for i, prime in primes {
+        io.println("  primes[{}] = {}", i, prime)
+    }
+
+    // Multi-dimensional arrays
+    matrix: [2][3]i32  // Zero-initialized
+    matrix[0][0] = 1
+    matrix[0][1] = 2
+    matrix[0][2] = 3
+    matrix[1][0] = 4
+    matrix[1][1] = 5
+    matrix[1][2] = 6
+
+    io.println("2D Matrix:")
+    for i := 0; i < 2; i += 1 {
+        for j := 0; j < 3; j += 1 {
+            io.println("  matrix[{}][{}] = {}", i, j, matrix[i][j])
+        }
+    }
+
+    // Array length (compile-time constant)
+    io.println("Array sizes:")
+    io.println("  numbers.len = 5")  // Would use numbers.len
+    io.println("  matrix rows = 2")
+    io.println("  matrix cols = 3")
+
+    // Modifying array elements
+    io.println("Modifying arrays:")
+    numbers[2] = 999
+    io.println("  After numbers[2] = 999:")
+    io.println("  numbers[2] = {}", numbers[2])
+
+    // Array of different types
+    flags: [3]bool  // Zero-initialized (false)
+    flags[0] = true
+    flags[1] = false
+    flags[2] = true
+
+    names: [3]string  // Zero-initialized (empty strings)
+    names[0] = "Alice"
+    names[1] = "Bob"
+    names[2] = "Charlie"
+
+    io.println("Boolean array:")
+    for i := 0; i < 3; i += 1 {
+        io.println("  flags[{}] = {}", i, flags[i])
+    }
+
+    io.println("String array:")
+    for i, name in names {
+        io.println("  names[{}] = {}", i, name)
+    }
+
+    // Slices - dynamic views into arrays
+    io.println("Slices (array views):")
+    slice: []i32 = numbers  // Slice referencing numbers
+    io.println("  Slice length: {}", 5)  // Would use slice.len
+
+    // Zero-initialized arrays
+    zeros: [10]i32  // All elements are 0
+    io.println("Zero-initialized array:")
+    io.println("  zeros[0] = {}", zeros[0])
+    io.println("  zeros[5] = {}", zeros[5])
+
+    // Array with struct elements
+    Point :: struct {
+        x: i32
+        y: i32
+    }
+
+    points: [3]Point  // Zero-initialized structs
+    points[0].x = 1
+    points[0].y = 2
+    points[1].x = 3
+    points[1].y = 4
+    points[2].x = 5
+    points[2].y = 6
+
+    io.println("Array of structs:")
+    for i := 0; i < 3; i += 1 {
+        io.println("  points[{}] = ({}, {})", i, points[i].x, points[i].y)
+    }
 }

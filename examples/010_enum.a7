@@ -1,3 +1,5 @@
+io :: import "std/io"
+
 TknType :: enum {
     Id,
     Number,
@@ -25,40 +27,40 @@ main :: fn() {
     // Match on enum values
     match currentType {
         case TknType.Id: {
-            print("Token is an identifier\n")
+            io.println("Token is an identifier")
         }
         case TknType.Number: {
-            print("Token is a number\n")
+            io.println("Token is a number")
         }
         case TknType.Float: {
-            print("Token is a float\n")
+            io.println("Token is a float")
         }
         case TknType.String: {
-            print("Token is a string\n")
+            io.println("Token is a string")
         }
         case TknType.Char: {
-            print("Token is a char\n")
+            io.println("Token is a char")
         }
         case TknType.Invalid: {
-            print("Token is invalid\n")
+            io.println("Token is invalid")
         }
     }
     
     // Using enums with explicit values
     status := StatusCode.Ok
-    printf("HTTP Status: {}\n", cast(i32, status))
+    io.println("HTTP Status: {}", cast(i32, status))
     
     // Color enum
     color := Color.Red
     match color {
         case Color.Red: {
-            print("Color is red\n")
+            io.println("Color is red")
         }
         case Color.Green: {
-            print("Color is green\n")
+            io.println("Color is green")
         }
         case Color.Blue: {
-            print("Color is blue\n")
+            io.println("Color is blue")
         }
     }
 }

@@ -1,135 +1,147 @@
 // A7 Pointer Syntax Demonstration
 // Shows the intuitive property-based pointer operations
 
+io :: import "std/io"
+
 main :: fn() {
-    printf("=== A7 Property-Based Pointer Syntax ===\n\n")
-    
+    io.println("=== A7 Property-Based Pointer Syntax ===")
+    io.println("")
+
     // Basic pointer operations
-    printf("1. Basic Address-of and Dereference:\n")
+    io.println("1. Basic Address-of and Dereference:")
     x := 42
     ptr: ref i32 = x.adr    // Get address: variable.adr
-    
-    printf("   x = {}\n", x)
-    printf("   ptr points to address of x\n")
-    printf("   ptr.val = {} (dereference with .val)\n", ptr.val)
-    printf("   // C equivalent: ptr = &x; *ptr\n\n")
-    
+
+    io.println("   x = {}", x)
+    io.println("   ptr points to address of x")
+    io.println("   ptr.val = {} (dereference with .val)", ptr.val)
+    io.println("   // C equivalent: ptr = &x; *ptr")
+    io.println("")
+
     // Modify through pointer
-    printf("2. Modifying Through Pointer:\n")
-    printf("   Before: x = {}\n", x)
+    io.println("2. Modifying Through Pointer:")
+    io.println("   Before: x = {}", x)
     ptr.val = 100           // Assignment through pointer: ptr.val = value
-    printf("   After ptr.val = 100: x = {}\n", x)
-    printf("   // C equivalent: *ptr = 100\n\n")
-    
+    io.println("   After ptr.val = 100: x = {}", x)
+    io.println("   // C equivalent: *ptr = 100")
+    io.println("")
+
     // Multiple indirection (pointer to pointer)
-    printf("3. Multiple Indirection (Pointer to Pointer):\n")
+    io.println("3. Multiple Indirection (Pointer to Pointer):")
     ptr_ptr: ref ref i32 = ptr.adr    // Address of pointer: ptr.adr
-    printf("   ptr_ptr.val.val = {} (double dereference)\n", ptr_ptr.val.val)
-    printf("   // C equivalent: **ptr_ptr\n\n")
-    
+    io.println("   ptr_ptr.val.val = {} (double dereference)", ptr_ptr.val.val)
+    io.println("   // C equivalent: **ptr_ptr")
+    io.println("")
+
     // Triple indirection for demonstration
-    printf("4. Triple Indirection:\n")
+    io.println("4. Triple Indirection:")
     ptr_ptr_ptr: ref ref ref i32 = ptr_ptr.adr
-    printf("   ptr_ptr_ptr.val.val.val = {} (triple dereference)\n", ptr_ptr_ptr.val.val.val)
-    printf("   // C equivalent: ***ptr_ptr_ptr\n\n")
-    
+    io.println("   ptr_ptr_ptr.val.val.val = {} (triple dereference)", ptr_ptr_ptr.val.val.val)
+    io.println("   // C equivalent: ***ptr_ptr_ptr")
+    io.println("")
+
     // Pointer reassignment
-    printf("5. Pointer Reassignment:\n")
+    io.println("5. Pointer Reassignment:")
     y := 200
     z := 300
-    printf("   y = {}, z = {}\n", y, z)
+    io.println("   y = {}, z = {}", y, z)
     ptr = y.adr             // Point to different variable
-    printf("   After ptr = y.adr: ptr.val = {}\n", ptr.val)
-    ptr = z.adr             // Point to another variable  
-    printf("   After ptr = z.adr: ptr.val = {}\n", ptr.val)
-    printf("   // C equivalent: ptr = &y; ptr = &z\n\n")
-    
+    io.println("   After ptr = y.adr: ptr.val = {}", ptr.val)
+    ptr = z.adr             // Point to another variable
+    io.println("   After ptr = z.adr: ptr.val = {}", ptr.val)
+    io.println("   // C equivalent: ptr = &y; ptr = &z")
+    io.println("")
+
     // Function parameters
-    printf("6. Function Parameters with Pointers:\n")
-    
+    io.println("6. Function Parameters with Pointers:")
+
     // Function that modifies through pointer
     increment :: fn(p: ref i32) {
-        printf("   Inside increment: before p.val = {}\n", p.val)
+        io.println("   Inside increment: before p.val = {}", p.val)
         p.val += 1          // Modify through parameter pointer
-        printf("   Inside increment: after p.val = {}\n", p.val)
+        io.println("   Inside increment: after p.val = {}", p.val)
     }
-    
+
     // Function that works with pointer to pointer
     swap_pointers :: fn(p1: ref ref i32, p2: ref ref i32) {
         temp := p1.val      // Save first pointer
         p1.val = p2.val     // Point first to second's target
         p2.val = temp       // Point second to saved target
     }
-    
+
     value := 10
-    printf("   Before increment: value = {}\n", value)
+    io.println("   Before increment: value = {}", value)
     increment(value.adr)    // Pass address: value.adr
-    printf("   After increment: value = {}\n", value)
-    printf("   // C equivalent: increment(&value)\n\n")
-    
+    io.println("   After increment: value = {}", value)
+    io.println("   // C equivalent: increment(&value)")
+    io.println("")
+
     // Array pointers
-    printf("7. Array Pointers:\n")
+    io.println("7. Array Pointers:")
     arr: [3]i32 = [10, 20, 30]
     arr_ptr: ref [3]i32 = arr.adr    // Address of entire array
-    
-    printf("   Original array: [{}, {}, {}]\n", arr[0], arr[1], arr[2])
-    printf("   Through pointer: [{}, {}, {}]\n", 
+
+    io.println("   Original array: [{}, {}, {}]", arr[0], arr[1], arr[2])
+    io.println("   Through pointer: [{}, {}, {}]",
            arr_ptr.val[0], arr_ptr.val[1], arr_ptr.val[2])
-    
+
     // Modify array through pointer
     arr_ptr.val[1] = 99
-    printf("   After arr_ptr.val[1] = 99: [{}, {}, {}]\n",
+    io.println("   After arr_ptr.val[1] = 99: [{}, {}, {}]",
            arr[0], arr[1], arr[2])
-    printf("   // C equivalent: (*arr_ptr)[1] = 99\n\n")
-    
-    // Struct pointers  
-    printf("8. Struct Pointers:\n")
-    
+    io.println("   // C equivalent: (*arr_ptr)[1] = 99")
+    io.println("")
+
+    // Struct pointers
+    io.println("8. Struct Pointers:")
+
     Point :: struct {
         x: f32
         y: f32
     }
-    
+
     point := Point{3.14, 2.71}
     point_ptr: ref Point = point.adr
-    
-    printf("   Original point: ({}, {})\n", point.x, point.y)
-    printf("   Through pointer: ({}, {})\n", point_ptr.val.x, point_ptr.val.y)
-    
+
+    io.println("   Original point: ({}, {})", point.x, point.y)
+    io.println("   Through pointer: ({}, {})", point_ptr.val.x, point_ptr.val.y)
+
     // Modify struct through pointer
     point_ptr.val.x = 10.0
     point_ptr.val.y = 20.0
-    printf("   After modification: ({}, {})\n", point.x, point.y)
-    printf("   // C equivalent: ptr->x = 10.0; ptr->y = 20.0\n\n")
-    
+    io.println("   After modification: ({}, {})", point.x, point.y)
+    io.println("   // C equivalent: ptr->x = 10.0; ptr->y = 20.0")
+    io.println("")
+
     // Null pointer safety
-    printf("9. Null Pointer Safety:\n")
+    io.println("9. Null Pointer Safety:")
     null_ptr: ref i32 = nil
     if null_ptr == nil {
-        printf("   null_ptr is safely nil\n")
-        printf("   // Always check before using: if (ptr != nil)\n")
+        io.println("   null_ptr is safely nil")
+        io.println("   // Always check before using: if (ptr != nil)")
     }
-    
+
     safe_ptr: ref i32 = value.adr
     if safe_ptr != nil {
-        printf("   safe_ptr.val = {} (verified non-null)\n", safe_ptr.val)
+        io.println("   safe_ptr.val = {} (verified non-null)", safe_ptr.val)
     }
-    printf("\n")
-    
+    io.println("")
+
     // Pointer comparison
-    printf("10. Pointer Comparison:\n")
+    io.println("10. Pointer Comparison:")
     ptr1: ref i32 = x.adr
     ptr2: ref i32 = y.adr
     ptr3: ref i32 = x.adr
-    
-    printf("    ptr1 == ptr3 (both point to x): {}\n", ptr1 == ptr3)
-    printf("    ptr1 == ptr2 (point to different vars): {}\n", ptr1 == ptr2)
-    printf("    // Comparing addresses, not values\n\n")
-    
-    printf("=== Summary of A7 Pointer Syntax ===\n")
-    printf("• Address-of: variable.adr (instead of &variable)\n")
-    printf("• Dereference: ptr.val (instead of *ptr)\n")
-    printf("• Assignment: ptr.val = value (instead of *ptr = value)\n") 
-    printf("• Multiple: ptr.val.val (instead of **ptr)\n")
-    printf("• Self-documenting and beginner-friendly!\n")
+
+    io.println("    ptr1 == ptr3 (both point to x): {}", ptr1 == ptr3)
+    io.println("    ptr1 == ptr2 (point to different vars): {}", ptr1 == ptr2)
+    io.println("    // Comparing addresses, not values")
+    io.println("")
+
+    io.println("=== Summary of A7 Pointer Syntax ===")
+    io.println("• Address-of: variable.adr (instead of &variable)")
+    io.println("• Dereference: ptr.val (instead of *ptr)")
+    io.println("• Assignment: ptr.val = value (instead of *ptr = value)")
+    io.println("• Multiple: ptr.val.val (instead of **ptr)")
+    io.println("• Self-documenting and beginner-friendly!")
 }

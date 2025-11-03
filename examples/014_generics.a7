@@ -1,59 +1,61 @@
 // Generics demonstration
 
+io :: import "std/io"
+
 // Generic swap function
-swap :: fn($T, a: ref T, b: ref T) {
+swap :: fn(a: ref $T, b: ref $T) {
     temp := a.val
     a.val = b.val
     b.val = temp
 }
 
-// Generic function with type constraint
-abs :: fn($T: Numeric, x: T) T {
+// Generic function
+abs :: fn(x: $T) $T {
     ret if x < 0 { -x } else { x }
 }
 
 // Generic struct
-Pair :: struct($T, $U) {
-    first: T
-    second: U
+Pair :: struct {
+    first: $T
+    second: $U
 }
 
 // Generic function for pairs
-make_pair :: fn($T, $U, first: T, second: U) Pair($T, $U) {
-    ret Pair($T, $U){first, second}
+make_pair :: fn(first: $T, second: $U) Pair {
+    ret Pair{first, second}
 }
 
 main :: fn() {
     // Test generic swap
     a := 10
     b := 20
-    printf("Before swap: a={}, b={}\n", a, b)
-    swap($i32, a.adr, b.adr)
-    printf("After swap: a={}, b={}\n", a, b)
-    
+    io.println("Before swap: a={}, b={}", a, b)
+    swap(a.adr, b.adr)  // Type inferred
+    io.println("After swap: a={}, b={}", a, b)
+
     // Test with different types
     x := 3.14
     y := 2.71
-    printf("Before swap: x={}, y={}\n", x, y)
-    swap($f64, x.adr, y.adr)
-    printf("After swap: x={}, y={}\n", x, y)
+    io.println("Before swap: x={}, y={}", x, y)
+    swap(x.adr, y.adr)  // Type inferred
+    io.println("After swap: x={}, y={}", x, y)
     
     // Test generic abs function
-    printf("abs(-5) = {}\n", abs($i32, -5))
-    printf("abs(-3.14) = {}\n", abs($f64, -3.14))
+    io.println("abs(-5) = {}", abs(-5))      // Type inferred
+    io.println("abs(-3.14) = {}", abs(-3.14))  // Type inferred
     
     // Test generic struct
-    int_string_pair := Pair(i32, string){42, "answer"}
-    printf("Pair: ({}, {})\n", int_string_pair.first, int_string_pair.second)
+    int_string_pair := Pair{42, "answer"}
+    io.println("Pair: ({}, {})", int_string_pair.first, int_string_pair.second)
     
     // Using generic function to create pair
-    float_pair := make_pair($f32, $f32, 1.0, 2.0)
-    printf("Float pair: ({}, {})\n", float_pair.first, float_pair.second)
+    float_pair := make_pair(1.0, 2.0)
+    io.println("Float pair: ({}, {})", float_pair.first, float_pair.second)
     
     // Generic with multiple type parameters
-    map :: fn($T, $U, arr: []T, f: fn(T) U) []U {
+    map :: fn(arr: []$T, f: fn($T) $U) []$U {
         // This would need dynamic allocation in real implementation
-        print("Map function called\n")
+        io.println("Map function called")
         ret nil  // Placeholder
     }
 }

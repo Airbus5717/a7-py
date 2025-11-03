@@ -28,20 +28,25 @@ class TestMissingStructs:
         assert struct_decl.name == "Person"
         assert len(struct_decl.fields) == 2
 
-    @pytest.mark.skip(reason="Generic structs not yet implemented")
+    # @pytest.mark.skip(reason="Generic structs not yet implemented")
     def test_generic_struct_declaration(self):
         """Test parsing generic struct declarations."""
         code = """
-        Pair :: struct($T, $U) {
-            first: T
-            second: U
+        Pair :: struct {
+            first: $T
+            second: $U
         }
         """
         ast = parse_a7(code)
         struct_decl = ast.declarations[0]
         assert struct_decl.kind == NodeKind.STRUCT
         assert struct_decl.name == "Pair"
-        assert len(struct_decl.generic_params) == 2
+        # No explicit generic declarations needed - generics inferred from field usage
+        assert len(struct_decl.fields) == 2
+        assert struct_decl.fields[0].field_type.kind == NodeKind.TYPE_GENERIC
+        assert struct_decl.fields[0].field_type.name == "T"
+        assert struct_decl.fields[1].field_type.kind == NodeKind.TYPE_GENERIC
+        assert struct_decl.fields[1].field_type.name == "U"
 
     def test_struct_initialization(self):
         """Test parsing struct initialization expressions."""
@@ -94,7 +99,7 @@ class TestMissingEnums:
 class TestMissingUnions:
     """Test union declarations - CURRENTLY NOT IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="Union declarations not yet implemented")
+    # @pytest.mark.skip(reason="Union declarations not yet implemented")
     def test_simple_union_declaration(self):
         """Test parsing simple union declarations."""
         code = """
@@ -109,7 +114,7 @@ class TestMissingUnions:
         assert union_decl.name == "Number"
         assert len(union_decl.fields) == 2
 
-    @pytest.mark.skip(reason="Tagged unions not yet implemented")
+    # @pytest.mark.skip(reason="Tagged unions not yet implemented")
     def test_tagged_union_declaration(self):
         """Test parsing tagged union declarations."""
         code = """
@@ -175,7 +180,7 @@ class TestMissingMatchStatements:
 class TestMissingDeferStatements:
     """Test defer statements - CURRENTLY NOT IMPLEMENTED."""
 
-    @pytest.mark.skip(reason="Defer statements not yet implemented")
+    # @pytest.mark.skip(reason="Defer statements not yet implemented")
     def test_defer_statement(self):
         """Test parsing defer statements."""
         code = """
@@ -250,7 +255,7 @@ class TestMissingForLoopVariants:
 class TestMissingExpressionConstructs:
     """Test missing expression constructs."""
 
-    @pytest.mark.skip(reason="Array initialization not yet implemented")
+    # @pytest.mark.skip(reason="Array initialization not yet implemented")
     def test_array_initialization(self):
         """Test parsing array initialization expressions."""
         code = """
@@ -265,7 +270,7 @@ class TestMissingExpressionConstructs:
         assert array_init.kind == NodeKind.ARRAY_INIT
         assert len(array_init.elements) == 5
 
-    @pytest.mark.skip(reason="Cast expressions not yet implemented")
+    # @pytest.mark.skip(reason="Cast expressions not yet implemented")
     def test_cast_expressions(self):
         """Test parsing cast expressions."""
         code = """
@@ -279,7 +284,7 @@ class TestMissingExpressionConstructs:
         cast_expr = var_decl.value
         assert cast_expr.kind == NodeKind.CAST
 
-    @pytest.mark.skip(reason="Field access chaining not fully tested")
+    # @pytest.mark.skip(reason="Field access chaining not fully tested")
     def test_nested_field_access(self):
         """Test parsing nested field access."""
         code = """
@@ -294,13 +299,13 @@ class TestMissingExpressionConstructs:
 class TestMissingTypeAnnotations:
     """Test missing explicit type annotations."""
 
-    @pytest.mark.skip(reason="Explicit type annotations not yet implemented")
+    # @pytest.mark.skip(reason="Explicit type annotations not yet implemented")
     def test_variable_with_explicit_type(self):
         """Test parsing variables with explicit type annotations."""
         code = """
         main :: fn() {
-            x: i32 := 42
-            y: string := "hello"
+            x: i32 = 42
+            y: string = "hello"
         }
         """
         ast = parse_a7(code)
@@ -313,11 +318,11 @@ class TestMissingTypeAnnotations:
 class TestMissingGenericFunctions:
     """Test missing generic function constructs."""
 
-    @pytest.mark.skip(reason="Generic function parameters not fully implemented")
+    # @pytest.mark.skip(reason="Generic function parameters not fully implemented")
     def test_generic_function_declaration(self):
-        """Test parsing generic function declarations."""
+        """Test parsing generic function declarations with new syntax."""
         code = """
-        swap :: fn($T, a: ref T, b: ref T) {
+        swap :: fn(a: ref $T, b: ref $T) {
             temp := a.val
             a.val = b.val
             b.val = temp
@@ -326,27 +331,33 @@ class TestMissingGenericFunctions:
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
         assert func_decl.name == "swap"
-        assert len(func_decl.generic_params) == 1
-        assert func_decl.generic_params[0].name == "T"
+        # With new syntax, generics are not declared as parameters
+        assert len(func_decl.parameters) == 2
+        assert func_decl.parameters[0].param_type.kind == NodeKind.TYPE_POINTER
+        assert func_decl.parameters[0].param_type.target_type.kind == NodeKind.TYPE_GENERIC
+        assert func_decl.parameters[0].param_type.target_type.name == "T"
 
-    @pytest.mark.skip(reason="Generic constraints not yet implemented")
-    def test_generic_function_with_constraints(self):
-        """Test parsing generic functions with type constraints."""
+    # @pytest.mark.skip(reason="Generic constraints not yet implemented")
+    def test_generic_function_with_return_type(self):
+        """Test parsing generic functions with return type."""
         code = """
-        abs :: fn($T: Numeric, x: T) T {
+        abs :: fn(x: $T) $T {
             ret if x < 0 { -x } else { x }
         }
         """
         ast = parse_a7(code)
         func_decl = ast.declarations[0]
-        generic_param = func_decl.generic_params[0]
-        assert generic_param.constraint is not None
+        # Generics used directly without declaration
+        assert func_decl.parameters[0].param_type.kind == NodeKind.TYPE_GENERIC
+        assert func_decl.parameters[0].param_type.name == "T"
+        assert func_decl.return_type.kind == NodeKind.TYPE_GENERIC
+        assert func_decl.return_type.name == "T"
 
 
 class TestMissingNamedImports:
     """Test missing named import constructs."""
 
-    @pytest.mark.skip(reason="Named imports not yet implemented")
+    # @pytest.mark.skip(reason="Named imports not yet implemented")
     def test_named_import(self):
         """Test parsing named import statements."""
         code = 'io :: import "std/io"'

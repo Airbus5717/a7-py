@@ -1,0 +1,126 @@
+// Callbacks and event handling
+
+io :: import "std/io"
+
+// Event types
+EventType :: enum {
+    CLICK
+    HOVER
+    KEY_PRESS
+    MOUSE_MOVE
+}
+
+// Event data
+Event :: struct {
+    type: EventType
+    x: i32
+    y: i32
+    key: i32
+}
+
+// Event handler function type
+EventHandler :: fn(Event) void
+
+// Button widget with callback
+Button :: struct {
+    label: string
+    x: i32
+    y: i32
+    width: i32
+    height: i32
+    on_click: EventHandler
+}
+
+// Create button
+create_button :: fn(label: string, x: i32, y: i32, on_click: EventHandler) Button {
+    ret Button{label, x, y, 100, 30, on_click}
+}
+
+// Handle button click
+handle_click :: fn(button: ref Button, event: Event) {
+    // Check if click is within button bounds
+    x_in_range := event.x >= button.val.x and event.x <= button.val.x + button.val.width
+    y_in_range := event.y >= button.val.y and event.y <= button.val.y + button.val.height
+    in_bounds := x_in_range and y_in_range
+
+    if in_bounds and button.val.on_click != nil {
+        io.println("Button '{}' clicked at ({}, {})", button.val.label, event.x, event.y)
+        button.val.on_click(event)
+    }
+}
+
+// Example callbacks
+on_submit_click :: fn(event: Event) {
+    io.println("  -> Submit action triggered!")
+}
+
+on_cancel_click :: fn(event: Event) {
+    io.println("  -> Cancel action triggered!")
+}
+
+on_reset_click :: fn(event: Event) {
+    io.println("  -> Reset action triggered!")
+}
+
+// Event dispatcher
+EventDispatcher :: struct {
+    handlers: [10]EventHandler
+    handler_count: i32
+}
+
+// Register event handler
+register_handler :: fn(dispatcher: ref EventDispatcher, handler: EventHandler) {
+    if dispatcher.val.handler_count < 10 {
+        dispatcher.val.handlers[dispatcher.val.handler_count] = handler
+        dispatcher.val.handler_count += 1
+    }
+}
+
+// Dispatch event to all handlers
+dispatch_event :: fn(dispatcher: ref EventDispatcher, event: Event) {
+    io.println("Dispatching event type: {}", event.type)
+    for i := 0; i < dispatcher.val.handler_count; i += 1 {
+        if dispatcher.val.handlers[i] != nil {
+            dispatcher.val.handlers[i](event)
+        }
+    }
+}
+
+// Generic handlers
+log_event :: fn(event: Event) {
+    io.println("  [Logger] Event at ({}, {})", event.x, event.y)
+}
+
+track_event :: fn(event: Event) {
+    io.println("  [Tracker] Recording event...")
+}
+
+main :: fn() {
+    io.println("=== Callbacks and Event Handling ===")
+
+    // Create buttons with callbacks
+    submit_btn := create_button("Submit", 10, 10, on_submit_click)
+    cancel_btn := create_button("Cancel", 120, 10, on_cancel_click)
+    reset_btn := create_button("Reset", 230, 10, on_reset_click)
+
+    // Simulate clicks
+    click_event := Event{EventType.CLICK, 50, 20, 0}
+    handle_click(submit_btn.adr, click_event)
+
+    click_event.x = 150
+    handle_click(cancel_btn.adr, click_event)
+
+    // Event dispatcher example
+    io.println("")
+    io.println("--- Event Dispatcher ---")
+    dispatcher := EventDispatcher{handler_count: 0}  // handlers array auto-zero-initialized
+    dispatcher_ref := dispatcher.adr
+
+    register_handler(dispatcher_ref, log_event)
+    register_handler(dispatcher_ref, track_event)
+    register_handler(dispatcher_ref, on_submit_click)
+
+    // Dispatch event to all handlers
+    test_event := Event{EventType.CLICK, 100, 100, 0}
+    dispatch_event(dispatcher_ref, test_event)
+}

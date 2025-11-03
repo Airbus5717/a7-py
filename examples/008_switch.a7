@@ -1,35 +1,136 @@
+// Match statements (switch-case) in A7
+
+io :: import "std/io"
+
+// Day of week enum for demo
+DayOfWeek :: enum {
+    MONDAY
+    TUESDAY
+    WEDNESDAY
+    THURSDAY
+    FRIDAY
+    SATURDAY
+    SUNDAY
+}
+
 main :: fn() {
-    value :: 1
-    match value {
+    io.println("=== Match Statements ===")
+
+    // Basic match with single values
+    day := 3
+    io.println("Day {}: ", day)
+    match day {
         case 1: {
-            print("Value is 1\n")
+            io.println("  Monday - Start of work week")
         }
         case 2: {
-            print("Value is 2\n")
+            io.println("  Tuesday")
         }
-        case 3, 4, 5: {
-            print("Value is 3, 4, or 5\n")
+        case 3: {
+            io.println("  Wednesday - Midweek")
         }
-        case 6..10: {
-            print("Value is between 6 and 10\n")
+        case 4: {
+            io.println("  Thursday")
+        }
+        case 5: {
+            io.println("  Friday - Last work day!")
+        }
+        case 6, 7: {
+            io.println("  Weekend!")
         }
         else: {
-            print("Value is unknown\n")
+            io.println("  Invalid day")
         }
     }
-    
-    // Match with fallthrough
-    letter := 'A'
-    match letter {
-        case 'A': {
-            print("Letter A")
-            fall  // Explicit fallthrough
+
+    // Match with multiple values in one case
+    month := 7
+    io.println("Month {}: ", month)
+    match month {
+        case 12, 1, 2: {
+            io.println("  Winter")
         }
-        case 'B': {
-            print(" or B\n")
+        case 3, 4, 5: {
+            io.println("  Spring")
+        }
+        case 6, 7, 8: {
+            io.println("  Summer")
+        }
+        case 9, 10, 11: {
+            io.println("  Fall")
         }
         else: {
-            print("Other letter\n")
+            io.println("  Invalid month")
+        }
+    }
+
+    // Match with range patterns
+    score := 85
+    io.println("Score {}: ", score)
+    match score {
+        case 90..100: {
+            io.println("  Grade A - Excellent!")
+        }
+        case 80..89: {
+            io.println("  Grade B - Good")
+        }
+        case 70..79: {
+            io.println("  Grade C - Average")
+        }
+        case 60..69: {
+            io.println("  Grade D - Below Average")
+        }
+        else: {
+            io.println("  Grade F - Failed")
+        }
+    }
+
+    // Match with enum
+    today := DayOfWeek.FRIDAY
+    io.println("Today is: ")
+    match today {
+        case DayOfWeek.MONDAY: {
+            io.println("  Start of work week")
+        }
+        case DayOfWeek.FRIDAY: {
+            io.println("  TGIF!")
+        }
+        case DayOfWeek.SATURDAY, DayOfWeek.SUNDAY: {
+            io.println("  Weekend time!")
+        }
+        else: {
+            io.println("  Regular work day")
+        }
+    }
+
+    // Match as expression (returns value)
+    value := 42
+    description := match value {
+        case 0: { "zero" }
+        case 1..10: { "small" }
+        case 11..100: { "medium" }
+        else: { "large" }
+    }
+    io.println("Value {} is {}", value, description)
+
+    // Character matching
+    grade := 'B'
+    io.println("Grade '{}':", grade)
+    match grade {
+        case 'A': {
+            io.println("  Outstanding!")
+        }
+        case 'B': {
+            io.println("  Very good!")
+        }
+        case 'C': {
+            io.println("  Satisfactory")
+        }
+        case 'D', 'F': {
+            io.println("  Needs improvement")
+        }
+        else: {
+            io.println("  Invalid grade")
         }
     }
 }

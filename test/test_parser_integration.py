@@ -23,7 +23,8 @@ class TestParserIntegration:
         """Read an example file."""
         example_path = EXAMPLES_DIR / filename
         if not example_path.exists():
-            pytest.skip(f"Example file {filename} not found")
+            # pytest.skip(f"Example file {filename} not found")
+            raise FileNotFoundError(f"Example file {filename} not found")
         return example_path.read_text()
 
     def test_tokenizer_parser_integration(self):
@@ -421,8 +422,8 @@ class TestParserLanguageGaps:
             "struct_literal": "p := Person{name: 'John', age: 30}",
             "explicit_type": "x: i32 := 42",
             "named_import": "io :: import 'std/io'",
-            "generic_function": "swap :: fn($T, a: T, b: T) {}",
-            "generic_struct": "List :: struct($T) { data: T }",
+            "generic_function": "swap :: fn(a: $T, b: $T) {}",
+            "generic_struct": "List :: struct { data: $T }",
             "c_style_for": "for i := 0; i < 10; i += 1 {}",
             "range_for": "for x in arr {}",
             "indexed_for": "for i, x in arr {}",

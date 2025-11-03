@@ -1,28 +1,63 @@
+// If/else conditionals in A7
+
+io :: import "std/io"
+
 main :: fn() {
-    x := 1
-    if x == 1 {
-        print("x is 1\n")
+    io.println("=== If/Else Conditionals ===")
+
+    // Simple if/else
+    x := 10
+    if x == 10 {
+        io.println("x is 10")
     } else {
-        print("x is not 1\n")
+        io.println("x is not 10")
     }
-    
-    // Conditional expression
+
+    // If expression (ternary-like)
     result := if x > 0 { "positive" } else { "non-positive" }
-    print(result)
-    print("\n")
-    
-    // Complex conditions with logical operators
-    age := 25
-    if age >= 18 and age <= 65 {
-        print("Working age\n")
+    io.println("x is {}", result)
+
+    // Else-if chain
+    score := 85
+    if score >= 90 {
+        io.println("Grade: A")
+    } else if score >= 80 {
+        io.println("Grade: B")
+    } else if score >= 70 {
+        io.println("Grade: C")
+    } else {
+        io.println("Grade: F")
     }
-    
+
+    // Logical operators
+    age := 25
+    has_license := true
+
+    if age >= 18 and has_license {
+        io.println("Can drive")
+    } else {
+        io.println("Cannot drive")
+    }
+
     // Nested conditions
-    if x > 0 {
-        if x < 10 {
-            print("Single digit positive\n")
+    temperature := 22
+    if temperature > 30 {
+        io.println("Hot")
+    } else {
+        if temperature > 20 {
+            io.println("Warm")
         } else {
-            print("Multi-digit positive\n")
+            io.println("Cold")
         }
+    }
+
+    // Complex boolean expressions
+    is_weekend := true
+    is_holiday := false
+
+    // Note: Complex parenthesized expressions with 'and' and '!' need work
+    no_license := !has_license
+    if (is_weekend or is_holiday) and no_license {
+        io.println("Day off but can't drive")
     }
 }

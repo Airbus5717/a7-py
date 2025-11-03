@@ -1,0 +1,90 @@
+// Defer statement for resource cleanup
+
+io :: import "std/io"
+mem :: import "std/mem"
+
+File :: struct {
+    path: string
+    handle: i32
+    is_open: bool
+}
+
+open_file :: fn(path: string) ref File {
+    f := new File
+    f.val.path = path
+    f.val.handle = 42  // Placeholder
+    f.val.is_open = true
+    io.println("Opening file: {}", path)
+    ret f
+}
+
+close_file :: fn(f: ref File) {
+    if f.val.is_open {
+        io.println("Closing file: {}", f.val.path)
+        f.val.is_open = false
+    }
+}
+
+// Example: read file with automatic cleanup
+read_config :: fn() bool {
+    f := open_file("config.txt")
+    defer close_file(f)
+    defer del f
+
+    // If we return early, defer still executes
+    if f.val.handle < 0 {
+        io.println("Failed to open file")
+        ret false
+    }
+
+    io.println("Reading file...")
+    // Do work with file...
+
+    ret true
+}
+
+// Multiple defers execute in reverse order (LIFO)
+nested_resources :: fn() {
+    io.println("--- Nested Resources ---")
+
+    f1 := open_file("first.txt")
+    defer close_file(f1)
+    defer del f1
+
+    f2 := open_file("second.txt")
+    defer close_file(f2)
+    defer del f2
+
+    f3 := open_file("third.txt")
+    defer close_file(f3)
+    defer del f3
+
+    io.println("All files opened")
+    // Cleanup happens in reverse: f3, f2, f1
+}
+
+// Defer in loops
+process_files :: fn(files: []string) {
+    for file in files {
+        f := open_file(file)
+        defer close_file(f)
+        defer del f
+
+        io.println("Processing: {}", file)
+        // Process file...
+    }
+}
+
+main :: fn() {
+    io.println("=== Defer Example ===")
+
+    // Single defer
+    success := read_config()
+    io.println("Config read: {}", success)
+
+    // Multiple defers
+    nested_resources()
+
+    // Defer ensures cleanup even with early returns
+    io.println("Main function ending...")
+}

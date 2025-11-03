@@ -1,9 +1,58 @@
+// Functions in A7
+
+io :: import "std/io"
+
+// Simple function with return value
 add :: fn(x: i32, y: i32) i32 {
     ret x + y
 }
 
+// Function without return value (void)
+greet :: fn(name: string) {
+    io.println("Hello, {}!", name)
+}
+
+// Function with multiple return values (using inline struct)
+divide :: fn(a: i32, b: i32) struct { quotient: i32, remainder: i32 } {
+    ret struct { quotient: i32, remainder: i32 } {
+        quotient: a / b,
+        remainder: a % b
+    }
+}
+
+// Recursive function
+factorial :: fn(n: i32) i32 {
+    if n <= 1 {
+        ret 1
+    }
+    ret n * factorial(n - 1)
+}
+
+// Function with early return
+max :: fn(a: i32, b: i32) i32 {
+    if a > b {
+        ret a
+    }
+    ret b
+}
+
 main :: fn() {
+    io.println("=== Functions ===")
+
+    // Call function with return value
     result := add(5, 7)
-    printf("{}", result)  // Output should be 12
-    print("\n")
+    io.println("5 + 7 = {}", result)
+
+    // Call void function
+    greet("World")
+
+    // Function with multiple returns
+    div_result := divide(17, 5)
+    io.println("17 / 5 = {} remainder {}", div_result.quotient, div_result.remainder)
+
+    // Recursive function
+    io.println("5! = {}", factorial(5))
+
+    // Max function
+    io.println("max(10, 20) = {}", max(10, 20))
 }

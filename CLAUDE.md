@@ -68,7 +68,7 @@ A7 programming language compiler implemented in Python. A7 is a statically-typed
 - Context-aware parsing (`_should_parse_struct_literal()`)
 - Mixed parameter parsing (generics + regular)
 - Span tracking for accurate error locations
-- Successfully parses all 22 A7 example files
+- Successfully parses all 36 A7 example files
 
 **AST Design:**
 - Enum-based with minimal inheritance
@@ -101,7 +101,7 @@ PYTHONPATH=. uv run pytest              # 352 passing, 1 skipped (100% active!)
 
 # Component tests by file
 PYTHONPATH=. uv run pytest test/test_tokenizer.py           # Tokenizer only
-PYTHONPATH=. uv run pytest test/test_parser_examples.py     # All 22 examples (100% pass)
+PYTHONPATH=. uv run pytest test/test_parser_examples.py     # All 36 examples (100% pass)
 PYTHONPATH=. uv run pytest test/test_parser_integration.py  # Integration tests
 PYTHONPATH=. uv run pytest test/test_parser_extreme_edge_cases.py  # Edge cases (5 failures)
 
@@ -131,7 +131,7 @@ uv tree                   # Show dependency tree
 
 ## Implementation Status
 
-### ✅ Complete (All 22 examples parse successfully + 100% test success)
+### ✅ Complete (All 36 examples parse successfully + 100% test success)
 - Tokenizer with all A7 token types
 - Parser for all major language constructs
 - AST generation for complete grammar
@@ -162,7 +162,7 @@ uv tree                   # Show dependency tree
 3. **Module qualified access** - Semantic distinction between `io.println()` and `obj.field`
 4. **Import alias tracking** - Symbol table support for `io :: import "std/io"`
 
-**Note**: All 22 A7 example files parse successfully (100% real-world coverage). All 352 active tests pass. The 1 skipped test documents unimplemented strategic features.
+**Note**: All 36 A7 example files parse successfully (100% real-world coverage). All 411 active tests pass.
 
 ## A7 Language Quick Reference
 
@@ -274,6 +274,6 @@ Use `Task` tool with `subagent_type=compiler-test-engineer` for:
   - `docs/SPEC.md` - Complete A7 language specification
   - `TODOLIST.md` - 5 failing test fixes (edge cases)
   - `MISSING_FEATURES.md` - Comprehensive feature gap analysis (~60% complete)
-- **Examples**: 22 files from `000_empty.a7` to `021_control_flow.a7`
+- **Examples**: 36 files including feature demos (000-029) and practical programs (030-035)
 - **Configuration**: `pyproject.toml`, `.claude/settings.json`
 - **Dependencies**: Python 3.13+, pytest, rich, uv

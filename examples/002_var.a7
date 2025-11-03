@@ -1,14 +1,33 @@
+// Variables and constants in A7
+
 io :: import "std/io"
 
 main :: fn() {
-    a := 1         // Inferred variable (mutable)
-    b :: 2         // Inferred constant (immutable)
-    c: i32 = 3     // Integer variable with explicit type
+    // Type-inferred variable (mutable)
+    a := 1
+    io.println("a = {} (inferred as i32)", a)
 
-    // Using proper A7 standard library functions
-    printf("{}", a)
-    printf("{}", b)
-    printf("{}", c)
-    print("\n")    // Print newline
+    // Constant (immutable)
+    PI :: 3.14159
+    io.println("PI = {}", PI)
+
+    // Explicit type annotation
+    count: i32 = 10
+    io.println("count = {} (explicit i32)", count)
+
+    // Multiple types
+    name: string = "A7"
+    active: bool = true
+    ratio: f64 = 2.5
+
+    io.println("name={}, active={}, ratio={}", name, active, ratio)
+
+    // Variables can be reassigned
+    count += 5
+    io.println("count after increment = {}", count)
+
+    // Uninitialized variable (defaults to zero)
+    value: i32
+    io.println("uninitialized value = {}", value)
 }
 

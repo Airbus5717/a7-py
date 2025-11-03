@@ -35,7 +35,6 @@ class TestExampleFiles:
         assert main_func.kind == NodeKind.FUNCTION
         assert main_func.name == "main"
 
-    @pytest.mark.skip(reason="Named imports not implemented")
     def test_001_hello(self):
         """Test parsing hello world program."""
         code = self.read_example("001_hello.a7")
@@ -45,23 +44,19 @@ class TestExampleFiles:
         assert ast.declarations[0].kind == NodeKind.IMPORT
         assert ast.declarations[1].kind == NodeKind.FUNCTION
 
-    @pytest.mark.skip(reason="Named imports and explicit types not implemented")
     def test_002_var(self):
         """Test parsing variable declarations."""
         code = self.read_example("002_var.a7")
         # Contains: io :: import "std/io", variables with explicit types
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
     def test_003_comments(self):
         """Test parsing file with comments."""
         code = self.read_example("003_comments.a7")
         # Comments should be handled by tokenizer, parser should work
-        try:
-            ast = parse_a7(code)
-            assert ast.kind == NodeKind.PROGRAM
-        except ParseError as e:
-            pytest.skip(f"Comments example failed: {e}")
+        ast = parse_a7(code)
+        assert ast.kind == NodeKind.PROGRAM
 
     def test_004_func_basic_parsing(self):
         """Test basic function parsing (ignoring call issues)."""
@@ -85,15 +80,17 @@ class TestExampleFiles:
         code = self.read_example("005_for_loop.a7")
         # Contains C-style, range-based, and indexed for loops
         ast = parse_a7(code)
-        func_decl = ast.declarations[0]
+        # Find the main function (skip import if present)
+        func_decl = next((d for d in ast.declarations if d.kind == NodeKind.FUNCTION), None)
+        assert func_decl is not None
         assert func_decl.kind == NodeKind.FUNCTION
         
-        # Verify all three for loop types are parsed
+        # Verify all for loop types are parsed
         statements = func_decl.body.statements
         for_loops = [stmt for stmt in statements if stmt.kind in (NodeKind.FOR, NodeKind.FOR_IN, NodeKind.FOR_IN_INDEXED)]
-        assert len(for_loops) == 3
-        
-        # Verify specific for loop types
+        assert len(for_loops) >= 3  # At least C-style, range-based, and indexed
+
+        # Verify specific for loop types are present
         assert any(stmt.kind == NodeKind.FOR for stmt in for_loops)  # C-style
         assert any(stmt.kind == NodeKind.FOR_IN for stmt in for_loops)  # Range-based
         assert any(stmt.kind == NodeKind.FOR_IN_INDEXED for stmt in for_loops)  # Indexed
@@ -130,64 +127,54 @@ class TestExampleFiles:
         while_stmt = func_decl.body.statements[1]
         assert while_stmt.kind == NodeKind.WHILE
 
-    @pytest.mark.skip(reason="Match statements not implemented")
     def test_008_switch(self):
         """Test parsing match/switch statements."""
         code = self.read_example("008_switch.a7")
         # Contains match statements
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Struct declarations not implemented")
     def test_009_struct(self):
         """Test parsing struct declarations."""
         code = self.read_example("009_struct.a7")
         # Contains struct declarations and initialization
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Enum declarations not implemented")
     def test_010_enum(self):
         """Test parsing enum declarations."""
         code = self.read_example("010_enum.a7")
         # Contains enum declarations
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Memory management keywords not implemented")
     def test_011_memory(self):
         """Test parsing memory management constructs."""
         code = self.read_example("011_memory.a7")
         # Contains new, del, defer
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Array literals not implemented")
     def test_012_arrays(self):
         """Test parsing array operations."""
         code = self.read_example("012_arrays.a7")
         # Contains array literals and operations
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Pointer operations need testing")
     def test_013_pointers(self):
         """Test parsing pointer operations."""
         code = self.read_example("013_pointers.a7")
         # Contains pointer dereferencing and address-of
-        try:
-            ast = parse_a7(code)
-            pytest.skip("Need to verify pointer operations work correctly")
-        except ParseError:
-            pytest.skip("Pointer operations parsing failed")
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Generic functions not fully implemented")
     def test_014_generics(self):
         """Test parsing generic functions and types."""
         code = self.read_example("014_generics.a7")
         # Contains generic functions and structs
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
     def test_015_types_basic(self):
         """Test basic type parsing."""
@@ -203,29 +190,26 @@ class TestExampleFiles:
         assert func_decl.parameters[0].param_type.type_name == "i32"
         assert func_decl.parameters[1].param_type.type_name == "f64"
 
-    @pytest.mark.skip(reason="Union declarations not implemented")
     def test_016_unions(self):
         """Test parsing union declarations."""
         code = self.read_example("016_unions.a7")
         # Contains union declarations
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Method declarations not implemented")
     def test_017_methods(self):
         """Test parsing method declarations."""
         code = self.read_example("017_methods.a7")
         # Contains method declarations (functions with self parameter)
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
-    @pytest.mark.skip(reason="Module system not implemented")
     def test_018_modules(self):
         """Test parsing module system."""
         code = self.read_example("018_modules.a7")
         # Contains module imports and usage
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
     def test_019_literals_basic(self):
         """Test basic literal parsing."""
@@ -262,13 +246,12 @@ class TestExampleFiles:
         func_decl = ast.declarations[0]
         assert len(func_decl.body.statements) == 6
 
-    @pytest.mark.skip(reason="Advanced control flow not implemented")
     def test_021_control_flow(self):
         """Test parsing advanced control flow."""
         code = self.read_example("021_control_flow.a7")
         # Contains advanced control flow patterns
-        with pytest.raises(ParseError):
-            parse_a7(code)
+        ast = parse_a7(code)
+        assert ast is not None
 
 
 class TestExampleFileStatistics:

@@ -1,7 +1,57 @@
+// While loops in A7
+
+io :: import "std/io"
+
 main :: fn() {
-    condition := true
-    while condition {
-        // Loop body
-        condition = false  // Terminate loop after one iteration
+    io.println("=== While Loops ===")
+
+    // Basic while loop
+    i := 0
+    io.println("Counting with while loop:")
+    while i < 5 {
+        io.println("  i = {}", i)
+        i += 1
     }
+
+    // While with condition check
+    count := 10
+    io.println("Countdown:")
+    while count > 0 {
+        io.println("  {}", count)
+        count -= 1
+    }
+    io.println("  Liftoff!")
+
+    // While with break
+    io.println("While with break:")
+    n := 0
+    while true {  // Infinite loop with break
+        if n >= 5 {
+            io.println("  Breaking at n = {}", n)
+            break
+        }
+        io.println("  n = {}", n)
+        n += 1
+    }
+
+    // While with continue
+    io.println("While with continue (skip multiples of 3):")
+    x := 0
+    while x < 10 {
+        x += 1
+        if x % 3 == 0 {
+            continue  // Skip printing multiples of 3
+        }
+        io.println("  {}", x)
+    }
+
+    // Sentinel-controlled loop
+    io.println("Finding first power of 2 greater than 100:")
+    power := 1
+    exponent := 0
+    while power <= 100 {
+        exponent += 1
+        power *= 2
+    }
+    io.println("  2^{} = {}", exponent, power)
 }

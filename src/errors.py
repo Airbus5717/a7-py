@@ -42,6 +42,7 @@ class LexErrorType(Enum):
     INVALID_SCIENTIFIC_NOTATION = "invalid_scientific_notation"
     INVALID_HEX_NUMBER = "invalid_hex_number"
     INVALID_BINARY_NUMBER = "invalid_binary_number"
+    INVALID_OCTAL_NUMBER = "invalid_octal_number"
     INVALID_GENERIC_SYNTAX = "invalid_generic_syntax"
     UNSUPPORTED = "unsupported"
     UNKNOWN = "unknown"
@@ -66,6 +67,7 @@ def get_lexer_error_message(error_type: LexErrorType) -> str:
         LexErrorType.INVALID_SCIENTIFIC_NOTATION: "Invalid scientific notation",
         LexErrorType.INVALID_HEX_NUMBER: "Invalid hexadecimal number",
         LexErrorType.INVALID_BINARY_NUMBER: "Invalid binary number",
+        LexErrorType.INVALID_OCTAL_NUMBER: "Invalid octal number",
         LexErrorType.INVALID_GENERIC_SYNTAX: "Invalid generic type syntax",
         LexErrorType.UNSUPPORTED: "Unsupported feature",
         LexErrorType.UNKNOWN: "Unknown error",
@@ -92,6 +94,7 @@ def get_lexer_error_advice(error_type: LexErrorType) -> str:
         LexErrorType.INVALID_SCIENTIFIC_NOTATION: "Add digits after the exponent",
         LexErrorType.INVALID_HEX_NUMBER: "Use valid hexadecimal digits (0-9, a-f, A-F)",
         LexErrorType.INVALID_BINARY_NUMBER: "Use only binary digits (0, 1)",
+        LexErrorType.INVALID_OCTAL_NUMBER: "Use only octal digits (0-7)",
         LexErrorType.INVALID_GENERIC_SYNTAX: "Generic types must start with '$' followed by letters and underscores only",
         LexErrorType.UNSUPPORTED: "This feature is not yet supported",
         LexErrorType.UNKNOWN: "Please report this error",

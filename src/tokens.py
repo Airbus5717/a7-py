@@ -296,8 +296,13 @@ class Tokenizer:
             if self._try_comment():
                 continue
 
-            # Handle numbers
+            # Handle numbers (including leading dot floats like .5)
             if self.current_char() and self.current_char().isdigit():
+                self._tokenize_number()
+                continue
+
+            # Handle leading dot float literals (.5, .123, etc.)
+            if self.current_char() == "." and self.peek_char() and self.peek_char().isdigit():
                 self._tokenize_number()
                 continue
 
@@ -349,7 +354,7 @@ class Tokenizer:
         self._add_token(TokenType.EOF, "")
         return self.tokens
 
-    def _add_token(self, token_type: TokenType, value: str):
+    def _add_token(self, token_type: TokenType, value: str, column: int = None):
         """Add a token to the tokens list."""
         # Handle TERMINATOR deduplication
         if token_type == TokenType.TERMINATOR:
@@ -357,7 +362,10 @@ class Tokenizer:
             if self.tokens and self.tokens[-1].type == TokenType.TERMINATOR:
                 return
 
-        token = Token(token_type, value, self.line, self.column - len(value))
+        # Use provided column or calculate from current position
+        if column is None:
+            column = self.column - len(value)
+        token = Token(token_type, value, self.line, column)
         self.tokens.append(token)
 
     def _try_comment(self) -> bool:
@@ -400,85 +408,127 @@ class Tokenizer:
     def _tokenize_number(self):
         """Tokenize integer or float literals."""
         start_pos = self.position
+        start_column = self.column
         is_float = False
 
         # Handle binary numbers (0b)
         if self.current_char() == "0" and self.peek_char() == "b":
             self.advance()  # 0
             self.advance()  # b
-            while self.current_char() and self.current_char() in "01":
+            digit_start = self.position
+            while self.current_char() and (self.current_char() in "01" or self.current_char() == "_"):
                 self.advance()
+
+            # Validate at least one binary digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
+            if self.position == digit_start or number_text.replace("0b", "").replace("_", "") == "":
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_BINARY_NUMBER,
+                    self.line,
+                    start_column,
+                    len(number_text),
+                    self.filename,
+                    self.source_lines,
+                    "Binary literal must have at least one digit after '0b'",
+                )
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
                 raise LexError.from_type_and_location(
                     LexErrorType.TOO_LONG_NUMBER,
                     self.line,
-                    self.column - len(number_text),
+                    start_column,
                     len(number_text),
                     self.filename,
                     self.source_lines,
                 )
 
-            self._add_token(TokenType.INTEGER_LITERAL, number_text)
+            self._add_token(TokenType.INTEGER_LITERAL, number_text, start_column)
             return
 
         # Handle hexadecimal numbers (0x)
         if self.current_char() == "0" and self.peek_char() == "x":
             self.advance()  # 0
             self.advance()  # x
+            digit_start = self.position
             while (
-                self.current_char() and self.current_char() in "0123456789abcdefABCDEF"
+                self.current_char() and (self.current_char() in "0123456789abcdefABCDEF" or self.current_char() == "_")
             ):
                 self.advance()
+
+            # Validate at least one hex digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
+            if self.position == digit_start or number_text.replace("0x", "").replace("_", "") == "":
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_HEX_NUMBER,
+                    self.line,
+                    start_column,
+                    len(number_text),
+                    self.filename,
+                    self.source_lines,
+                    "Hexadecimal literal must have at least one digit after '0x'",
+                )
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
                 raise LexError.from_type_and_location(
                     LexErrorType.TOO_LONG_NUMBER,
                     self.line,
-                    self.column - len(number_text),
+                    start_column,
                     len(number_text),
                     self.filename,
                     self.source_lines,
                 )
 
-            self._add_token(TokenType.INTEGER_LITERAL, number_text)
+            self._add_token(TokenType.INTEGER_LITERAL, number_text, start_column)
             return
 
         # Handle octal numbers (0o)
         if self.current_char() == "0" and self.peek_char() == "o":
             self.advance()  # 0
             self.advance()  # o
-            while self.current_char() and self.current_char() in "01234567":
+            digit_start = self.position
+            while self.current_char() and (self.current_char() in "01234567" or self.current_char() == "_"):
                 self.advance()
+
+            # Validate at least one octal digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
+            if self.position == digit_start or number_text.replace("0o", "").replace("_", "") == "":
+                raise LexError.from_type_and_location(
+                    LexErrorType.INVALID_OCTAL_NUMBER,
+                    self.line,
+                    start_column,
+                    len(number_text),
+                    self.filename,
+                    self.source_lines,
+                    "Octal literal must have at least one digit after '0o'",
+                )
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
                 raise LexError.from_type_and_location(
                     LexErrorType.TOO_LONG_NUMBER,
                     self.line,
-                    self.column - len(number_text),
+                    start_column,
                     len(number_text),
                     self.filename,
                     self.source_lines,
                 )
 
-            self._add_token(TokenType.INTEGER_LITERAL, number_text)
+            self._add_token(TokenType.INTEGER_LITERAL, number_text, start_column)
             return
 
-        # Handle decimal numbers
-        while self.current_char() and self.current_char().isdigit():
+        # Handle decimal numbers (including leading dot like .5)
+        # First, consume integer part (if present)
+        while self.current_char() and (self.current_char().isdigit() or self.current_char() == "_"):
             self.advance()
 
         # Check for decimal point (but not range operator ..)
         if self.current_char() == "." and self.peek_char() != ".":
             is_float = True
             self.advance()  # .
-            while self.current_char() and self.current_char().isdigit():
+            # Consume fractional part (if present - allows trailing dots like 5.)
+            while self.current_char() and (self.current_char().isdigit() or self.current_char() == "_"):
                 self.advance()
 
         # Check for scientific notation (e or E followed by optional +/- and digits)
@@ -502,7 +552,7 @@ class Tokenizer:
                 )
 
             # Parse exponent digits
-            while self.current_char() and self.current_char().isdigit():
+            while self.current_char() and (self.current_char().isdigit() or self.current_char() == "_"):
                 self.advance()
 
         number_text = self.source[start_pos : self.position]
@@ -512,14 +562,14 @@ class Tokenizer:
             raise LexError.from_type_and_location(
                 LexErrorType.TOO_LONG_NUMBER,
                 self.line,
-                self.column - len(number_text),
+                start_column,
                 len(number_text),
                 self.filename,
                 self.source_lines,
             )
 
         token_type = TokenType.FLOAT_LITERAL if is_float else TokenType.INTEGER_LITERAL
-        self._add_token(token_type, number_text)
+        self._add_token(token_type, number_text, start_column)
 
     def _tokenize_string(self):
         """Tokenize string literals."""
@@ -550,11 +600,15 @@ class Tokenizer:
 
         self.advance()  # Closing quote
         string_text = self.source[start_pos : self.position]
-        self._add_token(TokenType.STRING_LITERAL, string_text)
+        # For multi-line strings, we need to use the stored start position
+        token = Token(TokenType.STRING_LITERAL, string_text, start_line, start_column)
+        self.tokens.append(token)
 
     def _tokenize_char(self):
         """Tokenize character literals."""
         start_pos = self.position
+        start_line = self.line
+        start_column = self.column
         self.advance()  # Opening quote
 
         # Check for empty char literal
@@ -650,11 +704,14 @@ class Tokenizer:
 
         self.advance()  # Closing quote
         char_text = self.source[start_pos : self.position]
-        self._add_token(TokenType.CHAR_LITERAL, char_text)
+        # Use stored start position for correct column
+        token = Token(TokenType.CHAR_LITERAL, char_text, start_line, start_column)
+        self.tokens.append(token)
 
     def _tokenize_identifier(self):
         """Tokenize identifiers and keywords."""
         start_pos = self.position
+        start_column = self.column
 
         while self.current_char() and (
             self.current_char().isascii()
@@ -670,7 +727,7 @@ class Tokenizer:
             raise LexError.from_type_and_location(
                 LexErrorType.TOO_LONG_IDENTIFIER,
                 self.line,
-                self.column - len(identifier_text),
+                start_column,
                 len(identifier_text),
                 self.filename,
                 self.source_lines,

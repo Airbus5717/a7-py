@@ -1,20 +1,60 @@
+// For loops in A7
+
+io :: import "std/io"
+
 main :: fn() {
+    io.println("=== For Loops ===")
+
     // C-style for loop
-    for i := 0; i < 3; i += 1 {
-        // Loop body: i takes on values 0, 1, 2
-        printf("{}", i)
-        print("\n")
+    io.println("Counting 0 to 4:")
+    for i := 0; i < 5; i += 1 {
+        io.println("  i = {}", i)
     }
-    
-    // Range-based for loop with array
-    arr: [3]i32 = [10, 20, 30]
-    for value in arr {
-        printf("{}", value)
-        print("\n")
+
+    // Range-based for loop (iterate over array)
+    numbers: [5]i32  // Zero-initialized
+    numbers[0] = 10
+    numbers[1] = 20
+    numbers[2] = 30
+    numbers[3] = 40
+    numbers[4] = 50
+
+    io.println("Array values:")
+    for value in numbers {
+        io.println("  value = {}", value)
     }
-    
-    // Range with index
-    for i, value in arr {
-        printf("[{}] = {}\n", i, value)
+
+    // Range-based with index
+    io.println("Array with indices:")
+    for i, value in numbers {
+        io.println("  [{}] = {}", i, value)
+    }
+
+    // Nested loops
+    io.println("Multiplication table (3x3):")
+    for i := 1; i <= 3; i += 1 {
+        for j := 1; j <= 3; j += 1 {
+            product := i * j
+            io.println("  {} * {} = {}", i, j, product)
+        }
+    }
+
+    // Loop with break
+    io.println("Loop with break:")
+    for i := 0; i < 10; i += 1 {
+        if i == 5 {
+            io.println("  Breaking at i = {}", i)
+            break
+        }
+        io.println("  i = {}", i)
+    }
+
+    // Loop with continue
+    io.println("Loop with continue (skip even numbers):")
+    for i := 0; i < 6; i += 1 {
+        if i % 2 == 0 {
+            continue
+        }
+        io.println("  Odd: {}", i)
     }
 }

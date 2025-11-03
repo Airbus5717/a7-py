@@ -1,138 +1,143 @@
 // A7 Memory Management with Property-Based Pointer Syntax
 // Demonstrates heap allocation, deallocation, and the new .adr/.val syntax
 
+io :: import "std/io"
+
 main :: fn() {
-    printf("=== A7 Memory Management with New Pointer Syntax ===\n\n")
-    
+    io.println("=== A7 Memory Management with New Pointer Syntax ===")
+    io.println("")
+
     // Basic heap allocation and pointer usage
-    printf("1. Basic Heap Allocation:\n")
+    io.println("1. Basic Heap Allocation:")
     ptr := new i32              // Allocate single value on heap
     ptr.val = 42                // Set value using .val syntax
     defer del ptr               // Ensure cleanup with defer
-    
-    printf("   Allocated i32 on heap\n")
-    printf("   ptr.val = {} (heap value via .val)\n", ptr.val)
-    printf("   // Traditional: *ptr = 42; printf(\"%d\", *ptr);\n\n")
-    
+
+    io.println("   Allocated i32 on heap")
+    io.println("   ptr.val = {} (heap value via .val)", ptr.val)
+    io.println("   // Traditional: *ptr = 42; printf(\"%d\", *ptr);")
+    io.println("")
+
     // Array allocation with pointer access
-    printf("2. Array Allocation:\n")
-    nums := new [5]i32          // Allocate array on heap  
+    io.println("2. Array Allocation:")
+    nums := new [5]i32          // Allocate array on heap
     defer del nums
-    
+
     // Initialize array elements
     nums[0] = 10
-    nums[1] = 20  
+    nums[1] = 20
     nums[2] = 30
     nums[3] = 40
     nums[4] = 50
-    
-    printf("   Allocated [5]i32 array on heap\n")
-    printf("   nums[0..2] = {} {} {}\n", nums[0], nums[1], nums[2])
-    
+
+    io.println("   Allocated [5]i32 array on heap")
+    io.println("   nums[0..2] = {} {} {}", nums[0], nums[1], nums[2])
+
     // Create pointer to specific array element
     elem_ptr: ref i32 = nums[2].adr    // Address of third element
-    printf("   elem_ptr points to nums[2]\n")
-    printf("   elem_ptr.val = {} (element via pointer)\n", elem_ptr.val)
+    io.println("   elem_ptr points to nums[2]")
+    io.println("   elem_ptr.val = {} (element via pointer)", elem_ptr.val)
     elem_ptr.val = 99           // Modify through pointer
-    printf("   After elem_ptr.val = 99: nums[2] = {}\n", nums[2])
-    printf("\n")
-    
+    io.println("   After elem_ptr.val = 99: nums[2] = {}", nums[2])
+    io.println("")
+
     // Struct allocation and pointer manipulation
-    printf("3. Struct Allocation:\n")
-    
+    io.println("3. Struct Allocation:")
+
     Person :: struct {
         name: string
         age: i32
         height: f64
     }
-    
+
     person := new Person        // Allocate struct on heap
     defer del person
-    
+
     person.val.name = "Alice"   // Access struct fields via .val
     person.val.age = 30
     person.val.height = 5.8
-    
-    printf("   Allocated Person struct on heap\n")  
-    printf("   person.val.name = \"{}\"\n", person.val.name)
-    printf("   person.val.age = {}\n", person.val.age)
-    printf("   person.val.height = {}\n", person.val.height)
-    
+
+    io.println("   Allocated Person struct on heap")
+    io.println("   person.val.name = \"{}\"", person.val.name)
+    io.println("   person.val.age = {}", person.val.age)
+    io.println("   person.val.height = {}", person.val.height)
+
     // Create pointer to struct field
     age_ptr: ref i32 = person.val.age.adr  // Pointer to age field
     age_ptr.val += 1            // Happy birthday!
-    printf("   After age_ptr.val += 1: age = {}\n", person.val.age)
-    printf("\n")
-    
+    io.println("   After age_ptr.val += 1: age = {}", person.val.age)
+    io.println("")
+
     // Allocation failure handling
-    printf("4. Allocation Failure Handling:\n")
+    io.println("4. Allocation Failure Handling:")
     large_array := new [1000000]f64  // Try to allocate large array
-    
+
     if large_array == nil {
-        printf("   Large allocation failed (out of memory)\n")
+        io.println("   Large allocation failed (out of memory)")
     } else {
-        printf("   Large allocation succeeded\n")
+        io.println("   Large allocation succeeded")
         large_array[0] = 1.0
-        printf("   large_array[0] = {}\n", large_array[0])
+        io.println("   large_array[0] = {}", large_array[0])
         defer del large_array   // Clean up on success
     }
-    printf("\n")
-    
+    io.println("")
+
     // Nested scopes with automatic cleanup
-    printf("5. Nested Scopes with Defer:\n")
+    io.println("5. Nested Scopes with Defer:")
     {
-        printf("   Entering inner scope\n")
+        io.println("   Entering inner scope")
         temp1 := new f64
         defer del temp1
         temp1.val = 3.14159
-        
+
         {
-            printf("   Entering nested scope\n")
-            temp2 := new f64  
+            io.println("   Entering nested scope")
+            temp2 := new f64
             defer del temp2
             temp2.val = 2.71828
-            
-            printf("   temp1.val = {} (pi)\n", temp1.val)
-            printf("   temp2.val = {} (e)\n", temp2.val)
-            
+
+            io.println("   temp1.val = {} (pi)", temp1.val)
+            io.println("   temp2.val = {} (e)", temp2.val)
+
             // Create pointer relationships
             pi_ptr: ref f64 = temp1.adr
             e_ptr: ref f64 = temp2.adr
-            
-            printf("   pi_ptr.val = {}\n", pi_ptr.val)
-            printf("   e_ptr.val = {}\n", e_ptr.val)
-            
-            printf("   Exiting nested scope (temp2 freed)\n")
+
+            io.println("   pi_ptr.val = {}", pi_ptr.val)
+            io.println("   e_ptr.val = {}", e_ptr.val)
+
+            io.println("   Exiting nested scope (temp2 freed)")
         }
-        printf("   Back in inner scope\n")
-        printf("   Exiting inner scope (temp1 freed)\n") 
+        io.println("   Back in inner scope")
+        io.println("   Exiting inner scope (temp1 freed)")
     }
-    printf("   Back in main scope\n\n")
-    
+    io.println("   Back in main scope")
+    io.println("")
+
     // Pointer sharing and aliasing
-    printf("6. Pointer Sharing:\n")
+    io.println("6. Pointer Sharing:")
     shared_value := new i32
     defer del shared_value
     shared_value.val = 100
-    
+
     // Multiple pointers to same memory
     ptr1: ref i32 = shared_value   // Direct assignment (same pointer)
     ptr2: ref i32 = shared_value   // Another reference to same memory
-    
-    printf("   shared_value.val = {}\n", shared_value.val)
-    printf("   ptr1.val = {}\n", ptr1.val) 
-    printf("   ptr2.val = {}\n", ptr2.val)
-    printf("   All point to same memory location\n")
-    
+
+    io.println("   shared_value.val = {}", shared_value.val)
+    io.println("   ptr1.val = {}", ptr1.val)
+    io.println("   ptr2.val = {}", ptr2.val)
+    io.println("   All point to same memory location")
+
     ptr1.val = 200              // Modify through first pointer
-    printf("   After ptr1.val = 200:\n")
-    printf("   shared_value.val = {}\n", shared_value.val)
-    printf("   ptr2.val = {} (changed via ptr1)\n", ptr2.val)
-    printf("\n")
-    
+    io.println("   After ptr1.val = 200:")
+    io.println("   shared_value.val = {}", shared_value.val)
+    io.println("   ptr2.val = {} (changed via ptr1)", ptr2.val)
+    io.println("")
+
     // Function with heap allocation
-    printf("7. Function with Heap Memory:\n")
-    
+    io.println("7. Function with Heap Memory:")
+
     create_and_fill :: fn(size: i32, value: i32) ref [10]i32 {
         arr := new [10]i32
         for i := 0; i < size; i += 1 {
@@ -140,53 +145,54 @@ main :: fn() {
         }
         ret arr  // Return heap pointer (caller must free)
     }
-    
+
     heap_array := create_and_fill(5, 10)
     defer del heap_array        // Caller responsible for cleanup
-    
-    printf("   Created array on heap in function\n")
-    printf("   heap_array[0..4] = {} {} {} {} {}\n", 
+
+    io.println("   Created array on heap in function")
+    io.println("   heap_array[0..4] = {} {} {} {} {}",
            heap_array[0], heap_array[1], heap_array[2], heap_array[3], heap_array[4])
-    printf("\n")
-    
+    io.println("")
+
     // Defer execution order (LIFO)
-    printf("8. Defer Execution Order (LIFO):\n")
+    io.println("8. Defer Execution Order (LIFO):")
     {
-        printf("   Creating three heap allocations...\n")
-        
+        io.println("   Creating three heap allocations...")
+
         first := new i32
         first.val = 1
         defer {
-            printf("   Freeing first (val = {})\n", first.val) 
+            io.println("   Freeing first (val = {})", first.val)
             del first
         }
-        
-        second := new i32  
+
+        second := new i32
         second.val = 2
         defer {
-            printf("   Freeing second (val = {})\n", second.val)
+            io.println("   Freeing second (val = {})", second.val)
             del second
         }
-        
+
         third := new i32
-        third.val = 3  
+        third.val = 3
         defer {
-            printf("   Freeing third (val = {})\n", third.val)
+            io.println("   Freeing third (val = {})", third.val)
             del third
         }
-        
-        printf("   All allocated. Exiting scope...\n")
+
+        io.println("   All allocated. Exiting scope...")
         // Order will be: third, second, first (LIFO)
     }
-    printf("   Back in main (all freed in reverse order)\n\n")
-    
-    printf("=== Memory Management Summary ===\n")
-    printf("• new T: allocate on heap, returns pointer\n")
-    printf("• del ptr: deallocate heap memory\n") 
-    printf("• defer: ensures cleanup at scope exit\n")
-    printf("• ptr.val: access heap value via pointer\n")
-    printf("• variable.adr: get address for pointer\n")
-    printf("• Always pair new/del to prevent leaks!\n")
-    
+    io.println("   Back in main (all freed in reverse order)")
+    io.println("")
+
+    io.println("=== Memory Management Summary ===")
+    io.println("• new T: allocate on heap, returns pointer")
+    io.println("• del ptr: deallocate heap memory")
+    io.println("• defer: ensures cleanup at scope exit")
+    io.println("• ptr.val: access heap value via pointer")
+    io.println("• variable.adr: get address for pointer")
+    io.println("• Always pair new/del to prevent leaks!")
+
     // Note: All remaining heap memory freed by defer statements
 }

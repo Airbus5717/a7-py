@@ -49,12 +49,12 @@ main :: fn() {
     p2 := Point{3.0, 4.0}
     
     dist := distance(p1, p2)
-    printf("Distance between points: {}\n", dist)
+    io.println("Distance between points: {}", dist)
     
     area := square_area(5.0)
-    printf("Square area: {}\n", area)
+    io.println("Square area: {}", area)
     
-    printf("PI constant: {}\n", PI)
+    io.println("PI constant: {}", PI)
     
     // Demonstrate visibility
     // helper(2.0)  // This would be accessible within this file
@@ -68,5 +68,5 @@ main :: fn() {
     // parent :: import "../parent_module" 
     // subfolder :: import "subfolder/helper"
     
-    print("Module demonstration complete\n")
+    io.println("Module demonstration complete")
 }
