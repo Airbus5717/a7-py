@@ -40,6 +40,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `test_parser_examples.py` to handle files with import statements
 
 ### Added
+- **70 new creative and systematic parser tests** (+54 passing, +16 documenting advanced features):
+  - `test_parser_creative_cases.py` (35 tests) - Unusual syntax patterns and real-world coding patterns
+    - Creative combinations: chained pointers, match expressions in various contexts, complex inline structs
+    - Real-world patterns: state machines, callback registries, memory pools, iterators, builder pattern
+    - Edge cases: complex casts, nested struct literals, unusual member access chains
+  - `test_parser_unicode_and_special.py` (18 tests) - Unicode, special characters, boundary values
+    - Unicode strings: emojis, multilingual text (Chinese, Japanese, Korean, Arabic, Russian, Hebrew)
+    - Comment edge cases: nested block comments, comments with code-like content
+    - Long constructs: long identifiers, long strings, many function parameters, wide expressions
+    - Ambiguous syntax: generic vs comparison operators, struct literal vs block disambiguation
+  - `test_parser_combinatorial.py` (17 tests) - Systematic feature combinations
+    - Type combinations: all primitive types in arrays/pointers/functions, nested type patterns
+    - Operator combinations: all binary/unary/assignment operators, precedence scenarios
+    - Declaration variants: variables, functions, structs, enums in all valid forms
+    - Control flow variants: if/else chains, loop patterns, match statement forms
+    - Expression combinations: call expressions, member access, literals, memory operations
+  - Test coverage increased from 411 to 481 total tests (465 passing, 96.7% success rate)
 - **Comprehensive Gap Analysis**:
   - Created `SPEC_EXAMPLES_GAP_ANALYSIS.md` documenting discrepancies between spec and examples
   - Identified outdated "Known Limitations" claims (range patterns, multiple case values, fallthrough all work)
