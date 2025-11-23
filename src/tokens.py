@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Union
 import re
 import string
-from .errors import LexError, LexErrorType
+from .errors import TokenizerError, TokenizerErrorType
 
 
 # A7 Language limits (matching C implementation)
@@ -77,6 +77,7 @@ class TokenType(Enum):
     U64 = auto()  # u64
     UINT = auto()  # uint
     USIZE = auto()  # usize
+    WHERE = auto()  # where
     WHILE = auto()  # while
 
     # Operators
@@ -221,6 +222,7 @@ class Tokenizer:
         "u64": TokenType.U64,
         "uint": TokenType.UINT,
         "usize": TokenType.USIZE,
+        "where": TokenType.WHERE,
         "while": TokenType.WHILE,
     }
 
@@ -267,8 +269,8 @@ class Tokenizer:
         while self.current_char() and self.current_char() in " \t\r":
             if self.current_char() == "\t":
                 # A7 doesn't support tabs - raise error
-                raise LexError.from_type_and_location(
-                    LexErrorType.TABS_UNSUPPORTED,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.TABS_UNSUPPORTED,
                     self.line,
                     self.column,
                     1,
@@ -340,8 +342,8 @@ class Tokenizer:
                 continue
 
             # Unknown character
-            raise LexError.from_type_and_location(
-                LexErrorType.INVALID_CHARACTER,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.INVALID_CHARACTER,
                 self.line,
                 self.column,
                 1,
@@ -422,8 +424,8 @@ class Tokenizer:
             # Validate at least one binary digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
             if self.position == digit_start or number_text.replace("0b", "").replace("_", "") == "":
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_BINARY_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_BINARY_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -434,8 +436,8 @@ class Tokenizer:
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
-                raise LexError.from_type_and_location(
-                    LexErrorType.TOO_LONG_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.TOO_LONG_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -459,8 +461,8 @@ class Tokenizer:
             # Validate at least one hex digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
             if self.position == digit_start or number_text.replace("0x", "").replace("_", "") == "":
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_HEX_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_HEX_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -471,8 +473,8 @@ class Tokenizer:
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
-                raise LexError.from_type_and_location(
-                    LexErrorType.TOO_LONG_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.TOO_LONG_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -494,8 +496,8 @@ class Tokenizer:
             # Validate at least one octal digit was consumed (ignoring underscores)
             number_text = self.source[start_pos : self.position]
             if self.position == digit_start or number_text.replace("0o", "").replace("_", "") == "":
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_OCTAL_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_OCTAL_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -506,8 +508,8 @@ class Tokenizer:
 
             # Check number length limit
             if len(number_text) > MAX_NUMBER_LENGTH:
-                raise LexError.from_type_and_location(
-                    LexErrorType.TOO_LONG_NUMBER,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.TOO_LONG_NUMBER,
                     self.line,
                     start_column,
                     len(number_text),
@@ -542,8 +544,8 @@ class Tokenizer:
 
             # Must have at least one digit after e/E (and optional +/-)
             if not (self.current_char() and self.current_char().isdigit()):
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_SCIENTIFIC_NOTATION,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_SCIENTIFIC_NOTATION,
                     self.line,
                     self.column,
                     1,
@@ -559,8 +561,8 @@ class Tokenizer:
 
         # Check number length limit
         if len(number_text) > MAX_NUMBER_LENGTH:
-            raise LexError.from_type_and_location(
-                LexErrorType.TOO_LONG_NUMBER,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.TOO_LONG_NUMBER,
                 self.line,
                 start_column,
                 len(number_text),
@@ -589,8 +591,8 @@ class Tokenizer:
         if not self.current_char():
             # Report error at the end of the string where the quote should be
             error_length = self.position - start_pos
-            raise LexError.from_type_and_location(
-                LexErrorType.NOT_CLOSED_STRING,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.NOT_CLOSED_STRING,
                 start_line,
                 start_column,
                 error_length,
@@ -613,8 +615,8 @@ class Tokenizer:
 
         # Check for empty char literal
         if self.current_char() == "'":
-            raise LexError.from_type_and_location(
-                LexErrorType.NOT_CLOSED_CHAR,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.NOT_CLOSED_CHAR,
                 self.line,
                 self.column,
                 1,
@@ -624,8 +626,8 @@ class Tokenizer:
 
         # Check for EOF
         if self.current_char() is None:
-            raise LexError.from_type_and_location(
-                LexErrorType.NOT_CLOSED_CHAR,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.NOT_CLOSED_CHAR,
                 self.line,
                 self.column,
                 1,
@@ -637,8 +639,8 @@ class Tokenizer:
             self.advance()  # Escape character
             escape_char = self.current_char()
             if escape_char is None:
-                raise LexError.from_type_and_location(
-                    LexErrorType.NOT_CLOSED_CHAR,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.NOT_CLOSED_CHAR,
                     self.line,
                     self.column,
                     1,
@@ -656,8 +658,8 @@ class Tokenizer:
                     ):
                         self.advance()
                     else:
-                        raise LexError.from_type_and_location(
-                            LexErrorType.NOT_CLOSED_CHAR,
+                        raise TokenizerError.from_type_and_location(
+                            TokenizerErrorType.NOT_CLOSED_CHAR,
                             self.line,
                             self.column,
                             1,
@@ -669,8 +671,8 @@ class Tokenizer:
                 self.advance()
             else:
                 # Invalid escape sequence
-                raise LexError.from_type_and_location(
-                    LexErrorType.NOT_CLOSED_CHAR,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.NOT_CLOSED_CHAR,
                     self.line,
                     self.column,
                     1,
@@ -683,8 +685,8 @@ class Tokenizer:
 
             # Check for multiple characters (like 'ab')
             if self.current_char() and self.current_char() != "'":
-                raise LexError.from_type_and_location(
-                    LexErrorType.NOT_CLOSED_CHAR,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.NOT_CLOSED_CHAR,
                     self.line,
                     self.column,
                     1,
@@ -693,8 +695,8 @@ class Tokenizer:
                 )
 
         if self.current_char() != "'":
-            raise LexError.from_type_and_location(
-                LexErrorType.NOT_CLOSED_CHAR,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.NOT_CLOSED_CHAR,
                 self.line,
                 self.column,
                 1,
@@ -724,8 +726,8 @@ class Tokenizer:
 
         # Check identifier length limit
         if len(identifier_text) > MAX_IDENTIFIER_LENGTH:
-            raise LexError.from_type_and_location(
-                LexErrorType.TOO_LONG_IDENTIFIER,
+            raise TokenizerError.from_type_and_location(
+                TokenizerErrorType.TOO_LONG_IDENTIFIER,
                 self.line,
                 start_column,
                 len(identifier_text),
@@ -915,8 +917,8 @@ class Tokenizer:
         if not (self.current_char() and self.current_char().isalpha()):
             # Create error for invalid generic syntax
             if self.current_char():
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_GENERIC_SYNTAX,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_GENERIC_SYNTAX,
                     self.line,
                     saved_column,
                     self.position - saved_pos + 1,
@@ -925,8 +927,8 @@ class Tokenizer:
                     f"Invalid generic syntax: generic types must start with a letter after '$'",
                 )
             else:
-                raise LexError.from_type_and_location(
-                    LexErrorType.INVALID_GENERIC_SYNTAX,
+                raise TokenizerError.from_type_and_location(
+                    TokenizerErrorType.INVALID_GENERIC_SYNTAX,
                     self.line,
                     saved_column,
                     1,

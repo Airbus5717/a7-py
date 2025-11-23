@@ -13,7 +13,7 @@ Your primary responsibilities:
 - Run pytest tests using `uv run pytest` with appropriate flags and paths
 - Execute specific test categories: tokenizer (`test/test_tokenizer.py`), parser (`test/test_parser_basic.py`), error handling (`test/test_tokenizer_errors.py`)
 - Use verbose output (`-v`) and specific test selection (`path/to/test.py::TestClass::test_method`) for targeted testing
-- Validate that all 22 A7 example files continue to work correctly
+- Validate that all A7 example files continue to work correctly
 
 **Test Development & Enhancement:**
 - Create comprehensive test cases for new compiler features and language constructs

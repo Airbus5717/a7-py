@@ -18,8 +18,16 @@ console = Console()
 from .tokens import Tokenizer, Token
 from .parser import Parser, parse_a7  # Now implemented!
 
-# from .backends import get_backend  # Ignoring backend for now
-from .errors import CompilerError, display_error, create_error_handler
+# Semantic analysis passes
+from .passes import NameResolutionPass, TypeCheckingPass, SemanticValidationPass
+from .errors import (
+    CompilerError, SemanticError, TypeCheckError,
+    display_error, display_errors, create_error_handler,
+    SemanticErrorType, TypeErrorType
+)
+
+# Output formatters
+from .formatters import JSONFormatter, ConsoleFormatter
 
 
 class A7Compiler:
@@ -42,380 +50,12 @@ class A7Compiler:
         # self.parser = Parser()  # Not yet implemented
         # self.codegen = get_backend(backend)  # Ignoring backend for now
 
-    def _compilation_to_json(
-        self, tokens: list[Token], ast, source_code: str, input_path: str
-    ) -> dict:
-        """Convert compilation results to JSON format."""
-        # Convert tokens to serializable format
-        token_list = []
-        for token in tokens:
-            token_list.append(
-                {
-                    "type": token.type.name,
-                    "value": token.value,
-                    "line": token.line,
-                    "column": token.column,
-                    "length": token.length,
-                }
-            )
-
-        # Convert AST to serializable format (comprehensive)
-        def ast_to_dict(node):
-            if node is None:
-                return None
-
-            result = {
-                "kind": node.kind.name,
-                "span": {
-                    "start_line": node.span.start_line,
-                    "start_column": node.span.start_column,
-                    "end_line": node.span.end_line,
-                    "end_column": node.span.end_column,
-                    "length": getattr(node.span, "length", None),
-                }
-                if node.span
-                else None,
-            }
-
-            # Add all relevant scalar fields
-            scalar_fields = [
-                "name",
-                "is_public",
-                "is_using",
-                "is_tagged",
-                "is_variadic",
-                "has_fallthrough",
-                "module_path",
-                "alias",
-                "type_name",
-                "field",
-                "iterator",
-                "index_var",
-                "label",
-                "enum_type",
-                "variant",
-                "raw_text",
-            ]
-
-            for field in scalar_fields:
-                value = getattr(node, field, None)
-                if value is not None:
-                    result[field] = value
-
-            # Add literal information
-            if hasattr(node, "literal_kind") and node.literal_kind:
-                result["literal_kind"] = node.literal_kind.name
-                result["literal_value"] = node.literal_value
-                result["raw_text"] = node.raw_text
-
-            # Add operator information
-            if hasattr(node, "operator") and node.operator:
-                result["operator"] = (
-                    node.operator.name
-                    if hasattr(node.operator, "name")
-                    else str(node.operator)
-                )
-
-            # Add list fields (child nodes)
-            list_fields = [
-                "declarations",
-                "parameters",
-                "statements",
-                "arguments",
-                "fields",
-                "variants",
-                "generic_params",
-                "type_arguments",
-                "parameter_types",
-                "type_args",
-                "types",
-                "elements",
-                "field_inits",
-                "cases",
-                "else_case",
-                "patterns",
-                "imported_items",
-            ]
-
-            for field in list_fields:
-                field_value = getattr(node, field, None)
-                if field_value is not None:
-                    result[field] = [ast_to_dict(child) for child in field_value]
-
-            # Add single node fields
-            node_fields = [
-                "value",
-                "body",
-                "condition",
-                "left",
-                "right",
-                "operand",
-                "function",
-                "expression",
-                "return_type",
-                "explicit_type",
-                "target_type",
-                "element_type",
-                "size",
-                "object",
-                "index",
-                "start",
-                "end",
-                "pointer",
-                "then_expr",
-                "else_expr",
-                "struct_type",
-                "then_stmt",
-                "else_stmt",
-                "init",
-                "update",
-                "iterable",
-                "statement",
-                "target",
-                "literal",
-                "param_type",
-                "field_type",
-                "variant_type",
-                "constraint",
-            ]
-
-            for field in node_fields:
-                field_value = getattr(node, field, None)
-                if field_value:
-                    result[field] = ast_to_dict(field_value)
-
-            return result
-
-        # Create comprehensive JSON structure
-        result = {
-            "metadata": {
-                "filename": input_path,
-                "compiler": "a7-py",
-                "backend": self.backend,
-                "timestamp": datetime.now().isoformat(),
-                "token_count": len(tokens),
-                "source_lines": len(source_code.splitlines()),
-                "source_size_bytes": len(source_code.encode("utf-8")),
-                "parse_success": ast is not None,
-            },
-            "source_code": source_code,
-            "tokens": token_list,
-            "ast": ast_to_dict(ast) if ast else None,
-        }
-
-        return result
-
-    def _display_debug_output(
-        self, tokens: list[Token], ast, source_code: str, input_path: str
-    ):
-        """Display debug output in Rich format based on current debug mode."""
-        from rich.console import Console
-        from rich.table import Table
-        from rich.panel import Panel
-        from rich.text import Text
-        from rich.tree import Tree
-        from rich.syntax import Syntax
-
-        console = Console()
-
-        # Always show source code panel in analysis modes
-        if self.tokenize_only:
-            title = f"Tokenization: {input_path}"
-        elif self.parse_only:
-            title = f"Parsing: {input_path}"
-        else:
-            title = f"Compilation: {input_path}"
-
-        # Use syntax highlighting for A7 code (fallback to text)
-        try:
-            source_syntax = Syntax(
-                source_code, "rust", theme="monokai", line_numbers=True
-            )
-        except:
-            source_syntax = source_code
-
-        code_panel = Panel(source_syntax, title=title, border_style="blue")
-        console.print(code_panel)
-
-        # Token analysis
-        console.print("\n[bold cyan]TOKENIZATION RESULTS[/bold cyan]")
-
-        token_table = Table(show_header=True, header_style="bold magenta")
-        token_table.add_column("Pos", style="dim", width=6)
-        token_table.add_column("Line:Col", style="cyan", width=8)
-        token_table.add_column("Token Type", style="green", width=16)
-        token_table.add_column("Value", style="yellow")
-        token_table.add_column("Length", style="dim", width=6)
-
-        for i, token in enumerate(tokens):
-            if token.type.name == "EOF":
-                continue  # Skip EOF for cleaner display
-
-            token_table.add_row(
-                str(i),
-                f"{token.line}:{token.column}",
-                token.type.name,
-                repr(token.value) if token.value else "''",
-                str(token.length) if hasattr(token, "length") else "?",
-            )
-
-        console.print(token_table)
-        console.print(
-            f"[dim]Total tokens: {len([t for t in tokens if t.type.name != 'EOF'])}[/dim]"
+        # Initialize formatters
+        self.json_formatter = JSONFormatter(backend=backend)
+        self.console_formatter = ConsoleFormatter(
+            tokenize_only=tokenize_only,
+            parse_only=parse_only
         )
-
-        # AST analysis (only if not tokenize-only mode)
-        if not self.tokenize_only:
-            console.print("\n[bold cyan]PARSING RESULTS[/bold cyan]")
-
-            if ast:
-                console.print("[green]Successfully parsed into AST[/green]")
-
-                # AST summary
-                summary_text = Text()
-                summary_text.append("AST Root: ", style="bold")
-                summary_text.append(f"{ast.kind.name}", style="cyan bold")
-                if hasattr(ast, "declarations") and ast.declarations:
-                    summary_text.append(
-                        f" with {len(ast.declarations)} top-level declarations",
-                        style="dim",
-                    )
-                console.print(summary_text)
-
-                # AST tree structure
-                if hasattr(ast, "declarations") and ast.declarations:
-                    tree = Tree("Program")
-                    for i, decl in enumerate(ast.declarations):
-                        decl_node = tree.add(self._format_declaration_node(decl))
-
-                        # Add function body details
-                        if (
-                            hasattr(decl, "body")
-                            and decl.body
-                            and hasattr(decl.body, "statements")
-                            and decl.body.statements is not None
-                        ):
-                            self._add_statements_to_tree(
-                                decl_node, decl.body.statements
-                            )
-
-                    console.print(tree)
-
-                # Stop here for parse-only mode
-                if self.parse_only:
-                    console.print(
-                        "\n[bold dim]Stopping before code generation[/bold dim]"
-                    )
-            else:
-                console.print("[red]Failed to parse AST[/red]")
-                console.print(
-                    "[dim]Check tokenization output above for potential issues[/dim]"
-                )
-
-        # Summary footer
-        console.print(f"\n[bold dim]Analysis complete[/bold dim]")
-
-    def _format_declaration_node(self, decl):
-        """Format a declaration node for tree display."""
-        label = f"[green]{decl.kind.name}[/green]"
-
-        if hasattr(decl, "name"):
-            label += f" [yellow]{decl.name}[/yellow]"
-
-        # Add parameters inline for functions
-        if hasattr(decl, "parameters") and decl.parameters:
-            params = []
-            for param in decl.parameters:
-                if hasattr(param, "name"):
-                    params.append(param.name)
-
-            if params:
-                label += f" [blue]({', '.join(params)})[/blue]"
-
-        if hasattr(decl, "span") and decl.span:
-            label += f" [dim](line {decl.span.start_line})[/dim]"
-
-        return label
-
-    def _format_type(self, type_node):
-        """Format a type node for display."""
-        if hasattr(type_node, "kind"):
-            if type_node.kind.name == "TYPE_PRIMITIVE":
-                return (
-                    type_node.type_name
-                    if hasattr(type_node, "type_name")
-                    else "primitive"
-                )
-            elif type_node.kind.name == "TYPE_ARRAY":
-                elem_type = (
-                    self._format_type(type_node.element_type)
-                    if hasattr(type_node, "element_type")
-                    else "?"
-                )
-                size = type_node.size if hasattr(type_node, "size") else "?"
-                return f"[{size}]{elem_type}"
-            elif type_node.kind.name == "TYPE_SLICE":
-                elem_type = (
-                    self._format_type(type_node.element_type)
-                    if hasattr(type_node, "element_type")
-                    else "?"
-                )
-                return f"[]{elem_type}"
-            elif type_node.kind.name == "TYPE_POINTER":
-                target_type = (
-                    self._format_type(type_node.target_type)
-                    if hasattr(type_node, "target_type")
-                    else "?"
-                )
-                return f"ref {target_type}"
-
-        # Fallback for simple types or unknown structures
-        if hasattr(type_node, "type_name"):
-            return type_node.type_name
-        elif hasattr(type_node, "name"):
-            return type_node.name
-        return str(type_node)
-
-    def _add_statements_to_tree(self, parent_node, statements):
-        """Add statement nodes to the tree."""
-        if statements is None:
-            return
-        for stmt in statements:
-            stmt_label = f"[blue]{stmt.kind.name}[/blue]"
-
-            # Add details based on statement type
-            if hasattr(stmt, "name") and stmt.name:
-                stmt_label += f" [yellow]{stmt.name}[/yellow]"
-
-            # For assignments, show target
-            if (
-                hasattr(stmt, "target")
-                and hasattr(stmt.target, "name")
-                and stmt.target.name
-            ):
-                stmt_label += f" [yellow]{stmt.target.name}[/yellow]"
-
-            # For function calls, show function name
-            if (
-                hasattr(stmt, "function")
-                and hasattr(stmt.function, "name")
-                and stmt.function.name
-            ):
-                stmt_label += f" [yellow]{stmt.function.name}()[/yellow]"
-
-            stmt_node = parent_node.add(stmt_label)
-
-            # Recursively add nested statements for blocks and control flow
-            if hasattr(stmt, "statements") and stmt.statements:
-                self._add_statements_to_tree(stmt_node, stmt.statements)
-            elif hasattr(stmt, "then_stmt") and stmt.then_stmt:
-                if hasattr(stmt.then_stmt, "statements"):
-                    self._add_statements_to_tree(stmt_node, stmt.then_stmt.statements)
-                if hasattr(stmt, "else_stmt") and stmt.else_stmt:
-                    if hasattr(stmt.else_stmt, "statements"):
-                        self._add_statements_to_tree(
-                            stmt_node, stmt.else_stmt.statements
-                        )
 
     def compile_file(self, input_path: str, output_path: Optional[str] = None) -> bool:
         """
@@ -471,10 +111,64 @@ class A7Compiler:
                         print(f"Parse error in {input_path}: {e}")
                     # Continue with tokenization results even if parsing fails
 
+            # Semantic analysis (unless in parse-only or tokenize-only mode)
+            if ast and not self.tokenize_only and not self.parse_only:
+                if self.verbose:
+                    print(f"Running semantic analysis on {input_path}...")
+
+                all_errors = []
+                source_lines = source_code.splitlines() if source_code else []
+
+                # Pass 1: Name resolution
+                name_resolver = NameResolutionPass()
+                name_resolver.source_lines = source_lines
+                symbol_table = name_resolver.analyze(ast, str(input_path))
+
+                if name_resolver.errors:
+                    all_errors.extend(name_resolver.errors)
+                    if self.verbose:
+                        print(f"  ✗ Name resolution: {len(name_resolver.errors)} error(s)")
+                elif self.verbose:
+                    print(f"  ✓ Name resolution complete")
+
+                # Pass 2: Type checking (only if name resolution succeeded)
+                if not name_resolver.errors:
+                    type_checker = TypeCheckingPass(symbol_table)
+                    type_checker.source_lines = source_lines
+                    type_checker.analyze(ast, str(input_path))
+
+                    if type_checker.errors:
+                        all_errors.extend(type_checker.errors)
+                        if self.verbose:
+                            print(f"  ✗ Type checking: {len(type_checker.errors)} error(s)")
+                    elif self.verbose:
+                        print(f"  ✓ Type checking complete")
+
+                    # Pass 3: Semantic validation (only if type checking succeeded)
+                    if not type_checker.errors:
+                        validator = SemanticValidationPass(symbol_table, type_checker.node_types)
+                        validator.source_lines = source_lines
+                        validator.analyze(ast, str(input_path))
+
+                        if validator.errors:
+                            all_errors.extend(validator.errors)
+                            if self.verbose:
+                                print(f"  ✗ Semantic validation: {len(validator.errors)} error(s)")
+                        elif self.verbose:
+                            print(f"  ✓ Semantic validation complete")
+                            print(f"Successfully analyzed {input_path}")
+
+                # If there are semantic errors, display them all
+                if all_errors:
+                    from rich.console import Console
+                    console = Console()
+                    display_errors(all_errors, console)
+                    return False
+
             # Output results based on debug mode and format
             if self.json_output:
-                # JSON output for debug modes
-                json_result = self._compilation_to_json(
+                # JSON output using formatter
+                json_result = self.json_formatter.format_compilation(
                     tokens, ast, source_code, input_path
                 )
 
@@ -503,8 +197,10 @@ class A7Compiler:
                     json_result["debug_mode"] = "full_compilation"
                     print(json.dumps(json_result, indent=2))
             else:
-                # Rich console output with debug modes
-                self._display_debug_output(tokens, ast, source_code, input_path)
+                # Rich console output using formatter
+                self.console_formatter.display_compilation(
+                    tokens, ast, source_code, input_path
+                )
             # Skip actual code generation for now
             target_code = "// Tokenization complete - no code generation yet\n"
 

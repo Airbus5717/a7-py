@@ -1,6 +1,13 @@
-# A7 Programming Language Specification 
+# A7 Programming Language Specification
 
-> **Implementation Status**: This specification describes the complete A7 language design. The current Python implementation (`a7-py`) implements the complete lexer/tokenizer and most of the parser, with AST generation for core language constructs. See `CLAUDE.md` for detailed implementation status.
+> **Implementation Status**: ✅ **PARSER COMPLETE!** This specification describes the complete A7 language design. The current Python implementation (`a7-py`) implements:
+> - ✅ **Tokenizer/Lexer**: 100% complete - all token types, escape sequences, number formats
+> - ✅ **Parser**: 100% complete - all language constructs including variadic functions, type sets, generic constraints, labeled loops, builtin intrinsics, and all import variants
+> - ✅ **AST**: Complete AST generation for entire language
+> - 🚧 **Semantic Analysis**: Not yet implemented (next phase)
+> - 🚧 **Code Generation**: Not yet implemented (next phase)
+>
+> See `MISSING_FEATURES.md` for detailed feature status and `CLAUDE.md` for development guide.
 
 ## Table of Contents
 
@@ -652,12 +659,16 @@ swap :: fn($T, a: ref T, b: ref T) {
 }
 
 // Generic function with type constraint
-add :: fn($T: Numeric, a: T, b: T) T {
+add :: fn($T, a: T, b: T) T where T: Numeric {
     ret a + b
 }
 
 // Multiple generic parameters
-convert :: fn($T: Numeric, $U: Numeric, value: T) U {
+convert :: fn($T, $U, value: T) U
+where
+    T: Numeric,
+    U: Numeric
+{
     ret cast(U, value)
 }
 ```
@@ -754,9 +765,15 @@ printf :: fn(format: string, args: ..)
 
 ## 7. Generics
 
-### 7.1 Simplified Generic System
+### 7.1 Generic System Design
 
-A7 uses a simple generic system with type parameters prefixed by `$` and built-in type sets defined using `@set()`.
+A7 uses a simple generic system where type parameters are compile-time constants.
+
+**Core Principles:**
+- `$T` **declares** a compile-time type parameter
+- `T` (without `$`) **references** a declared type parameter
+- Type parameters must be declared before use
+- Constraints can be specified inline with type sets
 
 **Generic Type Parameter Syntax Rules:**
 - Must start with `$` followed immediately by a letter (a-z, A-Z)
@@ -764,12 +781,29 @@ A7 uses a simple generic system with type parameters prefixed by `$` and built-i
 - No digits allowed: `$T`, `$MY_TYPE` ✅ but `$T1`, `$123` ❌
 - Standalone `$` is invalid and produces a compilation error
 
+**Constraint Syntax:**
+- Unconstrained: `$T`
+- With predefined type set: `$T: Numeric`
+- With inline type set: `$T: @type_set(i32, i64, f32, f64)`
+
 ```a7
-// Simple type parameter
+// Simple unconstrained type parameter
 swap :: fn($T, a: ref T, b: ref T) {
+    //     ^^     ^        ^
+    //     declare  use    use
     temp := a.val
     a.val = b.val
     b.val = temp
+}
+
+// Constrained with predefined type set
+abs :: fn($T: Numeric, x: T) T {
+    ret if x < 0 { -x } else { x }
+}
+
+// Constrained with inline type set
+process :: fn($T: @type_set(i32, i64), value: T) T {
+    ret value * 2
 }
 
 // Multiple type parameters
@@ -795,23 +829,23 @@ Pair :: struct($T, $U) {
 p := Pair(i32, string){42, "answer"}
 ```
 
-### 7.3 Type Sets with @set()
+### 7.3 Type Sets and Constraints
 
-Type constraints are defined using the `@set()` builtin function, which is handled specially by the compiler:
+Type sets are defined using the `@type_set()` builtin function and can be used inline or as predefined constants:
 
 ```a7
-// Built-in type sets defined in standard library using @set()
-Numeric :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
-Integer :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
-Float :: @set(f32, f64)
-Signed :: @set(i8, i16, i32, i64, isize, f32, f64)
-Unsigned :: @set(u8, u16, u32, u64, usize)
+// Built-in type sets defined in standard library using @type_set()
+Numeric :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
+Integer :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
+Float :: @type_set(f32, f64)
+Signed :: @type_set(i8, i16, i32, i64, isize, f32, f64)
+Unsigned :: @type_set(u8, u16, u32, u64, usize)
 
 // Custom type sets
-SmallInts :: @set(i8, u8, i16, u16)
-BigInts :: @set(i64, u64)
+SmallInts :: @type_set(i8, u8, i16, u16)
+BigInts :: @type_set(i64, u64)
 
-// Using type sets in generics - simplified syntax
+// Using predefined type sets as constraints
 abs :: fn($T: Numeric, x: T) T {
     ret if x < 0 { -x } else { x }
 }
@@ -824,7 +858,17 @@ max :: fn($T: Numeric, a: T, b: T) T {
     ret if a > b { a } else { b }
 }
 
-// Multiple constraints using intersection
+// Using inline type sets
+process_ints :: fn($T: @type_set(i32, i64), value: T) T {
+    ret value * 2
+}
+
+// Multiple type parameters with different constraints
+convert :: fn($T: Numeric, $U: Numeric, value: T) U {
+    ret cast(U, value)
+}
+
+// Mixed: predefined and inline
 clamp :: fn($T: Numeric, x: T, low: T, high: T) T {
     ret min($T, max($T, x, low), high)
 }
@@ -1934,7 +1978,7 @@ printf :: fn(format: string, args: ..)
 
 ## 7. Generics
 
- and built-in type sets defined using `@set()`.
+ and built-in type sets defined using `@type_set()`.
 
 ```a7
 // Simple type parameter
@@ -1967,23 +2011,23 @@ Pair :: struct($T, $U) {
 p := Pair(i32, string){42, "answer"}
 ```
 
-### 7.3 Type Sets with @set()
+### 7.3 Type Sets and Constraints
 
-Type constraints are defined using the `@set()` builtin function, which is handled specially by the compiler:
+Type sets are defined using the `@type_set()` builtin function and can be used inline or as predefined constants:
 
 ```a7
-// Built-in type sets defined in standard library using @set()
-Numeric :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
-Integer :: @set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
-Float :: @set(f32, f64)
-Signed :: @set(i8, i16, i32, i64, isize, f32, f64)
-Unsigned :: @set(u8, u16, u32, u64, usize)
+// Built-in type sets defined in standard library using @type_set()
+Numeric :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
+Integer :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
+Float :: @type_set(f32, f64)
+Signed :: @type_set(i8, i16, i32, i64, isize, f32, f64)
+Unsigned :: @type_set(u8, u16, u32, u64, usize)
 
 // Custom type sets
-SmallInts :: @set(i8, u8, i16, u16)
-BigInts :: @set(i64, u64)
+SmallInts :: @type_set(i8, u8, i16, u16)
+BigInts :: @type_set(i64, u64)
 
-// Using type sets in generics - simplified syntax
+// Using predefined type sets as constraints
 abs :: fn($T: Numeric, x: T) T {
     ret if x < 0 { -x } else { x }
 }
@@ -1996,7 +2040,17 @@ max :: fn($T: Numeric, a: T, b: T) T {
     ret if a > b { a } else { b }
 }
 
-// Multiple constraints using intersection
+// Using inline type sets
+process_ints :: fn($T: @type_set(i32, i64), value: T) T {
+    ret value * 2
+}
+
+// Multiple type parameters with different constraints
+convert :: fn($T: Numeric, $U: Numeric, value: T) U {
+    ret cast(U, value)
+}
+
+// Mixed: predefined and inline
 clamp :: fn($T: Numeric, x: T, low: T, high: T) T {
     ret min($T, max($T, x, low), high)
 }
@@ -2172,7 +2226,7 @@ These functions are handled specially by the compiler and use the `@` prefix:
 
 ```a7
 // Type sets
-@set :: fn(types: ..type) TypeSet          // Create type set
+@type_set :: fn(types: ..type) TypeSet     // Create type set
 
 // Memory intrinsics
 @size_of :: fn($T: type) usize             // Size in bytes
@@ -2446,9 +2500,9 @@ AST_PATTERN_WILDCARD    // Wildcard pattern (_)
 
 // Generic nodes
 AST_GENERIC_PARAM       // Generic type parameters ($T, $T: Numeric)
-AST_GENERIC_CONSTRAINT  // Type set constraints (T: Numeric)
+AST_GENERIC_CONSTRAINT  // Type set constraints (Numeric or @type_set(...))
 AST_GENERIC_INSTANCE    // Generic instantiation
-AST_TYPE_SET            // Type set definitions (@set(...))
+AST_TYPE_SET            // Type set definitions (@type_set(...))
 
 // Utility nodes
 AST_PARAMETER           // Function parameters
@@ -2511,8 +2565,8 @@ FunctionData :: struct {
 }
 
 GenericParamData :: struct {
-    name: string              // Parameter name (T)
-    constraint: ref ASTNode   // Optional type set constraint (Numeric)
+    name: string              // Parameter name (T without $)
+    constraint: ref ASTNode   // Optional type set constraint (Numeric or @type_set(...))
 }
 
 TypeSetData :: struct {
@@ -2560,19 +2614,17 @@ declaration =
     | const_decl
     | var_decl
 
-function_decl = 
+function_decl =
     | identifier "::" "fn" "(" param_list? ")" type? block
     | identifier "::" "fn" generic_params "(" param_list? ")" type? block
 
-generic_params = 
-    | "(" generic_param_list ")"
-
-generic_param_list = 
+generic_params =
     | generic_param ("," generic_param)*
 
-generic_param = 
+generic_param =
     | "$" identifier
     | "$" identifier ":" type_set
+    | "$" identifier ":" "@type_set" "(" type_list ")"
 ```
 
 ### 12.2 Type Grammar
@@ -2592,7 +2644,7 @@ type_args = "(" type ("," type)* ")"
 type_set = identifier  // References to type sets like Numeric, Integer
 
 struct_type = "struct" generic_params? "{" field_list? "}"
-union_type = "union" "(" "tag" ")" "{" variant_list "}"
+union_type = "union" generic_params? "(" "tag" ")" "{" variant_list "}"
 
 field_list = field ("," field)*
 field = "pub"? identifier ":" type

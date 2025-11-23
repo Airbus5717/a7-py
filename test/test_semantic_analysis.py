@@ -1,0 +1,301 @@
+"""
+Tests for semantic analysis passes.
+
+Tests the integration of:
+- Name resolution
+- Type checking
+- Semantic validation
+"""
+
+import pytest
+from src.tokens import Tokenizer
+from src.parser import Parser
+from src.passes.name_resolution import NameResolutionPass
+from src.passes.type_checker import TypeCheckingPass
+from src.passes.semantic_validator import SemanticValidationPass
+from src.errors import SemanticError
+
+
+def parse_program(source: str):
+    """Helper to parse a source program."""
+    tokenizer = Tokenizer(source)
+    tokens = tokenizer.tokenize()
+    parser = Parser(tokens)
+    return parser.parse()
+
+
+class TestNameResolution:
+    """Test name resolution pass."""
+
+    def test_simple_function(self):
+        """Test resolving a simple function."""
+        source = """
+        main :: fn() {
+            x := 42
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Check that main function is registered
+        main_symbol = symbols.lookup("main")
+        assert main_symbol is not None
+        assert main_symbol.name == "main"
+
+    def test_variable_shadowing(self):
+        """Test variable shadowing in nested scopes."""
+        source = """
+        main :: fn() {
+            x := 42
+            {
+                x := 100
+            }
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Should succeed - shadowing is allowed
+        assert symbols is not None
+
+    def test_duplicate_function(self):
+        """Test duplicate function declaration."""
+        source = """
+        foo :: fn() {}
+        foo :: fn() {}
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+
+        with pytest.raises(SemanticError):
+            resolver.analyze(program, "test.a7")
+
+    def test_struct_field_registration(self):
+        """Test struct fields are registered."""
+        source = """
+        Point :: struct {
+            x: i32
+            y: i32
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Check that struct is registered
+        point_symbol = symbols.lookup("Point")
+        assert point_symbol is not None
+        assert point_symbol.name == "Point"
+
+
+class TestTypeChecking:
+    """Test type checking pass."""
+
+    def test_simple_variable_type_inference(self):
+        """Test type inference for variable declarations."""
+        source = """
+        main :: fn() {
+            x := 42
+        }
+        """
+        program = parse_program(source)
+
+        # Name resolution first
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Type checking
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        # Variable should have i32 type (default for integer literals)
+        x_symbol = symbols.lookup("x")
+        assert x_symbol is not None
+        assert str(x_symbol.type) == "i32"
+
+    def test_explicit_type_annotation(self):
+        """Test explicit type annotations."""
+        source = """
+        main :: fn() {
+            x: i64 = 42
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        x_symbol = symbols.lookup("x")
+        assert x_symbol is not None
+        assert str(x_symbol.type) == "i64"
+
+    def test_function_return_type(self):
+        """Test function return type checking."""
+        source = """
+        add :: fn(a: i32, b: i32) i32 {
+            ret a + b
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        add_symbol = symbols.lookup("add")
+        assert add_symbol is not None
+        # Function type should be fn(i32, i32) i32
+        assert "fn(" in str(add_symbol.type)
+
+    def test_type_mismatch_error(self):
+        """Test type mismatch detection."""
+        source = """
+        main :: fn() {
+            x: i32 = "hello"
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+
+        with pytest.raises(SemanticError):
+            checker.analyze(program, "test.a7")
+
+
+class TestSemanticValidation:
+    """Test semantic validation pass."""
+
+    def test_break_outside_loop_error(self):
+        """Test break outside loop is caught."""
+        source = """
+        main :: fn() {
+            break
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        validator = SemanticValidationPass(symbols, checker.node_types)
+
+        with pytest.raises(SemanticError):
+            validator.analyze(program, "test.a7")
+
+    def test_break_in_loop_valid(self):
+        """Test break inside loop is valid."""
+        source = """
+        main :: fn() {
+            while true {
+                break
+            }
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        validator = SemanticValidationPass(symbols, checker.node_types)
+        # Should not raise
+        validator.analyze(program, "test.a7")
+
+    def test_continue_outside_loop_error(self):
+        """Test continue outside loop is caught."""
+        source = """
+        main :: fn() {
+            continue
+        }
+        """
+        program = parse_program(source)
+
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        validator = SemanticValidationPass(symbols, checker.node_types)
+
+        with pytest.raises(SemanticError):
+            validator.analyze(program, "test.a7")
+
+
+class TestIntegration:
+    """Test full semantic analysis pipeline."""
+
+    def test_complete_program(self):
+        """Test a complete program through all passes."""
+        source = """
+        add :: fn(a: i32, b: i32) i32 {
+            ret a + b
+        }
+
+        main :: fn() {
+            x := 5
+            y := 10
+            result := add(x, y)
+        }
+        """
+        program = parse_program(source)
+
+        # Name resolution
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Type checking
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        # Semantic validation
+        validator = SemanticValidationPass(symbols, checker.node_types)
+        validator.analyze(program, "test.a7")
+
+        # All passes should succeed
+        assert symbols is not None
+
+    def test_struct_usage(self):
+        """Test struct declaration and usage."""
+        source = """
+        Point :: struct {
+            x: i32
+            y: i32
+        }
+
+        main :: fn() {
+            p := Point{x: 10, y: 20}
+        }
+        """
+        program = parse_program(source)
+
+        # Name resolution
+        resolver = NameResolutionPass()
+        symbols = resolver.analyze(program, "test.a7")
+
+        # Type checking
+        checker = TypeCheckingPass(symbols)
+        checker.analyze(program, "test.a7")
+
+        # Should succeed
+        point_symbol = symbols.lookup("Point")
+        assert point_symbol is not None

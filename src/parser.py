@@ -321,20 +321,49 @@ class Parser:
         )
 
     def parse_import(self) -> ASTNode:
-        """Parse import declarations."""
-        import_token = self.consume(TokenType.IMPORT)
+        """Parse import declarations including using and named imports."""
+        # Check for 'using import'
+        is_using = False
+        import_token = None
 
-        # For now, simple import "module" format
-        if self.match(TokenType.STRING_LITERAL):
-            module_path = self.advance().value[1:-1]  # Remove quotes
-            return ASTNode(
-                kind=NodeKind.IMPORT,
-                module_path=module_path,
-                span=create_span_from_token(import_token),
+        if self.match(TokenType.IDENTIFIER) and self.current().value == "using":
+            is_using = True
+            self.advance()  # consume 'using'
+            import_token = self.consume(TokenType.IMPORT)
+        else:
+            import_token = self.consume(TokenType.IMPORT)
+
+        # Parse module path
+        if not self.match(TokenType.STRING_LITERAL):
+            raise ParseError.from_token(
+                "Expected module path after import", self.current(), self.filename
             )
 
-        raise ParseError.from_token(
-            "Expected module path after import", self.current(), self.filename
+        module_path = self.advance().value[1:-1]  # Remove quotes
+
+        # Check for named imports: import "path" { Name1, Name2 }
+        imported_items = None
+        if self.match(TokenType.LEFT_BRACE):
+            self.advance()
+            imported_items = []
+
+            while not self.match(TokenType.RIGHT_BRACE) and not self.at_end():
+                if self.match(TokenType.IDENTIFIER):
+                    imported_items.append(self.advance().value)
+
+                if self.match(TokenType.COMMA):
+                    self.advance()
+                elif not self.match(TokenType.RIGHT_BRACE):
+                    break
+
+            self.consume(TokenType.RIGHT_BRACE)
+
+        return ASTNode(
+            kind=NodeKind.IMPORT,
+            module_path=module_path,
+            is_using=is_using,
+            imported_items=imported_items,
+            span=create_span_from_token(import_token),
         )
 
     def parse_const_or_function_decl(self, is_public: bool) -> ASTNode:
@@ -468,8 +497,7 @@ class Parser:
         )
 
     def parse_generic_parameters(self) -> List[ASTNode]:
-        """Parse generic type parameters ($T, $U, etc.)."""
-        # For now, simple implementation
+        """Parse generic type parameters with optional constraints: $T, $T: Numeric, $T: @type_set(...)."""
         params = []
         self.consume(TokenType.LEFT_PAREN)
 
@@ -478,7 +506,19 @@ class Parser:
                 generic_token = self.advance()
                 # Extract the name without the $ prefix for consistency
                 param_name = generic_token.value[1:]  # Remove '$' prefix
-                param = ASTNode(kind=NodeKind.GENERIC_PARAM, name=param_name)
+
+                # Check for constraint: $T: Constraint
+                constraint = None
+                if self.match(TokenType.COLON):
+                    self.advance()  # consume ':'
+                    constraint = self.parse_type()  # Parse constraint (can be identifier or @type_set)
+
+                param = ASTNode(
+                    kind=NodeKind.GENERIC_PARAM,
+                    name=param_name,
+                    constraint=constraint,
+                    span=create_span_from_token(generic_token)
+                )
                 params.append(param)
 
             if self.match(TokenType.COMMA):
@@ -488,6 +528,29 @@ class Parser:
 
         self.consume(TokenType.RIGHT_PAREN)
         return params
+
+    def parse_type_set(self) -> ASTNode:
+        """Parse type set: @type_set(i32, i64, f32)."""
+        start_token = self.consume(TokenType.BUILTIN_ID)  # @type_set
+        self.consume(TokenType.LEFT_PAREN)
+
+        types = []
+        while not self.match(TokenType.RIGHT_PAREN) and not self.at_end():
+            type_node = self.parse_type()
+            types.append(type_node)
+
+            if self.match(TokenType.COMMA):
+                self.advance()
+            elif not self.match(TokenType.RIGHT_PAREN):
+                break
+
+        self.consume(TokenType.RIGHT_PAREN)
+
+        return ASTNode(
+            kind=NodeKind.TYPE_SET,
+            types=types,
+            span=create_span_from_token(start_token)
+        )
 
     def parse_mixed_parameters(self) -> tuple[List[ASTNode], List[ASTNode]]:
         """Parse function parameters.
@@ -515,19 +578,44 @@ class Parser:
         return generic_params, regular_params
 
     def parse_parameter(self) -> ASTNode:
-        """Parse function parameter."""
-        name_token = self.consume(TokenType.IDENTIFIER)
-        name = name_token.value
-        self.consume(TokenType.COLON)
-        param_type = self.parse_type()
+        """Parse function parameter (including variadic parameters)."""
+        # Check for variadic parameter: args: ..i32 or args: ..
+        if self.match(TokenType.IDENTIFIER):
+            name_token = self.advance()
+            name = name_token.value
+            self.consume(TokenType.COLON)
 
-        return create_parameter(
-            name=name, param_type=param_type, span=create_span_from_token(name_token)
+            # Check for variadic marker (..)
+            is_variadic = False
+            if self.match(TokenType.DOT_DOT):
+                is_variadic = True
+                self.advance()
+
+            # Parse type (may be omitted for untyped variadic args: ..)
+            param_type = None
+            if not self.match(TokenType.COMMA, TokenType.RIGHT_PAREN):
+                param_type = self.parse_type()
+
+            return create_parameter(
+                name=name,
+                param_type=param_type,
+                is_variadic=is_variadic,
+                span=create_span_from_token(name_token)
+            )
+
+        raise ParseError.from_token(
+            "Expected parameter name", self.current(), self.filename
         )
 
     def parse_type(self) -> ASTNode:
         """Parse type expressions."""
         start_token = self.current()
+
+        # Builtin type sets: @type_set(i32, i64, ...)
+        if self.match(TokenType.BUILTIN_ID):
+            builtin_token = self.current()
+            if builtin_token.value == "@type_set":
+                return self.parse_type_set()
 
         # Reference types: ref T
         if self.match(TokenType.REF):
@@ -935,13 +1023,13 @@ class Parser:
                     body=body,
                     span=create_span_from_token(for_token),
                 )
-            
+
             # Check for 'in' (simple range-based): for value in arr
             elif self.match(TokenType.IN):
                 self.consume(TokenType.IN)
                 iterable = self.parse_expression()
                 body = self.parse_block()
-                
+
                 return ASTNode(
                     kind=NodeKind.FOR_IN,
                     iterator=first_identifier.value,
@@ -994,13 +1082,13 @@ class Parser:
                     body=body,
                     span=create_span_from_token(for_token),
                 )
-            
+
             else:
                 # Regular expression or assignment - this is also C-style
                 # Backtrack and parse as expression
                 self.position -= 1
                 init = self.parse_expression_or_assignment()
-                
+
                 if not self.match(TokenType.TERMINATOR):
                     raise ParseError.from_token(
                         "Expected ';' or newline in for loop", self.current(), self.filename
@@ -1347,14 +1435,50 @@ class Parser:
         if self.match(TokenType.LEFT_BRACKET):
             return self.parse_array_literal()
 
+        # Builtin intrinsics: @size_of(T), @align_of(T), etc.
+        if self.match(TokenType.BUILTIN_ID):
+            return self.parse_builtin_intrinsic()
+
         # Identifiers, cast expressions, or struct literals
         if self.match(TokenType.IDENTIFIER):
             name = self.advance().value
-            
+
             # Check for cast expression: cast(type, expr)
             if name == "cast" and self.match(TokenType.LEFT_PAREN):
                 return self.parse_cast_expression(start_token)
-            
+
+            # Check for generic struct literal instantiation: Pair(i32, string){...}
+            if self.match(TokenType.LEFT_PAREN):
+                # This could be a generic type instantiation followed by struct literal
+                saved_position = self.position
+                type_args = []
+                self.advance()  # consume '('
+
+                # Try to parse type arguments
+                try:
+                    while not self.match(TokenType.RIGHT_PAREN) and not self.at_end():
+                        type_args.append(self.parse_type())
+                        if self.match(TokenType.COMMA):
+                            self.advance()
+                        elif not self.match(TokenType.RIGHT_PAREN):
+                            break
+
+                    if self.match(TokenType.RIGHT_PAREN):
+                        self.advance()  # consume ')'
+
+                        # Check if followed by struct literal: {...}
+                        if self.match(TokenType.LEFT_BRACE) and self._should_parse_struct_literal():
+                            # Parse struct literal with type arguments
+                            struct_literal = self.parse_struct_literal(name, create_span_from_token(start_token))
+                            struct_literal.type_arguments = type_args
+                            return struct_literal
+                except:
+                    # If parsing fails, backtrack
+                    self.position = saved_position
+
+                # Backtrack if it's not a struct literal pattern
+                self.position = saved_position
+
             # Check for struct literal: Person{...}
             # Only parse as struct literal if we're in an appropriate context
             # (not in a statement context where { would start a block)
@@ -1383,23 +1507,60 @@ class Parser:
     def parse_cast_expression(self, start_token: Token) -> ASTNode:
         """Parse cast expression: cast(type, expr)"""
         self.advance()  # consume '('
-        
+
         # Parse the target type
         target_type = self.parse_type()
-        
+
         # Expect comma
         self.consume(TokenType.COMMA, "Expected ',' after type in cast expression")
-        
+
         # Parse the expression to cast
         expression = self.parse_expression()
-        
+
         # Expect closing paren
         self.consume(TokenType.RIGHT_PAREN, "Expected ')' after cast expression")
-        
+
         return create_cast_expr(
             target_type=target_type,
             expression=expression,
             span=create_span_from_token(start_token)
+        )
+
+    def parse_builtin_intrinsic(self) -> ASTNode:
+        """Parse builtin intrinsic: @size_of(T), @align_of(T), @type_id(T), @unreachable(), etc."""
+        builtin_token = self.consume(TokenType.BUILTIN_ID)
+        builtin_name = builtin_token.value  # Includes '@' prefix
+
+        # Parse arguments
+        self.consume(TokenType.LEFT_PAREN)
+        arguments = []
+
+        # Some builtins take types, some take expressions
+        # For simplicity, we'll parse types for size_of, align_of, type_id
+        # and expressions for others
+
+        if not self.match(TokenType.RIGHT_PAREN):
+            # Check if this is a type-taking builtin
+            if builtin_name in ("@size_of", "@align_of", "@type_id", "@type_name"):
+                # Parse type arguments
+                arguments.append(self.parse_type())
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    arguments.append(self.parse_type())
+            else:
+                # Parse expression arguments
+                arguments.append(self.parse_expression())
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    arguments.append(self.parse_expression())
+
+        self.consume(TokenType.RIGHT_PAREN)
+
+        return ASTNode(
+            kind=NodeKind.CALL,
+            function=create_identifier(builtin_name, create_span_from_token(builtin_token)),
+            arguments=arguments,
+            span=create_span_from_token(builtin_token),
         )
     
     def parse_new_expression(self) -> ASTNode:
