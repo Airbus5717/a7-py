@@ -319,21 +319,29 @@ class TypeCheckingPass:
         """Visit and type check a function declaration."""
         func_name = node.name or "<anonymous>"
 
+        # Enter function scope for parameter and body processing
+        self.symbols.enter_scope(f"function_{func_name}")
+
         # Resolve return type
         return_type = self.resolve_type_node(node.return_type) if node.return_type else None
 
-        # Resolve parameter types
+        # Resolve parameter types and register parameters in this scope
         param_types = []
         if node.parameters:
             for param in node.parameters:
                 param_type = self.resolve_type_node(param.param_type) if param.param_type else UNKNOWN
                 param_types.append(param_type)
 
-                # Update parameter symbol with resolved type
+                # Register parameter in function scope
                 param_name = param.name or ""
-                param_symbol = self.symbols.lookup(param_name)
-                if param_symbol:
-                    param_symbol.type = param_type
+                param_symbol = Symbol(
+                    name=param_name,
+                    kind=SymbolKind.VARIABLE,
+                    type=param_type,
+                    node=param,
+                    is_mutable=False
+                )
+                self.symbols.define(param_symbol)
 
         # Check for variadic
         is_variadic = node.is_variadic or False
@@ -351,7 +359,7 @@ class TypeCheckingPass:
             variadic_type=variadic_type
         )
 
-        # Update function symbol
+        # Update function symbol (in outer scope)
         func_symbol = self.symbols.lookup(func_name)
         if func_symbol:
             func_symbol.type = func_type
@@ -371,6 +379,9 @@ class TypeCheckingPass:
 
         # Exit function context
         self.context.exit_function()
+
+        # Exit function scope
+        self.symbols.exit_scope()
 
     def visit_const_decl(self, node: ASTNode) -> None:
         """Visit a constant declaration."""
@@ -403,6 +414,10 @@ class TypeCheckingPass:
         """Visit a variable declaration."""
         var_name = node.name or "<unknown>"
 
+        # Check for nil literal
+        is_nil_value = (node.value and node.value.kind == NodeKind.LITERAL
+                        and node.value.literal_kind == LiteralKind.NIL)
+
         # Type check the value if present
         value_type = UNKNOWN
         if node.value:
@@ -412,7 +427,16 @@ class TypeCheckingPass:
         if node.explicit_type:
             # Explicit type annotation
             explicit_type = self.resolve_type_node(node.explicit_type)
-            if node.value and not value_type.is_assignable_to(explicit_type):
+
+            # Check nil assignment to non-reference type
+            if is_nil_value and not isinstance(explicit_type, ReferenceType):
+                self.add_type_error(
+                    TypeErrorType.NIL_ONLY_FOR_REFERENCES,
+                    node.span,
+                    got_type=str(explicit_type),
+                    context=f"Variable '{var_name}'"
+                )
+            elif node.value and not is_nil_value and not value_type.is_assignable_to(explicit_type):
                 self.add_type_error(
                     TypeErrorType.TYPE_MISMATCH,
                     node.span,
@@ -427,10 +451,15 @@ class TypeCheckingPass:
             self.errors.append(error)
             value_type = UNKNOWN
 
-        # Update symbol
-        symbol = self.symbols.lookup(var_name)
-        if symbol:
-            symbol.type = value_type
+        # Register variable in current scope (type checker manages its own scopes)
+        var_symbol = Symbol(
+            name=var_name,
+            kind=SymbolKind.VARIABLE,
+            type=value_type,
+            node=node,
+            is_mutable=True
+        )
+        self.symbols.define(var_symbol)
 
     def visit_statement(self, node: ASTNode) -> None:
         """Visit a statement."""

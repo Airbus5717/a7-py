@@ -71,7 +71,7 @@ def expect_error(source: str, error_fragment: str = None) -> bool:
     try:
         run_semantic_analysis(source)
         return False
-    except SemanticError as e:
+    except CompilerError as e:
         if error_fragment:
             return error_fragment.lower() in str(e).lower()
         return True
