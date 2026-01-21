@@ -106,19 +106,24 @@ class PrimitiveType(Type):
         if self.name == target.name:
             return True
 
-        # Integer promotions (smaller to larger of same signedness)
-        signed_ints = ['i8', 'i16', 'i32', 'i64']
-        unsigned_ints = ['u8', 'u16', 'u32', 'u64']
-        floats = ['f32', 'f64']
+        # Allow numeric type conversions
+        # Note: In a production compiler, narrowing conversions should generate warnings
+        signed_ints = {'i8', 'i16', 'i32', 'i64', 'isize'}
+        unsigned_ints = {'u8', 'u16', 'u32', 'u64', 'usize'}
+        floats = {'f32', 'f64'}
+        all_integers = signed_ints | unsigned_ints
 
-        if self.name in signed_ints and target.name in signed_ints:
-            return signed_ints.index(self.name) <= signed_ints.index(target.name)
+        # Allow conversions within integer types (signed or unsigned)
+        if self.name in all_integers and target.name in all_integers:
+            return True
 
-        if self.name in unsigned_ints and target.name in unsigned_ints:
-            return unsigned_ints.index(self.name) <= unsigned_ints.index(target.name)
-
+        # Allow conversions within float types
         if self.name in floats and target.name in floats:
-            return floats.index(self.name) <= floats.index(target.name)
+            return True
+
+        # Allow integer to float conversion
+        if self.name in all_integers and target.name in floats:
+            return True
 
         return False
 

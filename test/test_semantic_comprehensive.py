@@ -11,7 +11,7 @@ from src.parser import Parser
 from src.passes.name_resolution import NameResolutionPass
 from src.passes.type_checker import TypeCheckingPass
 from src.passes.semantic_validator import SemanticValidationPass
-from src.errors import SemanticError
+from src.errors import SemanticError, CompilerError
 
 
 def parse_program(source: str):
@@ -23,20 +23,29 @@ def parse_program(source: str):
 
 
 def run_semantic_analysis(source: str):
-    """Helper to run full semantic analysis pipeline."""
+    """Helper to run full semantic analysis pipeline.
+
+    Raises SemanticError if any pass detects errors.
+    """
     program = parse_program(source)
 
     # Name resolution
     resolver = NameResolutionPass()
     symbols = resolver.analyze(program, "test.a7")
+    if resolver.errors:
+        raise resolver.errors[0]
 
     # Type checking
     checker = TypeCheckingPass(symbols)
     checker.analyze(program, "test.a7")
+    if checker.errors:
+        raise checker.errors[0]
 
     # Semantic validation
     validator = SemanticValidationPass(symbols, checker.node_types)
     validator.analyze(program, "test.a7")
+    if validator.errors:
+        raise validator.errors[0]
 
     return symbols, checker
 
@@ -46,7 +55,7 @@ def run_analysis_expect_success(source: str):
     try:
         run_semantic_analysis(source)
         return True
-    except SemanticError:
+    except CompilerError:
         return False
 
 
@@ -55,7 +64,7 @@ def run_analysis_expect_error(source: str):
     try:
         run_semantic_analysis(source)
         return False  # Should have raised
-    except SemanticError:
+    except CompilerError:
         return True  # Expected
 
 

@@ -226,7 +226,8 @@ class TypeCheckingPass:
 
         elif node.kind == NodeKind.TYPE_IDENTIFIER:
             # Named type (struct, enum, union, type alias)
-            type_name = node.type_name or ""
+            # Note: Parser stores type name in 'name' attribute, not 'type_name'
+            type_name = node.name or node.type_name or ""
             symbol = self.symbols.lookup(type_name)
             if symbol:
                 return symbol.type
@@ -854,6 +855,13 @@ class TypeCheckingPass:
                 return field.field_type
             else:
                 self.add_type_error(TypeErrorType.NO_SUCH_FIELD, node.span, context=f"Struct '{obj_type}' has no field '{field_name}'")
+                return UNKNOWN
+        elif isinstance(obj_type, EnumType):
+            # Enum variant access: EnumName.VariantName
+            if obj_type.has_variant(field_name):
+                return obj_type  # Enum variant has the enum type
+            else:
+                self.add_type_error(TypeErrorType.NO_SUCH_FIELD, node.span, context=f"Enum '{obj_type}' has no variant '{field_name}'")
                 return UNKNOWN
         else:
             # Use the span of the object being accessed, not the whole field access
