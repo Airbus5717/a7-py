@@ -7,7 +7,7 @@ Tests multidimensional arrays, broadcasting syntax, complex expressions, and edg
 import pytest
 from src.tokens import Tokenizer, TokenType
 from src.parser import parse_a7
-from src.errors import LexError, ParseError
+from src.errors import TokenizerError, ParseError
 
 
 class TestArrayProgrammingTokenization:

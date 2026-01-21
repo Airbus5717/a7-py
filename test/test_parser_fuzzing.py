@@ -10,7 +10,7 @@ import itertools
 from typing import List, Optional
 from src.parser import Parser
 from src.tokens import Tokenizer, Token, TokenType
-from src.errors import ParseError, LexError
+from src.errors import ParseError, TokenizerError
 from src.ast_nodes import NodeKind
 
 
@@ -231,7 +231,7 @@ class TestFuzzing:
                 # If we get here, parsing succeeded
                 assert ast is not None
                 assert ast.kind == NodeKind.PROGRAM
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 # These are expected for some random inputs
                 pass
             except Exception as e:
@@ -252,7 +252,7 @@ class TestFuzzing:
                 parser = Parser(tokens, code)
                 ast = parser.parse()
                 assert ast is not None
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Expected for some inputs
             except Exception as e:
                 pytest.fail(f"Unexpected error on iteration {i}: {e}\nExpression: {expr}")
@@ -280,7 +280,7 @@ class TestFuzzing:
                 assert ast is not None
             except RecursionError:
                 pytest.fail(f"Stack overflow at depth {depth}")
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Some combinations might be invalid
 
 
@@ -308,7 +308,7 @@ class TestPropertyBased:
                     assert token.column >= 0
                     assert token.length > 0 or token.type == TokenType.EOF
 
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Expected for some inputs
 
     def test_parser_ast_invariants(self):
@@ -346,7 +346,7 @@ class TestPropertyBased:
 
                 check_spans(ast)
 
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Expected for some inputs
 
     def test_idempotent_parsing(self):
@@ -373,7 +373,7 @@ class TestPropertyBased:
                 assert ast1.kind == ast2.kind
                 assert len(ast1.declarations) == len(ast2.declarations)
 
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Expected for some inputs
 
 
@@ -432,7 +432,7 @@ class TestMutationFuzzing:
                     parser = Parser(tokens, mutated)
                     ast = parser.parse()
                     # Mutation might still be valid
-                except (LexError, ParseError):
+                except (TokenizerError, ParseError):
                     # Expected for most mutations
                     pass
                 except Exception as e:
@@ -459,7 +459,7 @@ class TestMutationFuzzing:
                 tokens = lexer.tokenize()
                 parser = Parser(tokens, mutated)
                 ast = parser.parse()
-            except (LexError, ParseError):
+            except (TokenizerError, ParseError):
                 pass  # Expected
             except Exception as e:
                 pytest.fail(f"Unexpected error: {e}\nMutated: {mutated}")

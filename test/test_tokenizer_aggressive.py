@@ -8,7 +8,7 @@ and potential tokenizer vulnerabilities that could break or confuse the parser.
 import pytest
 from typing import List
 from src.tokens import Tokenizer, TokenType
-from src.errors import LexError
+from src.errors import TokenizerError
 
 
 class TestTokenizerAggressive:
@@ -174,7 +174,7 @@ class TestTokenizerAggressive:
 
         for source in error_cases:
             tokenizer = Tokenizer(source)
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 tokenizer.tokenize()
 
         # Test cases that might produce tokens or errors due to tokenizer limitations
@@ -191,7 +191,7 @@ class TestTokenizerAggressive:
                 tokens = tokenizer.tokenize()
                 # Should produce some tokens
                 assert len(tokens) >= 2  # At least some token + EOF
-            except (LexError, TypeError):
+            except (TokenizerError, TypeError):
                 # May fail due to tokenizer implementation details
                 pass
 
@@ -224,7 +224,7 @@ class TestTokenizerAggressive:
 
         for source in malformed_cases:
             tokenizer = Tokenizer(source)
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 tokenizer.tokenize()
 
         # Test string with newline - this might be handled differently
@@ -235,7 +235,7 @@ class TestTokenizerAggressive:
             tokens = tokenizer.tokenize()
             # If it succeeds, should produce a string token
             assert any(t.type == TokenType.STRING_LITERAL for t in tokens)
-        except LexError:
+        except TokenizerError:
             # If it fails, that's also acceptable
             pass
 
@@ -269,7 +269,7 @@ class TestTokenizerAggressive:
 
         for source in malformed_cases:
             tokenizer = Tokenizer(source)
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 tokenizer.tokenize()
 
     def test_comment_edge_cases(self):
@@ -357,7 +357,7 @@ class TestTokenizerAggressive:
                 tokens = tokenizer.tokenize()
                 # If it doesn't error, check the tokens produced
                 assert len(tokens) >= 2
-            except (LexError, TypeError):
+            except (TokenizerError, TypeError):
                 # Expected to fail due to invalid parsing
                 pass
 
@@ -368,7 +368,7 @@ class TestTokenizerAggressive:
             tokens = tokenizer.tokenize()
             # Might produce separate tokens or error
             assert len(tokens) >= 1
-        except LexError:
+        except TokenizerError:
             # Also acceptable
             pass
 
@@ -603,13 +603,13 @@ class TestTokenizerAggressive:
 
         for source in malformed_cases:
             tokenizer = Tokenizer(source)
-            # Most should raise LexError, but let's be permissive
+            # Most should raise TokenizerError, but let's be permissive
             # and just ensure they don't crash the tokenizer completely
             try:
                 tokens = tokenizer.tokenize()
                 # If it succeeds, it should at least have EOF
                 assert tokens[-1].type == TokenType.EOF
-            except LexError:
+            except TokenizerError:
                 # Expected for malformed input
                 pass
 

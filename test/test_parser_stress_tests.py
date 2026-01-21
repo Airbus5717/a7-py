@@ -8,7 +8,7 @@ and pathological cases.
 import pytest
 from src.tokens import Tokenizer, TokenType
 from src.parser import parse_a7
-from src.errors import LexError, ParseError
+from src.errors import TokenizerError, ParseError
 
 
 class TestParserStressTests:
@@ -356,16 +356,16 @@ class TestParserRecoveryAndErrors:
 
     def test_invalid_generic_syntax(self):
         """Test error handling for invalid generic syntax."""
-        from src.errors import LexError
+        from src.errors import TokenizerError
         
         invalid_cases = [
             "fn($) {}",  # Empty generic parameter
             "fn($123) {}",  # Invalid generic name
         ]
 
-        # These should raise LexError from tokenizer
+        # These should raise TokenizerError from tokenizer
         for source in invalid_cases:
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 parse_a7(source)
         
         # With new syntax, generics are not declared in parameters

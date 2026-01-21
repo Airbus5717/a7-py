@@ -13,14 +13,14 @@ from contextlib import redirect_stdout, redirect_stderr
 from rich.console import Console
 
 from src.tokens import Tokenizer, TokenType
-from src.errors import LexError, ErrorFormatter, display_error
+from src.errors import TokenizerError, ErrorFormatter, display_error
 
 
 class TestTokenizerErrors:
     """Test suite for A7 tokenizer error conditions and error formatting."""
 
     def test_unexpected_characters(self):
-        """Test various unexpected characters that should raise LexError."""
+        """Test various unexpected characters that should raise TokenizerError."""
         invalid_chars = [
             ("§", 1, 1),  # Section symbol
             ("€", 1, 1),  # Euro symbol
@@ -37,7 +37,7 @@ class TestTokenizerErrors:
         for char, expected_line, expected_col in invalid_chars:
             tokenizer = Tokenizer(char)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -57,7 +57,7 @@ class TestTokenizerErrors:
         for source, invalid_char, expected_line, expected_col in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -77,7 +77,7 @@ class TestTokenizerErrors:
         for source, expected_line, expected_col in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -97,7 +97,7 @@ class TestTokenizerErrors:
         for source, expected_line, expected_col in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -116,7 +116,7 @@ class TestTokenizerErrors:
         for source, expected_message in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -127,7 +127,7 @@ class TestTokenizerErrors:
         source = "test := §"
         tokenizer = Tokenizer(source, filename="test.a7")
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value
@@ -146,7 +146,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             # Test the display method
             error.display(console)
             output = console.file.getvalue()
@@ -167,7 +167,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             error.display(console)
             output = console.file.getvalue()
 
@@ -185,7 +185,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             error.display(console)
             output = console.file.getvalue()
 
@@ -208,7 +208,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             error.display(console)
             output = console.file.getvalue()
 
@@ -244,7 +244,7 @@ class TestTokenizerErrors:
         for source, invalid_char, expected_line, expected_col in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -269,7 +269,7 @@ class TestTokenizerErrors:
 
             try:
                 tokenizer.tokenize()
-            except LexError as error:
+            except TokenizerError as error:
                 error.display(console)
                 output = console.file.getvalue()
 
@@ -298,7 +298,7 @@ class TestTokenizerErrors:
         source = "valid_line\ninvalid§character"
         tokenizer = Tokenizer(source)
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value
@@ -316,7 +316,7 @@ class TestTokenizerErrors:
         for source, expected_col in test_cases:
             tokenizer = Tokenizer(source)
 
-            with pytest.raises(LexError) as exc_info:
+            with pytest.raises(TokenizerError) as exc_info:
                 tokenizer.tokenize()
 
             error = exc_info.value
@@ -332,7 +332,7 @@ class TestTokenizerErrors:
         source = "main :: fn() {\n    x := 42\n    invalid := §garbage\n}"
         tokenizer = Tokenizer(source, filename="recovery_test.a7")
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value
@@ -356,7 +356,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             display_error(error, console)
             output = console.file.getvalue()
 
@@ -374,7 +374,7 @@ class TestTokenizerErrors:
 
         try:
             tokenizer.tokenize()
-        except LexError as error:
+        except TokenizerError as error:
             formatter = ErrorFormatter()
             console = Console(file=StringIO(), width=80, legacy_windows=False)
             formatter.console = console
@@ -402,7 +402,7 @@ class TestTokenizerErrorEdgeCases:
         source = "valid_code := 42§"
         tokenizer = Tokenizer(source)
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value
@@ -414,7 +414,7 @@ class TestTokenizerErrorEdgeCases:
         source = "line1\n§"
         tokenizer = Tokenizer(source)
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value
@@ -426,7 +426,7 @@ class TestTokenizerErrorEdgeCases:
         source = "error1§ and error2€"
         tokenizer = Tokenizer(source)
 
-        with pytest.raises(LexError) as exc_info:
+        with pytest.raises(TokenizerError) as exc_info:
             tokenizer.tokenize()
 
         error = exc_info.value

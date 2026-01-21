@@ -6,7 +6,7 @@ Tests cover deep nesting, Unicode, boundary conditions, and complex corner cases
 import pytest
 from src.parser import Parser
 from src.tokens import Tokenizer, Token, TokenType
-from src.errors import ParseError, LexError
+from src.errors import ParseError, TokenizerError
 from src.ast_nodes import NodeKind, create_identifier
 
 
@@ -137,7 +137,7 @@ class TestUnicodeAndSpecialChars:
         # A7 doesn't support tabs - they should raise an error
         code = "main	::	fn()		{x   :=   1}"
         lexer = Tokenizer(code)
-        with pytest.raises(LexError):
+        with pytest.raises(TokenizerError):
             tokens = lexer.tokenize()
 
     def test_empty_strings(self):
@@ -362,7 +362,7 @@ class TestErrorScenarios:
         """Test unterminated string literal."""
         code = 'main :: fn() { s := "unterminated }'
         lexer = Tokenizer(code)
-        with pytest.raises(LexError):
+        with pytest.raises(TokenizerError):
             lexer.tokenize()
 
     def test_invalid_number_format(self):
@@ -378,7 +378,7 @@ class TestErrorScenarios:
 
         for code in test_cases:
             lexer = Tokenizer(code)
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 lexer.tokenize()
 
     def test_mismatched_brackets(self):

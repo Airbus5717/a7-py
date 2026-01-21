@@ -334,7 +334,7 @@ class TestStringAndCharLiteralEdgeCases:
 
     def test_unclosed_string_literals(self):
         """Test unclosed string literals in different contexts."""
-        from src.errors import LexError
+        from src.errors import TokenizerError
         
         unclosed_strings = [
             'x := "unclosed string',
@@ -344,12 +344,12 @@ class TestStringAndCharLiteralEdgeCases:
         ]
 
         for string_lit in unclosed_strings:
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 parse_a7(string_lit)
 
     def test_unclosed_char_literals(self):
         """Test unclosed character literals."""
-        from src.errors import LexError
+        from src.errors import TokenizerError
         
         unclosed_chars = [
             "x := 'a",
@@ -358,20 +358,20 @@ class TestStringAndCharLiteralEdgeCases:
         ]
 
         for char_lit in unclosed_chars:
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 parse_a7(char_lit)
 
     def test_invalid_escape_sequences(self):
         """Test invalid escape sequences in strings - currently not validated."""
-        from src.errors import LexError
+        from src.errors import TokenizerError
         
-        # Test cases that should cause LexError due to unclosed strings
+        # Test cases that should cause TokenizerError due to unclosed strings
         unclosed_escapes = [
             'y := "incomplete\\',  # Incomplete escape causes unclosed string
         ]
         
         for invalid_str in unclosed_escapes:
-            with pytest.raises(LexError):
+            with pytest.raises(TokenizerError):
                 parse_a7(invalid_str)
         
         # Test cases that currently parse without validation but shouldn't
