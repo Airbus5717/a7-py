@@ -227,11 +227,14 @@ class TestPointerAndReferenceTypes:
     """Test pointer and reference type semantics."""
 
     def test_pointer_type_declaration(self):
-        """Test pointer type declarations."""
+        """Test pointer type declarations.
+
+        NOTE: A7 uses 'ref' for pointer/reference types, not 'ptr'.
+        """
         source = """
         main :: fn() {
-            p: ptr i32
-            pp: ptr ptr i32
+            p: ref i32
+            pp: ref ref i32
         }
         """
         assert expect_success(source)
@@ -403,12 +406,15 @@ class TestTypeCasting:
         assert expect_success(source)
 
     def test_cast_pointer_types(self):
-        """Test casting between pointer types."""
+        """Test casting between pointer types.
+
+        NOTE: A7 uses 'ref' for pointer types, not 'ptr'.
+        """
         source = """
         main :: fn() {
             x: i32 = 42
             p := x.adr
-            vp := cast(ptr i64, p)
+            vp := cast(ref i64, p)
         }
         """
         assert expect_success(source)

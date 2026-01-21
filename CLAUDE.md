@@ -8,7 +8,7 @@ A7 programming language compiler implemented in Python. A7 is a statically-typed
 
 ## Project Status
 
-**Current Test Results**: 465/481 parser tests + 98/228 semantic tests passing ✅
+**Current Test Results**: 636/709 tests passing (90%) ✅
 - ✅ **Tokenizer**: 100% Complete - all token types, escape sequences, number formats
 - ✅ **Parser**: 97% Complete - Nearly all language features implemented!
 - ✅ **AST**: Complete AST generation for entire language
@@ -21,7 +21,7 @@ A7 programming language compiler implemented in Python. A7 is a statically-typed
   - ✅ Generic type infrastructure
   - ✅ Module resolution system
   - ✅ Error detection and rich formatting
-  - 📊 98/228 tests passing (43% - foundation complete, type inference in progress)
+  - 📊 636/709 tests passing (90% - syntax fixes complete, semantic validation in progress)
 - 🚧 **Code Generation**: Not yet implemented (next phase)
 
 **⏸️ Deferred Features**:
@@ -219,7 +219,7 @@ uv tree                   # Show dependency tree
 
 ### Notes
 - ✅ All A7 example files parse successfully (100% real-world coverage)
-- ✅ 465/481 tests passing (96.7% success rate)
+- ✅ 636/709 tests passing (90% success rate)
 - 📝 "Module qualified access" and "Import alias tracking" are semantic analysis concerns, not parser issues
 - ⏸️ Labeled loops deferred - requires language design decision on syntax disambiguation
 - 🎯 Parser phase complete - focus now shifts to semantic analysis and code generation
@@ -276,22 +276,25 @@ ppp.val.val.val         // Multiple indirection
 
 ### Generics
 ```a7
-// $T declares generic parameter, T uses it
-swap :: fn($T, a: ref T, b: ref T) {
+// $T used inline in type expressions (NOT as separate parameter)
+swap :: fn(a: ref $T, b: ref $T) {
     temp := a.val
     a.val = b.val
     b.val = temp
 }
 
-// Constraints with predefined type set
-abs :: fn($T: Numeric, x: T) T {
-    ret if x < 0 { -x } else { x }
+// Generic with return type
+identity :: fn(x: $T) $T {
+    ret x
 }
 
-// Constraints with inline type set
-process :: fn($T: @type_set(i32, i64), value: T) T {
-    ret value * 2
+// Generic struct - $T inline in field types
+Box :: struct {
+    value: $T,
 }
+
+// Usage
+b := Box(i32){value: 42}
 ```
 
 ### Control Flow

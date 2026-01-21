@@ -767,13 +767,13 @@ printf :: fn(format: string, args: ..)
 
 ### 7.1 Generic System Design
 
-A7 uses a simple generic system where type parameters are compile-time constants.
+A7 uses a simple generic system where type parameters are compile-time constants with **inline declaration syntax**.
 
 **Core Principles:**
-- `$T` **declares** a compile-time type parameter
-- `T` (without `$`) **references** a declared type parameter
-- Type parameters must be declared before use
-- Constraints can be specified inline with type sets
+- `$T` is used **inline** within type expressions to declare and reference generic types
+- The same `$T` syntax is used everywhere - no separate declaration vs reference syntax
+- Generic types are inferred from usage context at compile time
+- Constraints are a semantic analysis feature (future)
 
 **Generic Type Parameter Syntax Rules:**
 - Must start with `$` followed immediately by a letter (a-z, A-Z)
@@ -781,60 +781,82 @@ A7 uses a simple generic system where type parameters are compile-time constants
 - No digits allowed: `$T`, `$MY_TYPE` ✅ but `$T1`, `$123` ❌
 - Standalone `$` is invalid and produces a compilation error
 
-**Constraint Syntax:**
-- Unconstrained: `$T`
-- With predefined type set: `$T: Numeric`
-- With inline type set: `$T: @type_set(i32, i64, f32, f64)`
-
 ```a7
-// Simple unconstrained type parameter
-swap :: fn($T, a: ref T, b: ref T) {
-    //     ^^     ^        ^
-    //     declare  use    use
+// Simple generic function - $T used inline in parameter and return types
+swap :: fn(a: ref $T, b: ref $T) {
+    //           ^^       ^^
+    //      $T used inline in type expressions
     temp := a.val
     a.val = b.val
     b.val = temp
 }
 
-// Constrained with predefined type set
-abs :: fn($T: Numeric, x: T) T {
+// Generic function with return type
+identity :: fn(x: $T) $T {
+    ret x
+}
+
+// Generic function - type inferred from first argument
+abs :: fn(x: $T) $T {
     ret if x < 0 { -x } else { x }
 }
 
-// Constrained with inline type set
-process :: fn($T: @type_set(i32, i64), value: T) T {
-    ret value * 2
+// Multiple generic type parameters
+pair :: fn(first: $T, second: $U) {
+    x := first
+    y := second
 }
 
-// Multiple type parameters
-map :: fn($T, $U, arr: []T, f: fn(T) U) []U {
-    result := new [arr.len]U
-    for i, val in arr {
-        result[i] = f(val)
-    }
-    ret result[..]
+// Generic with array parameter
+first :: fn(arr: []$T) $T {
+    ret arr[0]
 }
 ```
 
 ### 7.2 Generic Types
 
+Generic structs, enums, and unions use inline `$T` syntax in their field types:
+
 ```a7
-// Generic struct
-Pair :: struct($T, $U) {
-    first: T
-    second: U
+// Generic struct - $T used inline in field types
+Pair :: struct {
+    first: $T,
+    second: $U,
 }
 
-// Usage
-p := Pair(i32, string){42, "answer"}
+// Usage - specify concrete types at instantiation
+p := Pair(i32, string){first: 42, second: "answer"}
+
+// Generic box
+Box :: struct {
+    value: $T,
+}
+
+// Nested generic instantiation
+nested: Box(Box(i32))
+
+// Generic enum
+Option :: enum {
+    Some: $T,
+    None,
+}
+
+// Generic union
+Result :: union {
+    ok: $T,
+    err: $E,
+}
 ```
 
 ### 7.3 Type Sets and Constraints
 
-Type sets are defined using the `@type_set()` builtin function and can be used inline or as predefined constants:
+> **Implementation Status**: Type sets can be declared and parsed, but constraint enforcement
+> in generic functions is a planned semantic analysis feature.
+
+Type sets are defined using the `@type_set()` builtin function:
 
 ```a7
-// Built-in type sets defined in standard library using @type_set()
+// Built-in type sets (will be defined in standard library)
 Numeric :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
 Integer :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
 Float :: @type_set(f32, f64)
@@ -844,33 +866,18 @@ Unsigned :: @type_set(u8, u16, u32, u64, usize)
 // Custom type sets
 SmallInts :: @type_set(i8, u8, i16, u16)
 BigInts :: @type_set(i64, u64)
+```
 
-// Using predefined type sets as constraints
-abs :: fn($T: Numeric, x: T) T {
+**Future Constraint Syntax** (planned for semantic analysis phase):
+```a7
+// Constraint syntax will allow restricting generic types
+// Note: This is planned syntax, not yet enforced
+abs :: fn(x: $T) $T {  // where $T: Numeric
     ret if x < 0 { -x } else { x }
 }
 
-min :: fn($T: Numeric, a: T, b: T) T {
+min :: fn(a: $T, b: $T) $T {  // where $T: Numeric
     ret if a < b { a } else { b }
-}
-
-max :: fn($T: Numeric, a: T, b: T) T {
-    ret if a > b { a } else { b }
-}
-
-// Using inline type sets
-process_ints :: fn($T: @type_set(i32, i64), value: T) T {
-    ret value * 2
-}
-
-// Multiple type parameters with different constraints
-convert :: fn($T: Numeric, $U: Numeric, value: T) U {
-    ret cast(U, value)
-}
-
-// Mixed: predefined and inline
-clamp :: fn($T: Numeric, x: T, low: T, high: T) T {
-    ret min($T, max($T, x, low), high)
 }
 ```
 
@@ -2013,10 +2020,13 @@ p := Pair(i32, string){42, "answer"}
 
 ### 7.3 Type Sets and Constraints
 
-Type sets are defined using the `@type_set()` builtin function and can be used inline or as predefined constants:
+> **Implementation Status**: Type sets can be declared and parsed, but constraint enforcement
+> in generic functions is a planned semantic analysis feature.
+
+Type sets are defined using the `@type_set()` builtin function:
 
 ```a7
-// Built-in type sets defined in standard library using @type_set()
+// Built-in type sets (will be defined in standard library)
 Numeric :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f64)
 Integer :: @type_set(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize)
 Float :: @type_set(f32, f64)
@@ -2026,33 +2036,18 @@ Unsigned :: @type_set(u8, u16, u32, u64, usize)
 // Custom type sets
 SmallInts :: @type_set(i8, u8, i16, u16)
 BigInts :: @type_set(i64, u64)
+```
 
-// Using predefined type sets as constraints
-abs :: fn($T: Numeric, x: T) T {
+**Future Constraint Syntax** (planned for semantic analysis phase):
+```a7
+// Constraint syntax will allow restricting generic types
+// Note: This is planned syntax, not yet enforced
+abs :: fn(x: $T) $T {  // where $T: Numeric
     ret if x < 0 { -x } else { x }
 }
 
-min :: fn($T: Numeric, a: T, b: T) T {
+min :: fn(a: $T, b: $T) $T {  // where $T: Numeric
     ret if a < b { a } else { b }
-}
-
-max :: fn($T: Numeric, a: T, b: T) T {
-    ret if a > b { a } else { b }
-}
-
-// Using inline type sets
-process_ints :: fn($T: @type_set(i32, i64), value: T) T {
-    ret value * 2
-}
-
-// Multiple type parameters with different constraints
-convert :: fn($T: Numeric, $U: Numeric, value: T) U {
-    ret cast(U, value)
-}
-
-// Mixed: predefined and inline
-clamp :: fn($T: Numeric, x: T, low: T, high: T) T {
-    ret min($T, max($T, x, low), high)
 }
 ```
 
