@@ -164,16 +164,27 @@ class SymbolTable:
         self.current_scope = self.global_scope
         self.scope_stack: List[Scope] = [self.global_scope]
 
-    def enter_scope(self, name: str) -> Scope:
+    def enter_scope(self, name: str, reuse_existing: bool = False) -> Scope:
         """
-        Enter a new nested scope.
+        Enter a nested scope.
 
         Args:
             name: Human-readable scope name
+            reuse_existing: If True, try to enter an existing child scope with this name
+                           instead of creating a new one.
 
         Returns:
-            The newly created scope
+            The scope entered (either new or existing)
         """
+        if reuse_existing:
+            # Try to find existing child scope with this name
+            for child in self.current_scope.children:
+                if child.name == name:
+                    self.current_scope = child
+                    self.scope_stack.append(child)
+                    return child
+
+        # Create a new scope
         new_scope = Scope(name, parent=self.current_scope)
         self.current_scope = new_scope
         self.scope_stack.append(new_scope)

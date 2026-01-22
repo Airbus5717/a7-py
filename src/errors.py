@@ -70,6 +70,7 @@ class SemanticErrorType(Enum):
     INVALID_DEFER_SCOPE = "invalid_defer_scope"
     MEMORY_LEAK = "memory_leak"
     DOUBLE_FREE = "double_free"
+    DELETE_NON_REFERENCE = "delete_non_reference"
 
     # Import errors
     CIRCULAR_IMPORT = "circular_import"

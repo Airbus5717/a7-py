@@ -118,7 +118,7 @@ class TestNameResolutionErrors:
 
         main :: fn() { }
         """
-        assert expect_error(source, "duplicate")
+        assert expect_error(source, "already")
 
     def test_undefined_struct_field_error(self):
         """Test error on undefined struct field access."""

@@ -50,13 +50,16 @@ class TypeCheckingPass:
         # Cache for type information attached to AST nodes
         self.node_types: Dict[int, Type] = {}
 
-    def analyze(self, program: ASTNode, filename: str = "<unknown>") -> None:
+    def analyze(self, program: ASTNode, filename: str = "<unknown>") -> Dict[int, Type]:
         """
         Perform type checking on a program.
 
         Args:
             program: Root program node
             filename: Source file name
+
+        Returns:
+            Dict mapping node IDs to their types
 
         Note:
             Collects ALL errors instead of stopping at the first one.
@@ -68,7 +71,8 @@ class TypeCheckingPass:
         # Visit the program
         self.visit_program(program)
 
-        # Caller should check self.errors
+        # Return the node types map for use by later passes
+        return self.node_types
 
     def add_error(self, message: str, span: Optional[SourceSpan] = None) -> None:
         """Add a type checking error (legacy - prefer add_type_error)."""
@@ -117,7 +121,12 @@ class TypeCheckingPass:
             if decl.kind in {NodeKind.STRUCT, NodeKind.ENUM, NodeKind.UNION, NodeKind.TYPE_ALIAS}:
                 self.register_type_decl(decl)
 
-        # Second pass: type check all declarations
+        # Second pass: register function signatures (for mutual recursion support)
+        for decl in node.declarations or []:
+            if decl.kind == NodeKind.FUNCTION:
+                self.register_function_signature(decl)
+
+        # Third pass: type check all declarations (including function bodies)
         for decl in node.declarations or []:
             self.visit_declaration(decl)
 
@@ -130,6 +139,49 @@ class TypeCheckingPass:
         elif node.kind == NodeKind.UNION:
             self.register_union_type(node)
         # TYPE_ALIAS will be resolved on-demand
+
+    def register_function_signature(self, node: ASTNode) -> None:
+        """Register a function's signature (type) without processing its body.
+
+        This enables mutual recursion support - all function types are known
+        before any function bodies are type-checked.
+        """
+        func_name = node.name or "<anonymous>"
+
+        # Resolve return type
+        return_type = self.resolve_type_node(node.return_type) if node.return_type else None
+
+        # Resolve parameter types
+        param_types = []
+        if node.parameters:
+            for param in node.parameters:
+                param_type = self.resolve_type_node(param.param_type) if param.param_type else UNKNOWN
+                param_types.append(param_type)
+
+        # Check for variadic
+        is_variadic = node.is_variadic or False
+        if not is_variadic and node.parameters:
+            last_param = node.parameters[-1]
+            is_variadic = getattr(last_param, 'is_variadic', False) or False
+
+        variadic_type = None
+        if is_variadic and node.parameters:
+            last_param = node.parameters[-1]
+            if last_param.param_type:
+                variadic_type = self.resolve_type_node(last_param.param_type)
+
+        # Create function type
+        func_type = FunctionType(
+            param_types=tuple(param_types),
+            return_type=return_type,
+            is_variadic=is_variadic,
+            variadic_type=variadic_type
+        )
+
+        # Update function symbol
+        func_symbol = self.symbols.lookup(func_name)
+        if func_symbol:
+            func_symbol.type = func_type
 
     def register_struct_type(self, node: ASTNode) -> None:
         """Register a struct type."""
@@ -228,6 +280,13 @@ class TypeCheckingPass:
             # Named type (struct, enum, union, type alias)
             # Note: Parser stores type name in 'name' attribute, not 'type_name'
             type_name = node.name or node.type_name or ""
+
+            # Check for generic parameters (instantiation like Box(i32))
+            if node.generic_params:
+                type_args = [self.resolve_type_node(arg) for arg in node.generic_params]
+                return GenericInstanceType(base_name=type_name, type_args=tuple(type_args))
+
+            # Regular type lookup
             symbol = self.symbols.lookup(type_name)
             if symbol:
                 return symbol.type
@@ -247,9 +306,9 @@ class TypeCheckingPass:
             return SliceType(element_type=elem_type)
 
         elif node.kind == NodeKind.TYPE_POINTER:
-            # Pointer: ptr T
-            pointee_type = self.resolve_type_node(node.target_type)
-            return PointerType(pointee_type=pointee_type)
+            # Reference type: ref T (can be nil in A7)
+            referent_type = self.resolve_type_node(node.target_type)
+            return ReferenceType(referent_type=referent_type)
 
         elif node.kind == NodeKind.TYPE_FUNCTION:
             # Function type: fn(params...) return_type
@@ -282,14 +341,19 @@ class TypeCheckingPass:
             return StructType(name=None, fields=tuple(fields))
 
         elif node.kind == NodeKind.TYPE_GENERIC:
-            # Generic instantiation: List(i32)
-            base_name = node.type_name or ""
-            type_args = []
-            if node.type_args:
-                for arg in node.type_args:
-                    type_args.append(self.resolve_type_node(arg))
+            # Check if it's a generic parameter declaration ($T) vs generic instantiation
+            if node.name and not node.type_name and not node.type_args:
+                # This is a generic parameter declaration like $T
+                return GenericParamType(name=node.name)
+            else:
+                # Generic instantiation: List(i32) - legacy path
+                base_name = node.type_name or ""
+                type_args = []
+                if node.type_args:
+                    for arg in node.type_args:
+                        type_args.append(self.resolve_type_node(arg))
 
-            return GenericInstanceType(base_name=base_name, type_args=tuple(type_args))
+                return GenericInstanceType(base_name=base_name, type_args=tuple(type_args))
 
         elif node.kind == NodeKind.TYPE_SET:
             # Type set: @type_set(i32, i64)
@@ -320,31 +384,41 @@ class TypeCheckingPass:
         func_name = node.name or "<anonymous>"
 
         # Enter function scope for parameter and body processing
-        self.symbols.enter_scope(f"function_{func_name}")
+        self.symbols.enter_scope(f"function_{func_name}", reuse_existing=True)
 
         # Resolve return type
         return_type = self.resolve_type_node(node.return_type) if node.return_type else None
 
-        # Resolve parameter types and register parameters in this scope
+        # Resolve parameter types and update existing parameter symbols
         param_types = []
         if node.parameters:
             for param in node.parameters:
                 param_type = self.resolve_type_node(param.param_type) if param.param_type else UNKNOWN
                 param_types.append(param_type)
 
-                # Register parameter in function scope
+                # Update existing parameter symbol's type (symbol was defined during name resolution)
                 param_name = param.name or ""
-                param_symbol = Symbol(
-                    name=param_name,
-                    kind=SymbolKind.VARIABLE,
-                    type=param_type,
-                    node=param,
-                    is_mutable=False
-                )
-                self.symbols.define(param_symbol)
+                existing_symbol = self.symbols.lookup(param_name)
+                if existing_symbol:
+                    existing_symbol.type = param_type
+                else:
+                    # Symbol wasn't defined by name resolution - define it now
+                    param_symbol = Symbol(
+                        name=param_name,
+                        kind=SymbolKind.VARIABLE,
+                        type=param_type,
+                        node=param,
+                        is_mutable=False
+                    )
+                    self.symbols.define(param_symbol)
 
-        # Check for variadic
+        # Check for variadic (variadic flag may be on function node or last parameter)
         is_variadic = node.is_variadic or False
+        if not is_variadic and node.parameters:
+            # Check if last parameter is variadic
+            last_param = node.parameters[-1]
+            is_variadic = getattr(last_param, 'is_variadic', False) or False
+
         variadic_type = None
         if is_variadic and node.parameters:
             last_param = node.parameters[-1]
@@ -451,22 +525,30 @@ class TypeCheckingPass:
             self.errors.append(error)
             value_type = UNKNOWN
 
-        # Register variable in current scope (type checker manages its own scopes)
-        var_symbol = Symbol(
-            name=var_name,
-            kind=SymbolKind.VARIABLE,
-            type=value_type,
-            node=node,
-            is_mutable=True
-        )
-        self.symbols.define(var_symbol)
+        # Update the existing symbol's type (symbol was defined during name resolution)
+        existing_symbol = self.symbols.lookup(var_name)
+        if existing_symbol:
+            existing_symbol.type = value_type
+        else:
+            # Symbol wasn't defined by name resolution - define it now
+            var_symbol = Symbol(
+                name=var_name,
+                kind=SymbolKind.VARIABLE,
+                type=value_type,
+                node=node,
+                is_mutable=True
+            )
+            self.symbols.define(var_symbol)
 
     def visit_statement(self, node: ASTNode) -> None:
         """Visit a statement."""
         if node.kind == NodeKind.BLOCK:
+            # Enter block scope (must match name resolution)
+            self.symbols.enter_scope("block", reuse_existing=True)
             if node.statements:
                 for stmt in node.statements:
                     self.visit_statement(stmt)
+            self.symbols.exit_scope()
 
         elif node.kind == NodeKind.VAR:
             self.visit_var_decl(node)
@@ -588,7 +670,11 @@ class TypeCheckingPass:
 
     def visit_for_in_stmt(self, node: ASTNode) -> None:
         """Visit a for-in loop."""
-        # Type check iterable
+        # Enter the for-in scope (must match name resolution)
+        scope_name = "for_in_indexed" if node.kind == NodeKind.FOR_IN_INDEXED else "for_in"
+        self.symbols.enter_scope(scope_name, reuse_existing=True)
+
+        # Type check iterable (outside loop scope)
         iterable_type = UNKNOWN
         if node.iterable:
             iterable_type = self.visit_expression(node.iterable)
@@ -621,8 +707,9 @@ class TypeCheckingPass:
         if node.body:
             self.visit_statement(node.body)
 
-        # Exit loop context
+        # Exit loop context and scope
         self.context.exit_loop()
+        self.symbols.exit_scope()
 
     def visit_match_stmt(self, node: ASTNode) -> None:
         """Visit a match statement."""
@@ -644,10 +731,10 @@ class TypeCheckingPass:
 
     def visit_return_stmt(self, node: ASTNode) -> None:
         """Visit a return statement."""
-        # Type check return value
+        # Type check return value (RETURN nodes use 'value' attribute, not 'expression')
         return_type = None
-        if node.expression:
-            return_type = self.visit_expression(node.expression)
+        if node.value:
+            return_type = self.visit_expression(node.value)
 
         # Validate against function return type
         if not self.context.validate_return(return_type):
@@ -835,6 +922,14 @@ class TypeCheckingPass:
             for arg in node.arguments:
                 arg_types.append(self.visit_expression(arg))
 
+        # Check for generic type inference
+        generic_mapping = self._infer_generic_types(func_type, arg_types)
+        if generic_mapping:
+            # Substitute generic types in param_types for type checking
+            resolved_param_types = [self._substitute_generic(pt, generic_mapping) for pt in func_type.param_types]
+        else:
+            resolved_param_types = list(func_type.param_types)
+
         # Check argument count
         expected_count = len(func_type.param_types)
         actual_count = len(arg_types)
@@ -846,8 +941,12 @@ class TypeCheckingPass:
                 context=f"Expected {expected_count} arguments, got {actual_count}"
             )
 
-        # Check argument types
-        for i, (arg_type, param_type) in enumerate(zip(arg_types, func_type.param_types)):
+        # Check argument types (skip check if param type is unknown, e.g., untyped variadic)
+        for i, (arg_type, param_type) in enumerate(zip(arg_types, resolved_param_types)):
+            if isinstance(param_type, UnknownType):
+                continue  # Skip type checking for untyped variadic parameters
+            if isinstance(param_type, GenericParamType):
+                continue  # Skip generic params that weren't resolved
             if not arg_type.is_assignable_to(param_type):
                 self.add_type_error(
                     TypeErrorType.ARGUMENT_TYPE_MISMATCH,
@@ -857,7 +956,84 @@ class TypeCheckingPass:
                     context=f"Argument {i+1}"
                 )
 
-        return func_type.return_type if func_type.return_type else VOID
+        # Resolve return type with generic substitution
+        return_type = func_type.return_type if func_type.return_type else VOID
+        if generic_mapping:
+            return_type = self._substitute_generic(return_type, generic_mapping)
+
+        return return_type
+
+    def _infer_generic_types(self, func_type: FunctionType, arg_types: List[Type]) -> Dict[str, Type]:
+        """
+        Infer generic type parameters from actual argument types.
+
+        Returns a mapping from generic parameter names to concrete types.
+        """
+        mapping: Dict[str, Type] = {}
+
+        for param_type, arg_type in zip(func_type.param_types, arg_types):
+            if isinstance(param_type, GenericParamType):
+                # Direct generic parameter: $T
+                if param_type.name in mapping:
+                    # Already have a binding - verify consistency
+                    existing = mapping[param_type.name]
+                    if not arg_type.equals(existing):
+                        # Type mismatch for same generic parameter
+                        pass  # Will be caught by later checks
+                else:
+                    mapping[param_type.name] = arg_type
+            elif isinstance(param_type, ReferenceType):
+                # Reference to generic: ref $T
+                if isinstance(param_type.referent_type, GenericParamType):
+                    generic_name = param_type.referent_type.name
+                    # Extract the referent type from the argument
+                    if isinstance(arg_type, ReferenceType):
+                        mapping[generic_name] = arg_type.referent_type
+                    else:
+                        # Try to use the argument type directly
+                        mapping[generic_name] = arg_type
+            elif isinstance(param_type, ArrayType):
+                # Array of generic: []$T
+                if isinstance(param_type.element_type, GenericParamType):
+                    generic_name = param_type.element_type.name
+                    if isinstance(arg_type, ArrayType):
+                        mapping[generic_name] = arg_type.element_type
+                    elif isinstance(arg_type, SliceType):
+                        mapping[generic_name] = arg_type.element_type
+            elif isinstance(param_type, SliceType):
+                # Slice of generic: []$T
+                if isinstance(param_type.element_type, GenericParamType):
+                    generic_name = param_type.element_type.name
+                    if isinstance(arg_type, SliceType):
+                        mapping[generic_name] = arg_type.element_type
+                    elif isinstance(arg_type, ArrayType):
+                        mapping[generic_name] = arg_type.element_type
+
+        return mapping
+
+    def _substitute_generic(self, type_: Type, mapping: Dict[str, Type]) -> Type:
+        """
+        Substitute generic type parameters with concrete types.
+        """
+        if isinstance(type_, GenericParamType):
+            return mapping.get(type_.name, type_)
+        elif isinstance(type_, ReferenceType):
+            return ReferenceType(referent_type=self._substitute_generic(type_.referent_type, mapping))
+        elif isinstance(type_, ArrayType):
+            return ArrayType(element_type=self._substitute_generic(type_.element_type, mapping), size=type_.size)
+        elif isinstance(type_, SliceType):
+            return SliceType(element_type=self._substitute_generic(type_.element_type, mapping))
+        elif isinstance(type_, PointerType):
+            return PointerType(pointee_type=self._substitute_generic(type_.pointee_type, mapping))
+        elif isinstance(type_, FunctionType):
+            new_params = tuple(self._substitute_generic(pt, mapping) for pt in type_.param_types)
+            new_return = self._substitute_generic(type_.return_type, mapping) if type_.return_type else None
+            return FunctionType(param_types=new_params, return_type=new_return, is_variadic=type_.is_variadic, variadic_type=type_.variadic_type)
+        elif isinstance(type_, GenericInstanceType):
+            new_args = tuple(self._substitute_generic(arg, mapping) for arg in type_.type_args)
+            return GenericInstanceType(base_name=type_.base_name, type_args=new_args)
+        else:
+            return type_
 
     def visit_index_expr(self, node: ASTNode) -> Type:
         """Visit an index expression."""
@@ -910,7 +1086,7 @@ class TypeCheckingPass:
     def visit_address_of(self, node: ASTNode) -> Type:
         """Visit an address-of expression (.adr)."""
         operand_type = self.visit_expression(node.operand) if node.operand else UNKNOWN
-        return PointerType(pointee_type=operand_type)
+        return ReferenceType(referent_type=operand_type)
 
     def visit_deref(self, node: ASTNode) -> Type:
         """Visit a dereference expression (.val)."""
@@ -954,15 +1130,42 @@ class TypeCheckingPass:
     def visit_struct_init(self, node: ASTNode) -> Type:
         """Visit a struct initialization."""
         # Resolve struct type
-        # struct_type might be a string (type name) or an ASTNode
+        struct_type = None
         if node.struct_type:
             if isinstance(node.struct_type, str):
                 # Look up type by name
                 symbol = self.symbols.lookup(node.struct_type)
-                return symbol.type if symbol else UNKNOWN
+                struct_type = symbol.type if symbol else None
             else:
-                return self.resolve_type_node(node.struct_type)
-        return UNKNOWN
+                struct_type = self.resolve_type_node(node.struct_type)
+
+        if not isinstance(struct_type, StructType):
+            return UNKNOWN
+
+        # Type check field initializers
+        if node.field_inits:
+            for field_init in node.field_inits:
+                field_name = field_init.name or ""
+                # Get expected field type from struct definition
+                expected_type = None
+                for field in struct_type.fields:
+                    if field.name == field_name:
+                        expected_type = field.field_type
+                        break
+
+                # Type check the value
+                if field_init.value:
+                    actual_type = self.visit_expression(field_init.value)
+                    if expected_type and not actual_type.is_assignable_to(expected_type):
+                        self.add_type_error(
+                            TypeErrorType.TYPE_MISMATCH,
+                            field_init.span,
+                            expected_type=str(expected_type),
+                            got_type=str(actual_type),
+                            context=f"Field '{field_name}'"
+                        )
+
+        return struct_type
 
     def visit_array_init(self, node: ASTNode) -> Type:
         """Visit an array initialization."""
