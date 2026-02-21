@@ -1,0 +1,13 @@
+=== Operators ===
+a + b = 13
+a - b = 7
+a * b = 30
+a / b = 3
+a % b = 1
+a > b = true
+a == b = false
+a & b = 2
+a | b = 11
+a ^ b = 9
+a << 1 = 20
+a >> 1 = 5

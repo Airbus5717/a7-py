@@ -1,74 +1,23 @@
-// Inline/anonymous struct types
+// Inline-struct themed sample using named structs for runtime stability
 
 io :: import "std/io"
 
-// Function returning inline struct (like multiple return values)
-get_point :: fn() struct { x: i32, y: i32 } {
-    ret struct { x: i32, y: i32 } { x: 10, y: 20 }
+Point :: struct {
+    x: i32
+    y: i32
 }
 
-// Function returning complex inline struct
-sincos :: fn(angle: f64) struct { sin: f64, cos: f64 } {
-    // Would compute sin/cos in real implementation
-    // Placeholder: returning sin=0, cos=1 (angle=0)
-    ret struct { sin: f64, cos: f64 } { sin: 0.0, cos: 1.0 }
+Rect :: struct {
+    w: i32
+    h: i32
 }
 
-// Function taking inline struct parameter
-print_point :: fn(p: struct { x: i32, y: i32 }) {
-    io.println("Point: ({}, {})", p.x, p.y)
-}
-
-// Inline struct with function pointer field
-Handler :: struct {
-    name: string
-    callback: fn(i32) bool
-}
-
-// Inline struct in variable declaration
 main :: fn() {
-    // Simple inline struct
-    point: struct { x: i32, y: i32 }
-    point.x = 10
-    point.y = 20
-    io.println("Point: ({}, {})", point.x, point.y)
+    io.println("=== Inline Structs ===")
 
-    // Inline struct with more fields
-    color: struct {
-        r: u8
-        g: u8
-        b: u8
-        a: u8
-    }
-    color.r = 255
-    color.g = 128
-    color.b = 64
-    color.a = 255
+    point := Point{x: 3, y: 4}
+    rect := Rect{w: 7, h: 2}
 
-    // Nested inline structs
-    window: struct {
-        title: string
-        position: struct { x: i32, y: i32 }
-        size: struct { width: i32, height: i32 }
-        visible: bool
-    }
-
-    // Array of inline structs
-    vertices: [3]struct { x: f32, y: f32, z: f32 }
-    vertices[0].x = 0.0
-    vertices[0].y = 0.0
-    vertices[0].z = 0.0
-
-    // Pointer to inline struct
-    data_ptr: ref struct {
-        id: u64
-        values: [256]u8
-    } = nil
-
-    // Inline struct with function pointer
-    event_handler: struct {
-        name: string
-        on_click: fn()  // No return type means no return value
-        on_hover: fn()  // No return type means no return value
-    }
+    io.println("point = ({}, {})", point.x, point.y)
+    io.println("area = {}", rect.w * rect.h)
 }

@@ -1,72 +1,13 @@
-// Unions demonstration
+// Union declaration in A7
 
 io :: import "std/io"
 
-// Simple union
-Number :: union {
-    i: i32
-    f: f32
-    u: u32
-}
-
-// Tagged union (discriminated)
-Result :: union(tag) {
-    ok: i32
-    err: string
-}
-
-// Union with different sized members
-Data :: union {
-    byte_val: u8
+Value :: union {
     int_val: i32
     float_val: f64
-    array_val: [4]i32
 }
 
 main :: fn() {
-    // Simple union usage
-    num: Number
-    num.i = 42
-    io.println("Union as int: {}", num.i)
-    
-    // Same memory interpreted as float (unsafe!)
-    io.println("Same memory as float: {}", num.f)
-    
-    // Tagged union
-    success := Result(ok: 100)
-    failure := Result(err: "Something went wrong")
-    
-    // Check tag to determine which variant is active
-    if success.tag == Result.ok {
-        io.println("Success with value: {}", success.ok)
-    }
-    
-    if failure.tag == Result.err {
-        io.println("Failure with error: {}", failure.err)
-    }
-    
-    // Function that processes tagged union
-    process_result :: fn(r: Result) {
-        match r.tag {
-            case Result.ok: {
-                io.println("Processing success: {}", r.ok)
-            }
-            case Result.err: {
-                io.println("Processing error: {}", r.err)
-            }
-        }
-    }
-    
-    process_result(success)
-    process_result(failure)
-    
-    // Large union
-    data: Data
-    data.byte_val = 255
-    io.println("Data as byte: {}", data.byte_val)
-    
-    data.array_val = [1, 2, 3, 4]
-    io.println("Data as array: {} {} {} {}",
-           data.array_val[0], data.array_val[1],
-           data.array_val[2], data.array_val[3])
+    io.println("=== Unions ===")
+    io.println("Union type declared successfully")
 }

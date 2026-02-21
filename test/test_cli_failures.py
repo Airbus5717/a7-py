@@ -1,0 +1,174 @@
+"""CLI regression tests for failure handling and mode contracts."""
+
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+from src.compile import ExitCode
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MAIN_PY = PROJECT_ROOT / "main.py"
+
+
+def run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run the compiler CLI and capture output."""
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = (
+        f"{PROJECT_ROOT}:{existing_pythonpath}" if existing_pythonpath else str(PROJECT_ROOT)
+    )
+    return subprocess.run(
+        [sys.executable, str(MAIN_PY), *args],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+
+def test_cli_parse_error_returns_nonzero(tmp_path):
+    src = tmp_path / "parse_error.a7"
+    src.write_text(
+        """
+main :: fn() {
+    x := (
+}
+""".strip()
+    )
+
+    result = run_cli([str(src)])
+    combined = result.stdout + result.stderr
+
+    assert result.returncode == ExitCode.PARSE
+    assert "expected expression" in combined.lower()
+
+
+def test_cli_semantic_error_returns_nonzero_and_skips_codegen(tmp_path):
+    src = tmp_path / "semantic_error.a7"
+    out = tmp_path / "semantic_error.zig"
+    src.write_text(
+        """
+main :: fn() {
+    x: i32 = "hello"
+}
+""".strip()
+    )
+
+    result = run_cli([str(src), "-o", str(out)])
+    combined = result.stdout + result.stderr
+
+    assert result.returncode == ExitCode.SEMANTIC
+    assert "type mismatch" in combined.lower()
+    assert not out.exists()
+
+
+def test_cli_parse_error_json_mode_returns_error_object(tmp_path):
+    src = tmp_path / "parse_error_json.a7"
+    src.write_text(
+        """
+main :: fn() {
+    x := (
+}
+""".strip()
+    )
+
+    result = run_cli(["--format", "json", str(src)])
+
+    assert result.returncode == ExitCode.PARSE
+    payload = json.loads(result.stdout)
+    assert payload["schema_version"] == "2.0"
+    assert payload["status"] == "error"
+    assert payload["mode"] == "compile"
+    assert "error" in payload
+    assert payload["error"]["category"] == "parse"
+    assert payload["error"]["details"][0]["type"] in {"ParseError", "CompilerError"}
+
+
+def test_cli_rejects_output_when_mode_is_not_compile(tmp_path):
+    src = tmp_path / "ok.a7"
+    src.write_text("main :: fn() {}")
+    out = tmp_path / "out.zig"
+
+    result = run_cli(["--mode", "tokens", "--output", str(out), str(src)])
+
+    assert result.returncode == ExitCode.USAGE
+    assert "--output is only valid" in result.stderr
+
+
+def test_cli_io_error_exit_code_for_missing_file():
+    missing = "does_not_exist.a7"
+    result = run_cli([missing])
+
+    assert result.returncode == ExitCode.IO
+
+
+def test_cli_compile_mode_supports_doc_out(tmp_path):
+    src = tmp_path / "hello.a7"
+    out = tmp_path / "hello.zig"
+    doc = tmp_path / "hello.md"
+    src.write_text(
+        """
+io :: import "std/io"
+
+main :: fn() {
+    io.println("hello")
+}
+""".strip()
+    )
+
+    result = run_cli(
+        [
+            "--mode",
+            "compile",
+            "--doc-out",
+            str(doc),
+            "--output",
+            str(out),
+            str(src),
+        ]
+    )
+
+    assert result.returncode == ExitCode.SUCCESS
+    assert out.exists()
+    assert doc.exists()
+
+
+def test_cli_doc_mode_writes_default_markdown_path(tmp_path):
+    src = tmp_path / "doc_only.a7"
+    default_doc = tmp_path / "doc_only.md"
+    src.write_text(
+        """
+main :: fn() {}
+""".strip()
+    )
+
+    result = run_cli(["--mode", "doc", str(src)])
+
+    assert result.returncode == ExitCode.SUCCESS
+    assert default_doc.exists()
+
+
+def test_cli_compile_mode_supports_doc_out_auto_keyword(tmp_path):
+    src = tmp_path / "auto_doc.a7"
+    out = tmp_path / "auto_doc.zig"
+    expected_doc = tmp_path / "auto_doc.md"
+    src.write_text("main :: fn() {}")
+
+    result = run_cli(
+        [
+            "--mode",
+            "compile",
+            "--output",
+            str(out),
+            "--doc-out",
+            "auto",
+            str(src),
+        ]
+    )
+
+    assert result.returncode == ExitCode.SUCCESS
+    assert out.exists()
+    assert expected_doc.exists()

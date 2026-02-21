@@ -1,0 +1,10 @@
+=== Prime Numbers ===
+prime: 2
+prime: 3
+prime: 5
+prime: 7
+prime: 11
+prime: 13
+prime: 17
+prime: 19
+gcd(84, 30) = 6

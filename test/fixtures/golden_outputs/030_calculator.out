@@ -1,0 +1,29 @@
+=== Calculator ===
+a = 10, b = 3
+
+Basic Operations:
+  10 + 3 = 13
+  10 - 3 = 7
+  10 * 3 = 30
+  10 / 3 = 3.3333333333333335
+
+Power:
+  10^2 = 100
+  10^3 = 1000
+  2^10 = 1024
+
+Square Root:
+  sqrt(16) = 4.000000000000004
+  sqrt(2) = 1.4142135623746899
+  sqrt(100) = 10
+
+Percentages:
+  25 is 25% of 100
+  75 is 50% of 150
+
+Absolute Value:
+  abs(-5.5) = 5.5
+  abs(3.14) = 3.14
+
+Complex Calculation:
+  (a * b) + sqrt(16) = 34.00000000000001

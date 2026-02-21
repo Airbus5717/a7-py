@@ -753,7 +753,9 @@ class Tokenizer:
         start_pos = self.position
         self.advance()  # @
 
-        while self.current_char() and self.current_char().isalpha():
+        while self.current_char() and (
+            self.current_char().isalnum() or self.current_char() == "_"
+        ):
             self.advance()
 
         builtin_text = self.source[start_pos : self.position]
@@ -942,9 +944,9 @@ class Tokenizer:
         start_pos = self.position - 1  # Include the '$'
         type_name = "$"
 
-        # For generic types: only letters and underscores allowed ($T, $TYPE, $MY_TYPE)
+        # For generic types: letters, digits, and underscores allowed ($T, $T1, $TYPE, $MY_TYPE)
         while self.current_char() and (
-            self.current_char().isalpha() or self.current_char() == "_"
+            self.current_char().isalnum() or self.current_char() == "_"
         ):
             type_name += self.current_char()
             self.advance()

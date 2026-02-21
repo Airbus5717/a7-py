@@ -1,73 +1,96 @@
 #!/usr/bin/env uv run python
 # -*- coding: utf-8 -*-
 
-import sys
 import argparse
+import sys
 from pathlib import Path
-from src.compile import compile_a7_file
+
+from src.compile import A7Compiler, CompileMode, OutputFormat
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
-        description="A7 Programming Language Compiler/Interpreter", prog="a7-py"
+        description="A7 Programming Language Compiler/Interpreter",
+        prog="a7-py",
     )
 
-    parser.add_argument("file", nargs="?", help="A7 source file (.a7) to compile")
+    parser.add_argument("file", help="A7 source file (.a7) to process")
 
     parser.add_argument(
-        "-o", "--output", help="Output file path (default: auto-generated)"
+        "--mode",
+        choices=[mode.value for mode in CompileMode],
+        default=CompileMode.COMPILE.value,
+        help="Execution mode (default: compile)",
     )
 
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Enable verbose output"
+        "--format",
+        dest="output_format",
+        choices=[fmt.value for fmt in OutputFormat],
+        default=OutputFormat.HUMAN.value,
+        help="Output format (default: human)",
     )
 
     parser.add_argument(
-        "--json", action="store_true", help="Output compilation results in JSON format"
+        "-o",
+        "--output",
+        help="Output file path for --mode compile (default: auto-generated)",
     )
 
-    # Analysis flags
-    analysis_group = parser.add_mutually_exclusive_group()
-    analysis_group.add_argument(
-        "--tokenize-only",
+    parser.add_argument(
+        "--doc-out",
+        metavar="PATH",
+        help=(
+            "Write markdown documentation report. "
+            "Allowed in modes: compile, pipeline, doc. "
+            "Use 'auto' for <file>.md"
+        ),
+    )
+
+    parser.add_argument(
+        "--backend",
+        default="zig",
+        help="Target backend name (default: zig)",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
         action="store_true",
-        help="Show lexical analysis (tokenization) output only, skip parsing",
-    )
-
-    analysis_group.add_argument(
-        "--parse-only",
-        action="store_true",
-        help="Show tokenization and syntax analysis (AST generation), skip code generation",
+        help="Enable verbose output",
     )
 
     args = parser.parse_args()
 
-    if not args.file:
-        print("Usage: python main.py <file.a7> [-o output] [-v]")
-        return
+    mode = CompileMode(args.mode)
+    output_format = OutputFormat(args.output_format)
 
-    # Validate input file
+    if mode != CompileMode.COMPILE and args.output:
+        parser.error("--output is only valid when --mode compile")
+
+    if args.doc_out and mode not in {
+        CompileMode.COMPILE,
+        CompileMode.PIPELINE,
+        CompileMode.DOC,
+    }:
+        parser.error("--doc-out is only valid in modes: compile, pipeline, doc")
+
     input_path = Path(args.file)
-    if not input_path.exists():
-        print(f"Error: File not found: {args.file}", file=sys.stderr)
-        sys.exit(1)
+    doc_path = None
+    if args.doc_out:
+        doc_path = str(input_path.with_suffix(".md")) if args.doc_out == "auto" else args.doc_out
+    elif mode == CompileMode.DOC:
+        doc_path = str(input_path.with_suffix(".md"))
 
-    if not input_path.suffix == ".a7":
-        print(f"Error: Expected .a7 file, got: {args.file}", file=sys.stderr)
-        sys.exit(1)
-
-    # Compile the file
-    success = compile_a7_file(
-        str(input_path),
-        args.output,
+    compiler = A7Compiler(
+        backend=args.backend,
         verbose=args.verbose,
-        json_output=args.json,
-        tokenize_only=args.tokenize_only,
-        parse_only=args.parse_only,
+        mode=mode,
+        output_format=output_format,
+        doc_path=doc_path,
     )
-
-    if not success:
-        sys.exit(1)
+    result = compiler.compile_file_detailed(str(input_path), args.output)
+    sys.exit(result.exit_code)
 
 
 if __name__ == "__main__":

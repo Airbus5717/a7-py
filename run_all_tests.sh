@@ -12,6 +12,9 @@ echo ""
 echo "Semantic Analysis Tests (Comprehensive):"
 PYTHONPATH=. uv run pytest test/test_semantic_comprehensive.py --tb=no -q 2>&1 | tail -1
 echo ""
+echo "Examples E2E Verification (compile/build/run/output):"
+uv run python scripts/verify_examples_e2e.py
+echo ""
 echo "═══════════════════════════════════════════════════════════"
 echo "TOTAL (All Tests):"
 PYTHONPATH=. uv run pytest --tb=no -q 2>&1 | tail -1

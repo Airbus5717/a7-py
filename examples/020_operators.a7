@@ -1,101 +1,25 @@
-// Operators demonstration
+// Operators in A7
 
 io :: import "std/io"
 
 main :: fn() {
-    // Arithmetic operators
+    io.println("=== Operators ===")
+
     a := 10
     b := 3
 
-    io.println("Arithmetic: {} + {} = {}", a, b, a + b)
-    io.println("Arithmetic: {} - {} = {}", a, b, a - b)
-    io.println("Arithmetic: {} * {} = {}", a, b, a * b)
-    io.println("Arithmetic: {} / {} = {}", a, b, a / b)
-    io.println("Arithmetic: {} % {} = {}", a, b, a % b)
+    io.println("a + b = {}", a + b)
+    io.println("a - b = {}", a - b)
+    io.println("a * b = {}", a * b)
+    io.println("a / b = {}", a / b)
+    io.println("a % b = {}", a % b)
 
-    // Comparison operators
-    io.println("Comparison: {} == {} is {}", a, b, a == b)
-    io.println("Comparison: {} != {} is {}", a, b, a != b)
-    io.println("Comparison: {} < {} is {}", a, b, a < b)
-    io.println("Comparison: {} > {} is {}", a, b, a > b)
-    io.println("Comparison: {} <= {} is {}", a, b, a <= b)
-    io.println("Comparison: {} >= {} is {}", a, b, a >= b)
+    io.println("a > b = {}", a > b)
+    io.println("a == b = {}", a == b)
 
-    // Logical operators (using keywords)
-    x := true
-    y := false
-
-    io.println("Logical: {} and {} is {}", x, y, x and y)
-    io.println("Logical: {} or {} is {}", x, y, x or y)
-    io.println("Logical: not {} is {}", x, !x)
-
-    // Complex logical expressions
-    age := 25
-    has_license := true
-    can_drive := age >= 18 and has_license
-    io.println("Can drive: {}", can_drive)
-
-    // Bitwise operators
-    bits1 := 0b1010  // 10 in decimal
-    bits2 := 0b1100  // 12 in decimal
-
-    io.println("Bitwise: {} & {} = {}", bits1, bits2, bits1 & bits2)
-    io.println("Bitwise: {} | {} = {}", bits1, bits2, bits1 | bits2)
-    io.println("Bitwise: {} ^ {} = {}", bits1, bits2, bits1 ^ bits2)
-    io.println("Bitwise: ~{} = {}", bits1, ~bits1)
-    io.println("Bitwise: {} << 1 = {}", bits1, bits1 << 1)
-    io.println("Bitwise: {} >> 1 = {}", bits1, bits1 >> 1)
-
-    // Assignment operators
-    counter := 5
-    io.println("Initial counter: {}", counter)
-
-    counter += 3
-    io.println("After +=: {}", counter)
-
-    counter -= 2
-    io.println("After -=: {}", counter)
-
-    counter *= 2
-    io.println("After *=: {}", counter)
-
-    counter /= 3
-    io.println("After /=: {}", counter)
-
-    counter %= 3
-    io.println("After %=: {}", counter)
-
-    // Bitwise assignment
-    bits := 0b1111
-    bits &= 0b1010
-    io.println("After &=: {}", bits)
-
-    bits |= 0b0101
-    io.println("After |=: {}", bits)
-
-    bits ^= 0b1100
-    io.println("After ^=: {}", bits)
-
-    bits <<= 1
-    io.println("After <<=: {}", bits)
-
-    bits >>= 1
-    io.println("After >>=: {}", bits)
-
-    // Address-of and dereference operators
-    value := 42
-    ptr := value.adr
-    io.println("Value: {}, *ptr: {}", value, ptr.val)
-
-    // Unary operators
-    positive := 5
-    negative := -positive
-    io.println("Unary minus: -{} = {}", positive, negative)
-
-    // Operator precedence demonstration
-    result := 2 + 3 * 4    // Should be 14, not 20
-    io.println("2 + 3 * 4 = {} (precedence: * before +)", result)
-
-    parens := (2 + 3) * 4  // Should be 20
-    io.println("(2 + 3) * 4 = {} (parentheses override)", parens)
+    io.println("a & b = {}", a & b)
+    io.println("a | b = {}", a | b)
+    io.println("a ^ b = {}", a ^ b)
+    io.println("a << 1 = {}", a << 1)
+    io.println("a >> 1 = {}", a >> 1)
 }

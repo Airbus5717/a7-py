@@ -114,25 +114,53 @@ class ModuleResolver:
         self.loading_stack.append(module_path)
 
         try:
-            # In a real implementation, we would:
-            # 1. Read the file
-            # 2. Tokenize and parse it
-            # 3. Extract import statements
-            # 4. Recursively load dependencies
-            # 5. Run semantic analysis
-            # 6. Register in module table
+            # Read the source file
+            with open(file_path, "r") as f:
+                source = f.read()
 
-            # For now, create placeholder
+            # Tokenize and parse
+            from src.tokens import Tokenizer
+            from src.parser import Parser
+
+            tokenizer = Tokenizer(source, file_path)
+            tokens = tokenizer.tokenize()
+            source_lines = source.splitlines()
+            parser = Parser(tokens, file_path, source_lines)
+            ast = parser.parse()
+
+            # Run name resolution to build symbol table
+            from src.passes.name_resolution import NameResolutionPass
+            name_pass = NameResolutionPass()
+            name_pass.analyze(ast, file_path)
+            symbols = name_pass.symbols
+
+            # Extract dependencies for this module
+            deps = []
+            for decl in (ast.declarations or []):
+                if decl.kind == NodeKind.IMPORT:
+                    dep_path = decl.module_path or ""
+                    deps.append(dep_path)
+
             module_info = ModuleInfo(
                 path=module_path,
                 file_path=file_path,
-                ast=None,
-                symbols=None,
-                dependencies=[]
+                ast=ast,
+                symbols=symbols,
+                dependencies=deps,
             )
+
+            # Register module in the module table
+            self.module_table.register_module(module_path, symbols)
 
             # Cache the module
             self.loaded_modules[module_path] = module_info
+
+            # Recursively load dependencies
+            for dep_path in deps:
+                try:
+                    self.load_module(dep_path)
+                except Exception:
+                    pass  # Don't fail the parent module for dependency errors
 
             return module_info
 

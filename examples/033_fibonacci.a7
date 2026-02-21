@@ -1,198 +1,28 @@
-// Fibonacci sequence - different implementations
+// Fibonacci sequence
 
 io :: import "std/io"
 
-// Recursive fibonacci (slow for large n)
-fib_recursive :: fn(n: i32) i32 {
-    if n <= 1 {
-        ret n
-    }
-    ret fib_recursive(n - 1) + fib_recursive(n - 2)
-}
-
-// Iterative fibonacci (fast)
-fib_iterative :: fn(n: i32) i32 {
+fib :: fn(n: i32) i32 {
     if n <= 1 {
         ret n
     }
 
-    prev := 0
-    current := 1
+    a := 0
+    b := 1
 
     for i := 2; i <= n; i += 1 {
-        next := prev + current
-        prev = current
-        current = next
+        next := a + b
+        a = b
+        b = next
     }
 
-    ret current
-}
-
-// Fibonacci with memoization
-FibMemo :: struct {
-    cache: [100]i32
-    initialized: bool
-}
-
-fib_memo_init :: fn() FibMemo {
-    memo := FibMemo{initialized: false}  // cache array auto-zero-initialized
-    for i := 0; i < 100; i += 1 {
-        memo.cache[i] = -1
-    }
-    memo.cache[0] = 0
-    memo.cache[1] = 1
-    memo.initialized = true
-    ret memo
-}
-
-fib_memoized :: fn(n: i32, memo: ref FibMemo) i32 {
-    if n < 0  or  n >= 100 {
-        ret -1
-    }
-
-    if memo.val.cache[n] != -1 {
-        ret memo.val.cache[n]
-    }
-
-    result := fib_memoized(n - 1, memo) + fib_memoized(n - 2, memo)
-    memo.val.cache[n] = result
-    ret result
-}
-
-// Generate fibonacci sequence up to n terms
-generate_sequence :: fn(n: i32, sequence: []i32) {
-    if n >= 1 {
-        sequence[0] = 0
-    }
-    if n >= 2 {
-        sequence[1] = 1
-    }
-
-    for i := 2; i < n; i += 1 {
-        sequence[i] = sequence[i - 1] + sequence[i - 2]
-    }
-}
-
-// Find fibonacci numbers less than max
-find_below :: fn(max: i32, sequence: []i32) i32 {
-    count := 0
-    prev := 0
-    current := 1
-
-    sequence[count] = prev
-    count += 1
-
-    while current < max {
-        sequence[count] = current
-        count += 1
-
-        next := prev + current
-        prev = current
-        current = next
-    }
-
-    ret count
-}
-
-// Check if number is fibonacci
-is_fibonacci :: fn(n: i32) bool {
-    if n < 0 {
-        ret false
-    }
-
-    prev := 0
-    current := 1
-
-    if n == prev  or  n == current {
-        ret true
-    }
-
-    while current < n {
-        next := prev + current
-        prev = current
-        current = next
-
-        if current == n {
-            ret true
-        }
-    }
-
-    ret false
-}
-
-// Golden ratio approximation using fibonacci
-golden_ratio :: fn(n: i32) f64 {
-    if n < 2 {
-        ret 1.0
-    }
-
-    fib_n := cast(f64, fib_iterative(n))
-    fib_n_minus_1 := cast(f64, fib_iterative(n - 1))
-
-    ret fib_n / fib_n_minus_1
+    ret b
 }
 
 main :: fn() {
-    io.println("=== Fibonacci Sequence ===")
-    io.println("")
+    io.println("=== Fibonacci ===")
 
-    // Compare implementations
-    io.println("First 15 Fibonacci numbers:")
-    for i := 0; i < 15; i += 1 {
-        io.println("  F({}) = {}", i, fib_iterative(i))
-    }
-    io.println("")
-
-    // Memoized version
-    io.println("Using memoization:")
-    memo := fib_memo_init()
-    memo_ref := memo.adr
     for i := 0; i < 10; i += 1 {
-        io.println("  F({}) = {}", i, fib_memoized(i, memo_ref))
-    }
-    io.println("")
-
-    // Generate sequence
-    io.println("Generated sequence (first 20):")
-    sequence: [20]i32  // Zero-initialized
-    generate_sequence(20, sequence)
-    for i := 0; i < 20; i += 1 {
-        io.println("  [{}] = {}", i, sequence[i])
-    }
-    io.println("")
-
-    // Find fibonacci below value
-    io.println("Fibonacci numbers below 1000:")
-    below_1000: [20]i32  // Zero-initialized
-    count := find_below(1000, below_1000)
-    for i := 0; i < count; i += 1 {
-        io.println("  {}", below_1000[i])
-    }
-    io.println("")
-
-    // Test if numbers are fibonacci
-    io.println("Is Fibonacci test:")
-    test_numbers: [8]i32  // Zero-initialized
-    test_numbers[0] = 8
-    test_numbers[1] = 13
-    test_numbers[2] = 14
-    test_numbers[3] = 21
-    test_numbers[4] = 22
-    test_numbers[5] = 55
-    test_numbers[6] = 100
-    test_numbers[7] = 144
-
-    for num in test_numbers {
-        result := if is_fibonacci(num) { "Yes" } else { "No" }
-        io.println("  {} is Fibonacci? {}", num, result)
-    }
-    io.println("")
-
-    // Golden ratio approximation
-    io.println("Golden Ratio Approximation:")
-    io.println("  φ ≈ 1.618033988749...")
-    for i := 5; i <= 20; i = i + 5 {
-        ratio := golden_ratio(i)
-        io.println("  F({}) / F({}) = {}", i, i - 1, ratio)
+        io.println("fib({}) = {}", i, fib(i))
     }
 }

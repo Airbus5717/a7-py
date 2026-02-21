@@ -61,16 +61,22 @@ class SemanticErrorType(Enum):
 
     # Scope errors
     BREAK_OUTSIDE_LOOP = "break_outside_loop"
+    BREAK_UNDEFINED_LABEL = "break_undefined_label"
     CONTINUE_OUTSIDE_LOOP = "continue_outside_loop"
+    CONTINUE_UNDEFINED_LABEL = "continue_undefined_label"
     RETURN_OUTSIDE_FUNCTION = "return_outside_function"
+    DEFER_OUTSIDE_FUNCTION = "defer_outside_function"
 
     # Semantic validation
     UNREACHABLE_CODE = "unreachable_code"
     MISSING_RETURN = "missing_return"
+    CANNOT_ASSIGN_TO_IMMUTABLE = "cannot_assign_to_immutable"
     INVALID_DEFER_SCOPE = "invalid_defer_scope"
     MEMORY_LEAK = "memory_leak"
     DOUBLE_FREE = "double_free"
     DELETE_NON_REFERENCE = "delete_non_reference"
+    NIL_NOT_REFERENCE_TYPE = "nil_not_reference_type"
+    NON_EXHAUSTIVE_MATCH = "non_exhaustive_match"
 
     # Import errors
     CIRCULAR_IMPORT = "circular_import"

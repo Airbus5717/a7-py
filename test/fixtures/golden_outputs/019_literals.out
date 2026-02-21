@@ -1,0 +1,7 @@
+=== Literals ===
+int = 123
+float = 3.14159
+char = A
+string = hello
+bool = true
+nil = null

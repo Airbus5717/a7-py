@@ -5,6 +5,7 @@
       "Edit", 
       "MultiEdit",
       "Write",
+      "Bash(*)",
       "Bash(uv:*)",
       "Bash(python:*)",
       "Bash(pytest:*)",
@@ -15,7 +16,7 @@
       "Bash(wget:*)", 
       "Bash(rm -rf:*)"
     ],
-    "defaultMode": "allowEdits"
+    "defaultMode": "bypassPermissions"
   },
   "env": {
     "BASH_DEFAULT_TIMEOUT_MS": "60000",

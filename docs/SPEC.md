@@ -2871,8 +2871,8 @@ The **a7-py** implementation (Python-based A7 compiler) currently provides a ful
 
 **Developer Tools:**
 - Rich console output with syntax highlighting and AST tree visualization
-- JSON output mode (`--json` flag) with comprehensive metadata and AST serialization
-- Debug modes: `--tokenize-only`, `--parse-only` for analysis at different stages
+- JSON output mode (`--format json`) with stable schema metadata
+- Mode-based analysis CLI: `--mode tokens|ast|semantic|pipeline|compile|doc`
 - Comprehensive test suite with 301 tests (264 passing, 37 skipped)
 - CLI with verbose and error recovery options
 

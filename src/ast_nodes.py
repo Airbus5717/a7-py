@@ -50,6 +50,7 @@ class NodeKind(Enum):
     DEREF = auto()       # ptr.val
     CAST = auto()
     IF_EXPR = auto()
+    MATCH_EXPR = auto()
     STRUCT_INIT = auto()
     ARRAY_INIT = auto()
     NEW_EXPR = auto()  # new allocation expression
@@ -247,6 +248,14 @@ class ASTNode:
     constraint: Optional["ASTNode"] = None
     patterns: Optional[List["ASTNode"]] = None
     has_fallthrough: bool = False
+
+    # Preprocessor annotations (populated by ASTPreprocessor, read by backends)
+    is_mutable: bool = False              # VAR: assigned to after init
+    is_used: bool = True                  # VAR/PARAMETER: referenced somewhere
+    emit_name: Optional[str] = None       # Renamed identifier (shadow resolution)
+    resolved_type: Optional["ASTNode"] = None  # Inferred type annotation
+    hoisted: bool = False                 # FUNCTION: was hoisted from nested position
+    stdlib_canonical: Optional[str] = None  # Canonical stdlib call name
 
 
 # Utility functions for creating common AST nodes

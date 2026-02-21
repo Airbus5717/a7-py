@@ -6,7 +6,7 @@ Performs type inference, type checking, and type compatibility validation.
 
 from typing import Optional, List, Dict
 
-from src.ast_nodes import ASTNode, NodeKind, BinaryOp, UnaryOp, LiteralKind
+from src.ast_nodes import ASTNode, NodeKind, BinaryOp, UnaryOp, AssignOp, LiteralKind
 from src.symbol_table import SymbolTable, Symbol, SymbolKind
 from src.semantic_context import SemanticContext
 from src.types import (
@@ -49,6 +49,8 @@ class TypeCheckingPass:
 
         # Cache for type information attached to AST nodes
         self.node_types: Dict[int, Type] = {}
+        # Tracks sequential reuse of child scopes by (parent_scope_id, scope_name)
+        self._scope_reuse_positions: Dict[tuple[int, str], int] = {}
 
     def analyze(self, program: ASTNode, filename: str = "<unknown>") -> Dict[int, Type]:
         """
@@ -67,6 +69,7 @@ class TypeCheckingPass:
         """
         self.current_file = filename
         self.errors = []
+        self._scope_reuse_positions = {}
 
         # Visit the program
         self.visit_program(program)
@@ -99,6 +102,22 @@ class TypeCheckingPass:
         )
         self.errors.append(error)
 
+    def add_semantic_error(
+        self,
+        error_type: SemanticErrorType,
+        span: Optional[SourceSpan] = None,
+        context: Optional[str] = None,
+    ) -> None:
+        """Add a semantic error from the type checker."""
+        error = SemanticError.from_type(
+            error_type,
+            span=span,
+            filename=self.current_file,
+            source_lines=self.source_lines,
+            context=context,
+        )
+        self.errors.append(error)
+
     def set_type(self, node: ASTNode, type_: Type) -> None:
         """Associate a type with an AST node."""
         self.node_types[id(node)] = type_
@@ -106,6 +125,23 @@ class TypeCheckingPass:
     def get_type(self, node: ASTNode) -> Optional[Type]:
         """Get the type of an AST node."""
         return self.node_types.get(id(node))
+
+    def _enter_matching_scope(self, name: str) -> None:
+        """Enter the next child scope matching name under the current scope."""
+        parent = self.symbols.current_scope
+        key = (id(parent), name)
+        start = self._scope_reuse_positions.get(key, 0)
+        matches = [child for child in parent.children if child.name == name]
+
+        if start < len(matches):
+            scope = matches[start]
+            self._scope_reuse_positions[key] = start + 1
+            self.symbols.current_scope = scope
+            self.symbols.scope_stack.append(scope)
+            return
+
+        # Fallback for malformed/partial ASTs not seen by name resolution
+        self.symbols.enter_scope(name)
 
     # Visitor methods
 
@@ -258,35 +294,57 @@ class TypeCheckingPass:
         return None
 
     def resolve_type_node(self, node: Optional[ASTNode]) -> Type:
-        """
-        Resolve a type expression to a Type object.
+        """Resolve a type expression to a Type object (iterative for wrapper chains)."""
+        if node is None:
+            return UNKNOWN
 
-        Args:
-            node: Type expression AST node
+        # Iteratively unwrap linear type chains (array/slice/pointer)
+        wrappers: list = []  # ('kind', extra_data)
+        current = node
 
-        Returns:
-            Resolved Type
-        """
+        while current is not None:
+            if current.kind == NodeKind.TYPE_ARRAY:
+                size = self.extract_int_value(current.size) if current.size else 0
+                wrappers.append(('array', size))
+                current = current.element_type
+            elif current.kind == NodeKind.TYPE_SLICE:
+                wrappers.append(('slice', None))
+                current = current.element_type
+            elif current.kind == NodeKind.TYPE_POINTER:
+                wrappers.append(('ref', None))
+                current = current.target_type
+            else:
+                break  # Leaf type node — resolve it
+
+        # Resolve the leaf type
+        result = self._resolve_type_leaf(current)
+
+        # Reconstruct wrapper types in reverse
+        for kind, data in reversed(wrappers):
+            if kind == 'array':
+                result = ArrayType(element_type=result, size=data)
+            elif kind == 'slice':
+                result = SliceType(element_type=result)
+            elif kind == 'ref':
+                result = ReferenceType(referent_type=result)
+
+        return result
+
+    def _resolve_type_leaf(self, node: Optional[ASTNode]) -> Type:
+        """Resolve a leaf (non-wrapper) type node."""
         if node is None:
             return UNKNOWN
 
         if node.kind == NodeKind.TYPE_PRIMITIVE:
-            # Primitive type like i32, f64, bool
             type_name = node.type_name or ""
             prim_type = get_primitive_type(type_name)
             return prim_type if prim_type else UNKNOWN
 
         elif node.kind == NodeKind.TYPE_IDENTIFIER:
-            # Named type (struct, enum, union, type alias)
-            # Note: Parser stores type name in 'name' attribute, not 'type_name'
             type_name = node.name or node.type_name or ""
-
-            # Check for generic parameters (instantiation like Box(i32))
             if node.generic_params:
                 type_args = [self.resolve_type_node(arg) for arg in node.generic_params]
                 return GenericInstanceType(base_name=type_name, type_args=tuple(type_args))
-
-            # Regular type lookup
             symbol = self.symbols.lookup(type_name)
             if symbol:
                 return symbol.type
@@ -294,42 +352,25 @@ class TypeCheckingPass:
                 self.add_type_error(TypeErrorType.UNDEFINED_TYPE, node.span, context=f"Type '{type_name}'")
                 return UNKNOWN
 
-        elif node.kind == NodeKind.TYPE_ARRAY:
-            # Fixed-size array: [N]T
-            elem_type = self.resolve_type_node(node.element_type)
-            size = self.extract_int_value(node.size) if node.size else 0
-            return ArrayType(element_type=elem_type, size=size)
-
-        elif node.kind == NodeKind.TYPE_SLICE:
-            # Dynamic slice: []T
-            elem_type = self.resolve_type_node(node.element_type)
-            return SliceType(element_type=elem_type)
-
-        elif node.kind == NodeKind.TYPE_POINTER:
-            # Reference type: ref T (can be nil in A7)
-            referent_type = self.resolve_type_node(node.target_type)
-            return ReferenceType(referent_type=referent_type)
+        elif node.kind in (NodeKind.TYPE_ARRAY, NodeKind.TYPE_SLICE, NodeKind.TYPE_POINTER):
+            # These should have been handled by the iterative unwrapping,
+            # but handle gracefully if called directly
+            return self.resolve_type_node(node)
 
         elif node.kind == NodeKind.TYPE_FUNCTION:
-            # Function type: fn(params...) return_type
             param_types = []
             if node.parameter_types:
                 for pt in node.parameter_types:
                     param_types.append(self.resolve_type_node(pt))
-
             return_type = self.resolve_type_node(node.return_type) if node.return_type else None
             is_variadic = node.is_variadic or False
             variadic_type = self.resolve_type_node(node.param_type) if node.param_type and is_variadic else None
-
             return FunctionType(
-                param_types=tuple(param_types),
-                return_type=return_type,
-                is_variadic=is_variadic,
-                variadic_type=variadic_type
+                param_types=tuple(param_types), return_type=return_type,
+                is_variadic=is_variadic, variadic_type=variadic_type
             )
 
         elif node.kind == NodeKind.TYPE_STRUCT:
-            # Inline/anonymous struct type
             fields = []
             if node.fields:
                 for field_node in node.fields:
@@ -337,31 +378,24 @@ class TypeCheckingPass:
                         field_name = field_node.name or "<unknown>"
                         field_type = self.resolve_type_node(field_node.field_type) if field_node.field_type else UNKNOWN
                         fields.append(StructField(name=field_name, field_type=field_type))
-
             return StructType(name=None, fields=tuple(fields))
 
         elif node.kind == NodeKind.TYPE_GENERIC:
-            # Check if it's a generic parameter declaration ($T) vs generic instantiation
             if node.name and not node.type_name and not node.type_args:
-                # This is a generic parameter declaration like $T
                 return GenericParamType(name=node.name)
             else:
-                # Generic instantiation: List(i32) - legacy path
                 base_name = node.type_name or ""
                 type_args = []
                 if node.type_args:
                     for arg in node.type_args:
                         type_args.append(self.resolve_type_node(arg))
-
                 return GenericInstanceType(base_name=base_name, type_args=tuple(type_args))
 
         elif node.kind == NodeKind.TYPE_SET:
-            # Type set: @type_set(i32, i64)
             types_in_set = []
             if node.types:
                 for t in node.types:
                     types_in_set.append(self.resolve_type_node(t))
-
             return TypeSet(types=frozenset(types_in_set))
 
         else:
@@ -384,7 +418,7 @@ class TypeCheckingPass:
         func_name = node.name or "<anonymous>"
 
         # Enter function scope for parameter and body processing
-        self.symbols.enter_scope(f"function_{func_name}", reuse_existing=True)
+        self._enter_matching_scope(f"function_{func_name}")
 
         # Resolve return type
         return_type = self.resolve_type_node(node.return_type) if node.return_type else None
@@ -541,67 +575,95 @@ class TypeCheckingPass:
             self.symbols.define(var_symbol)
 
     def visit_statement(self, node: ASTNode) -> None:
-        """Visit a statement."""
-        if node.kind == NodeKind.BLOCK:
-            # Enter block scope (must match name resolution)
-            self.symbols.enter_scope("block", reuse_existing=True)
-            if node.statements:
-                for stmt in node.statements:
-                    self.visit_statement(stmt)
-            self.symbols.exit_scope()
+        """Visit a statement (iterative)."""
+        # Stack items: ('visit', node) or ('action', callable)
+        stack: list = [('visit', node)]
 
-        elif node.kind == NodeKind.VAR:
-            self.visit_var_decl(node)
+        while stack:
+            action, item = stack.pop()
 
-        elif node.kind == NodeKind.CONST:
-            self.visit_const_decl(node)
+            if action == 'action':
+                item()
+                continue
 
-        elif node.kind == NodeKind.EXPRESSION_STMT:
-            if node.expression:
-                self.visit_expression(node.expression)
+            nd = item  # action == 'visit'
 
-        elif node.kind == NodeKind.ASSIGNMENT:
-            self.visit_assignment(node)
+            if nd.kind == NodeKind.BLOCK:
+                self._enter_matching_scope("block")
+                stack.append(('action', lambda: self.symbols.exit_scope()))
+                for stmt in reversed(nd.statements or []):
+                    stack.append(('visit', stmt))
 
-        elif node.kind == NodeKind.IF_STMT:
-            self.visit_if_stmt(node)
+            elif nd.kind == NodeKind.VAR:
+                self.visit_var_decl(nd)
+            elif nd.kind == NodeKind.CONST:
+                self.visit_const_decl(nd)
 
-        elif node.kind == NodeKind.WHILE:
-            self.visit_while_stmt(node)
+            elif nd.kind == NodeKind.EXPRESSION_STMT:
+                if nd.expression:
+                    self.visit_expression(nd.expression)
 
-        elif node.kind == NodeKind.FOR:
-            self.visit_for_stmt(node)
+            elif nd.kind == NodeKind.ASSIGNMENT:
+                self.visit_assignment(nd)
 
-        elif node.kind == NodeKind.FOR_IN or node.kind == NodeKind.FOR_IN_INDEXED:
-            self.visit_for_in_stmt(node)
+            elif nd.kind == NodeKind.IF_STMT:
+                self.visit_if_stmt(nd)
 
-        elif node.kind == NodeKind.MATCH:
-            self.visit_match_stmt(node)
+            elif nd.kind == NodeKind.WHILE:
+                self.visit_while_stmt(nd)
 
-        elif node.kind == NodeKind.RETURN:
-            self.visit_return_stmt(node)
+            elif nd.kind == NodeKind.FOR:
+                self.visit_for_stmt(nd)
 
-        elif node.kind == NodeKind.BREAK:
-            # Validated in semantic validator pass
-            pass
+            elif nd.kind in (NodeKind.FOR_IN, NodeKind.FOR_IN_INDEXED):
+                self.visit_for_in_stmt(nd)
 
-        elif node.kind == NodeKind.CONTINUE:
-            # Validated in semantic validator pass
-            pass
+            elif nd.kind == NodeKind.MATCH:
+                self.visit_match_stmt(nd)
 
-        elif node.kind == NodeKind.DEFER:
-            if node.expression:
-                self.visit_expression(node.expression)
+            elif nd.kind == NodeKind.RETURN:
+                self.visit_return_stmt(nd)
 
-        elif node.kind == NodeKind.DEL:
-            if node.expression:
-                self.visit_expression(node.expression)
+            elif nd.kind in (NodeKind.BREAK, NodeKind.CONTINUE):
+                pass
+
+            elif nd.kind == NodeKind.DEFER:
+                if nd.expression:
+                    self.visit_expression(nd.expression)
+
+            elif nd.kind == NodeKind.DEL:
+                if nd.expression:
+                    self.visit_expression(nd.expression)
 
     def visit_assignment(self, node: ASTNode) -> None:
         """Visit an assignment statement."""
         # Type check both sides
         lhs_type = self.visit_expression(node.target) if node.target else UNKNOWN
         rhs_type = self.visit_expression(node.value) if node.value else UNKNOWN
+
+        # Mutability check: look up the target symbol
+        if node.target and node.target.kind == NodeKind.IDENTIFIER:
+            target_name = node.target.name
+            sym = self.symbols.lookup(target_name)
+            if sym and not sym.is_mutable and node.target.kind != NodeKind.DEREF:
+                self.add_semantic_error(
+                    SemanticErrorType.CANNOT_ASSIGN_TO_IMMUTABLE,
+                    node.span,
+                    context=f"'{target_name}' is immutable"
+                )
+
+        # Compound assignment operator type checking
+        op = getattr(node, 'op', None)
+        if op and op != AssignOp.ASSIGN:
+            arithmetic_ops = {AssignOp.ADD_ASSIGN, AssignOp.SUB_ASSIGN, AssignOp.MUL_ASSIGN, AssignOp.DIV_ASSIGN, AssignOp.MOD_ASSIGN}
+            bitwise_ops = {AssignOp.AND_ASSIGN, AssignOp.OR_ASSIGN, AssignOp.XOR_ASSIGN, AssignOp.SHL_ASSIGN, AssignOp.SHR_ASSIGN}
+
+            if op in arithmetic_ops:
+                if not lhs_type.is_numeric():
+                    self.add_type_error(TypeErrorType.REQUIRES_NUMERIC_TYPE, node.span, got_type=str(lhs_type), context=f"Operator {op.name} requires numeric type")
+            elif op in bitwise_ops:
+                if not lhs_type.is_integral():
+                    self.add_type_error(TypeErrorType.REQUIRES_INTEGER_TYPE, node.span, got_type=str(lhs_type), context=f"Operator {op.name} requires integer type")
 
         # Check assignment compatibility
         if not rhs_type.is_assignable_to(lhs_type):
@@ -646,33 +708,37 @@ class TypeCheckingPass:
 
     def visit_for_stmt(self, node: ASTNode) -> None:
         """Visit a for loop."""
+        # Enter the for scope created during name resolution
+        self._enter_matching_scope("for")
+
         # Enter loop context
         self.context.enter_loop()
+        try:
+            # Type check init, condition, update
+            if node.init:
+                self.visit_statement(node.init)
 
-        # Type check init, condition, update
-        if node.init:
-            self.visit_statement(node.init)
+            if node.condition:
+                cond_type = self.visit_expression(node.condition)
+                if not cond_type.equals(BOOL):
+                    self.add_type_error(TypeErrorType.CONDITION_NOT_BOOL, node.condition.span, expected_type="bool", got_type=str(cond_type))
 
-        if node.condition:
-            cond_type = self.visit_expression(node.condition)
-            if not cond_type.equals(BOOL):
-                self.add_type_error(TypeErrorType.CONDITION_NOT_BOOL, node.condition.span, expected_type="bool", got_type=str(cond_type))
+            if node.update:
+                self.visit_statement(node.update)
 
-        if node.update:
-            self.visit_statement(node.update)
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        # Exit loop context
-        self.context.exit_loop()
+            # Visit body
+            if node.body:
+                self.visit_statement(node.body)
+        finally:
+            # Exit loop context and for scope
+            self.context.exit_loop()
+            self.symbols.exit_scope()
 
     def visit_for_in_stmt(self, node: ASTNode) -> None:
         """Visit a for-in loop."""
         # Enter the for-in scope (must match name resolution)
         scope_name = "for_in_indexed" if node.kind == NodeKind.FOR_IN_INDEXED else "for_in"
-        self.symbols.enter_scope(scope_name, reuse_existing=True)
+        self._enter_matching_scope(scope_name)
 
         # Type check iterable (outside loop scope)
         iterable_type = UNKNOWN
@@ -720,7 +786,10 @@ class TypeCheckingPass:
         # Visit all case branches
         if node.cases:
             for case in node.cases:
-                if case.statements:
+                case_stmt = getattr(case, "statement", None)
+                if case_stmt:
+                    self.visit_statement(case_stmt)
+                elif case.statements:
                     for stmt in case.statements:
                         self.visit_statement(stmt)
 
@@ -893,6 +962,19 @@ class TypeCheckingPass:
         func_type = self.visit_expression(node.function) if node.function else UNKNOWN
 
         if not isinstance(func_type, FunctionType):
+            # Check if this is a module method call (e.g., io.println) — allow it
+            if isinstance(func_type, UnknownType) and node.function:
+                if node.function.kind == NodeKind.FIELD_ACCESS and node.function.object:
+                    obj_symbol = self.symbols.lookup(
+                        getattr(node.function.object, 'name', '') or ''
+                    )
+                    if obj_symbol and obj_symbol.kind == SymbolKind.MODULE:
+                        # Module method call — type check args but don't error
+                        if node.arguments:
+                            for arg in node.arguments:
+                                self.visit_expression(arg)
+                        return UNKNOWN
+
             # Use the span of the function being called, not the whole call expression
             error_span = node.function.span if node.function else node.span
 
@@ -1012,28 +1094,52 @@ class TypeCheckingPass:
         return mapping
 
     def _substitute_generic(self, type_: Type, mapping: Dict[str, Type]) -> Type:
-        """
-        Substitute generic type parameters with concrete types.
-        """
-        if isinstance(type_, GenericParamType):
-            return mapping.get(type_.name, type_)
-        elif isinstance(type_, ReferenceType):
-            return ReferenceType(referent_type=self._substitute_generic(type_.referent_type, mapping))
-        elif isinstance(type_, ArrayType):
-            return ArrayType(element_type=self._substitute_generic(type_.element_type, mapping), size=type_.size)
-        elif isinstance(type_, SliceType):
-            return SliceType(element_type=self._substitute_generic(type_.element_type, mapping))
-        elif isinstance(type_, PointerType):
-            return PointerType(pointee_type=self._substitute_generic(type_.pointee_type, mapping))
-        elif isinstance(type_, FunctionType):
-            new_params = tuple(self._substitute_generic(pt, mapping) for pt in type_.param_types)
-            new_return = self._substitute_generic(type_.return_type, mapping) if type_.return_type else None
-            return FunctionType(param_types=new_params, return_type=new_return, is_variadic=type_.is_variadic, variadic_type=type_.variadic_type)
-        elif isinstance(type_, GenericInstanceType):
-            new_args = tuple(self._substitute_generic(arg, mapping) for arg in type_.type_args)
-            return GenericInstanceType(base_name=type_.base_name, type_args=new_args)
-        else:
-            return type_
+        """Substitute generic type parameters with concrete types (iterative for wrappers)."""
+        # Iteratively unwrap single-child wrapper types, then rebuild
+        wrappers: list = []  # list of ('kind', extra_data) to reconstruct
+        current = type_
+
+        while True:
+            if isinstance(current, GenericParamType):
+                current = mapping.get(current.name, current)
+                break
+            elif isinstance(current, ReferenceType):
+                wrappers.append(('ref', None))
+                current = current.referent_type
+            elif isinstance(current, ArrayType):
+                wrappers.append(('array', current.size))
+                current = current.element_type
+            elif isinstance(current, SliceType):
+                wrappers.append(('slice', None))
+                current = current.element_type
+            elif isinstance(current, PointerType):
+                wrappers.append(('pointer', None))
+                current = current.pointee_type
+            elif isinstance(current, FunctionType):
+                # FunctionType has multiple children — substitute each param
+                new_params = tuple(self._substitute_generic(pt, mapping) for pt in current.param_types)
+                new_return = self._substitute_generic(current.return_type, mapping) if current.return_type else None
+                current = FunctionType(param_types=new_params, return_type=new_return, is_variadic=current.is_variadic, variadic_type=current.variadic_type)
+                break
+            elif isinstance(current, GenericInstanceType):
+                new_args = tuple(self._substitute_generic(arg, mapping) for arg in current.type_args)
+                current = GenericInstanceType(base_name=current.base_name, type_args=new_args)
+                break
+            else:
+                break  # Leaf type, no substitution needed
+
+        # Reconstruct wrappers in reverse order
+        for kind, data in reversed(wrappers):
+            if kind == 'ref':
+                current = ReferenceType(referent_type=current)
+            elif kind == 'array':
+                current = ArrayType(element_type=current, size=data)
+            elif kind == 'slice':
+                current = SliceType(element_type=current)
+            elif kind == 'pointer':
+                current = PointerType(pointee_type=current)
+
+        return current
 
     def visit_index_expr(self, node: ASTNode) -> Type:
         """Visit an index expression."""
@@ -1053,6 +1159,13 @@ class TypeCheckingPass:
         """Visit a field access expression."""
         obj_type = self.visit_expression(node.object) if node.object else UNKNOWN
         field_name = node.field or ""
+
+        # Check if the object is a module symbol — allow field access without error
+        if node.object and hasattr(node.object, 'name'):
+            obj_symbol = self.symbols.lookup(node.object.name or "")
+            if obj_symbol and obj_symbol.kind == SymbolKind.MODULE:
+                # Module field access — return UNKNOWN since module isn't loaded
+                return UNKNOWN
 
         if isinstance(obj_type, StructType):
             field = obj_type.get_field(field_name)

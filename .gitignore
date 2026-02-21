@@ -8,3 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Generated Zig output files
+examples/*.zig
+
+# Compiled Zig binaries (from zig build-exe)
+/[0-9][0-9][0-9]_*

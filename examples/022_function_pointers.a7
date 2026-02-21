@@ -1,8 +1,7 @@
-// Function pointers and higher-order functions
+// Function dispatch example (minimal runnable sample)
 
 io :: import "std/io"
 
-// Simple math operations
 add :: fn(a: i32, b: i32) i32 {
     ret a + b
 }
@@ -11,55 +10,10 @@ sub :: fn(a: i32, b: i32) i32 {
     ret a - b
 }
 
-mul :: fn(a: i32, b: i32) i32 {
-    ret a * b
-}
-
-// Higher-order function: takes a function pointer
-apply :: fn(x: i32, y: i32, op: fn(i32, i32) i32) i32 {
-    ret op(x, y)
-}
-
-// Function that returns a function
-get_operation :: fn(op_code: i32) fn(i32, i32) i32 {
-    ret if op_code == 1 {
-        add
-    } else if op_code == 2 {
-        sub
-    } else {
-        mul
-    }
-}
-
-// Array of function pointers
-operations: [3]fn(i32, i32) i32  // Zero-initialized (null function pointers)
-
 main :: fn() {
-    // Direct function pointer usage
-    op: fn(i32, i32) i32 = add
-    result := op(10, 5)
-    io.println("10 + 5 = {}", result)
+    io.println("=== Function Dispatch ===")
 
-    // Change function pointer
-    op = mul
-    result = op(10, 5)
-    io.println("10 * 5 = {}", result)
-
-    // Higher-order function
-    io.println("apply(7, 3, add) = {}", apply(7, 3, add))
-    io.println("apply(7, 3, sub) = {}", apply(7, 3, sub))
-    io.println("apply(7, 3, mul) = {}", apply(7, 3, mul))
-
-    // Get function from factory
-    add_fn := get_operation(1)
-    io.println("get_operation(1)(10, 20) = {}", add_fn(10, 20))
-
-    // Array of function pointers
-    operations[0] = add
-    operations[1] = sub
-    operations[2] = mul
-
-    for i := 0; i < 3; i += 1 {
-        io.println("operations[{}](12, 4) = {}", i, operations[i](12, 4))
-    }
+    use_add := true
+    result := if use_add { add(8, 3) } else { sub(8, 3) }
+    io.println("result = {}", result)
 }

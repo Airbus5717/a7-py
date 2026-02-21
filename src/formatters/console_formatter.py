@@ -1,7 +1,8 @@
 """
 Rich console output formatter for A7 compiler.
 
-Provides beautiful, detailed output for tokenization, parsing, and AST display.
+Provides beautiful, detailed output for all compilation stages:
+tokenization, parsing, semantic analysis, and code generation.
 """
 
 from rich.console import Console
@@ -10,52 +11,232 @@ from rich.panel import Panel
 from rich.text import Text
 from rich.tree import Tree
 from rich.syntax import Syntax
+from rich.columns import Columns
 
 
 class ConsoleFormatter:
     """Formats compilation results for Rich console display."""
 
-    def __init__(self, tokenize_only: bool = False, parse_only: bool = False):
-        """
-        Initialize console formatter.
-
-        Args:
-            tokenize_only: Only show tokenization output
-            parse_only: Show tokenization and parsing output
-        """
-        self.tokenize_only = tokenize_only
-        self.parse_only = parse_only
+    def __init__(self, mode: str = "compile"):
+        self.mode = mode
         self.console = Console()
 
     def display_compilation(self, tokens: list, ast, source_code: str, input_path: str):
+        """Display compilation results for analysis modes (tokens, ast)."""
+        self._display_source_panel(source_code, input_path)
+        self._display_tokens(tokens)
+        if self.mode != "tokens":
+            self._display_ast(ast)
+        self.console.print(f"\n[bold dim]Analysis complete[/bold dim]")
+
+    def display_full_pipeline(
+        self,
+        input_path: str,
+        source_code: str,
+        tokens: list,
+        ast,
+        semantic_results: dict,
+        codegen_result: dict,
+    ):
         """
-        Display compilation results in Rich format.
+        Display results for all compiler stages in verbose mode.
 
         Args:
-            tokens: List of tokens from tokenizer
-            ast: AST root node
+            input_path: Source file path
             source_code: Original source code
-            input_path: Input file path
+            tokens: Token list
+            ast: AST root
+            semantic_results: Dict with keys: symbol_table, type_map, errors, passes
+            codegen_result: Dict with keys: output_code, output_path, bytes
         """
-        # Show source code panel
         self._display_source_panel(source_code, input_path)
-
-        # Show tokenization results
+        self._display_stage_header("1", "LEXICAL ANALYSIS", "cyan")
         self._display_tokens(tokens)
+        self._display_stage_header("2", "SYNTACTIC ANALYSIS", "green")
+        self._display_ast(ast)
+        self._display_stage_header("3", "SEMANTIC ANALYSIS", "yellow")
+        self._display_semantic(semantic_results)
+        self._display_stage_header("4", "CODE GENERATION", "magenta")
+        self._display_codegen(codegen_result)
+        self._display_pipeline_summary(tokens, ast, semantic_results, codegen_result, input_path)
 
-        # Show parsing results (unless tokenize-only)
-        if not self.tokenize_only:
-            self._display_ast(ast)
+    def _display_stage_header(self, number: str, title: str, color: str):
+        """Display a stage header with number and title."""
+        self.console.print(f"\n[bold {color}]━━━ Stage {number}: {title} ━━━[/bold {color}]")
 
-        # Summary
-        self.console.print(f"\n[bold dim]Analysis complete[/bold dim]")
+    def _display_semantic(self, results: dict):
+        """Display semantic analysis results."""
+        if not results:
+            self.console.print("[dim]  Semantic analysis skipped[/dim]")
+            return
+
+        passes = results.get("passes", [])
+        errors = results.get("errors", [])
+        symbol_table = results.get("symbol_table")
+        type_map = results.get("type_map")
+
+        # Pass results table
+        pass_table = Table(show_header=True, header_style="bold yellow", box=None, pad_edge=False)
+        pass_table.add_column("Pass", style="bold", width=22)
+        pass_table.add_column("Status", width=8)
+        pass_table.add_column("Details", style="dim")
+
+        for p in passes:
+            name = p.get("name", "Unknown")
+            ok = p.get("ok", False)
+            error_count = p.get("errors", 0)
+            status = "[green]✓ pass[/green]" if ok else f"[red]✗ fail[/red]"
+            detail = f"{error_count} error(s)" if not ok else ""
+            pass_table.add_row(name, status, detail)
+
+        self.console.print(pass_table)
+
+        # Symbol table summary
+        if symbol_table:
+            symbols = self._collect_symbols(symbol_table)
+            if symbols:
+                self.console.print(f"\n[bold]Symbol Table[/bold] [dim]({len(symbols)} symbols)[/dim]")
+                sym_table = Table(show_header=True, header_style="bold", box=None, pad_edge=False)
+                sym_table.add_column("Name", style="yellow", width=20)
+                sym_table.add_column("Kind", style="cyan", width=14)
+                sym_table.add_column("Type", style="green")
+                sym_table.add_column("Scope", style="dim", width=12)
+
+                for sym in symbols[:30]:  # Limit to 30 symbols
+                    sym_table.add_row(
+                        sym.get("name", "?"),
+                        sym.get("kind", "?"),
+                        sym.get("type", "?"),
+                        sym.get("scope", "global"),
+                    )
+
+                self.console.print(sym_table)
+                if len(symbols) > 30:
+                    self.console.print(f"[dim]  ... and {len(symbols) - 30} more symbols[/dim]")
+
+        # Errors/warnings
+        if errors:
+            self.console.print(f"\n[bold red]Semantic Errors ({len(errors)})[/bold red]")
+            for err in errors[:10]:
+                msg = str(err) if not hasattr(err, 'message') else err.message
+                line = ""
+                if hasattr(err, 'span') and err.span:
+                    line = f" [dim](line {err.span.start_line})[/dim]"
+                self.console.print(f"  [red]✗[/red] {msg}{line}")
+            if len(errors) > 10:
+                self.console.print(f"  [dim]... and {len(errors) - 10} more[/dim]")
+
+    def _display_codegen(self, result: dict):
+        """Display code generation results."""
+        if not result:
+            self.console.print("[dim]  Code generation skipped[/dim]")
+            return
+
+        output_code = result.get("output_code", "")
+        output_path = result.get("output_path", "")
+        byte_count = result.get("bytes", len(output_code))
+
+        # Summary line
+        self.console.print(f"  Backend: [cyan]Zig[/cyan]  Output: [green]{output_path}[/green]  Size: [dim]{byte_count} bytes[/dim]")
+
+        # Show the generated code with Zig syntax highlighting
+        if output_code:
+            try:
+                zig_syntax = Syntax(
+                    output_code.rstrip(),
+                    "zig",
+                    theme="monokai",
+                    line_numbers=True,
+                )
+                code_panel = Panel(
+                    zig_syntax,
+                    title=f"Generated Zig: {output_path}",
+                    border_style="magenta",
+                    padding=(0, 1),
+                )
+                self.console.print(code_panel)
+            except Exception:
+                self.console.print(Panel(output_code, title="Generated Code", border_style="magenta"))
+
+    def _display_pipeline_summary(self, tokens, ast, semantic_results, codegen_result, input_path):
+        """Display a final pipeline summary."""
+        self.console.print()
+
+        token_count = len([t for t in tokens if t.type.name != 'EOF']) if tokens else 0
+        decl_count = len(ast.declarations) if ast and hasattr(ast, 'declarations') and ast.declarations else 0
+        errors = semantic_results.get("errors", []) if semantic_results else []
+        error_count = len(errors)
+        output_path = codegen_result.get("output_path", "") if codegen_result else ""
+        byte_count = codegen_result.get("bytes", 0) if codegen_result else 0
+
+        summary = Table(show_header=False, box=None, pad_edge=False, show_edge=False)
+        summary.add_column("Stage", style="bold", width=20)
+        summary.add_column("Result")
+
+        summary.add_row("Lexer", f"[green]{token_count}[/green] tokens")
+        summary.add_row("Parser", f"[green]{decl_count}[/green] declarations")
+        if error_count > 0:
+            summary.add_row("Semantic", f"[red]{error_count}[/red] errors")
+        else:
+            summary.add_row("Semantic", "[green]✓[/green] clean")
+        if output_path:
+            summary.add_row("Codegen", f"[green]✓[/green] {output_path} ({byte_count} bytes)")
+        else:
+            summary.add_row("Codegen", "[dim]skipped[/dim]")
+
+        panel = Panel(summary, title=f"[bold]Compilation Summary: {input_path}[/bold]", border_style="blue")
+        self.console.print(panel)
+
+    def _collect_symbols(self, symbol_table) -> list:
+        """Collect symbols from a symbol table for display."""
+        symbols = []
+        try:
+            # Walk scopes
+            scope = symbol_table.current_scope if hasattr(symbol_table, 'current_scope') else None
+            if scope is None and hasattr(symbol_table, 'global_scope'):
+                scope = symbol_table.global_scope
+
+            visited = set()
+            self._walk_scope(scope, symbols, "global", visited)
+        except Exception:
+            pass
+        return symbols
+
+    def _walk_scope(self, scope, symbols: list, scope_name: str, visited: set):
+        """Walk scopes to collect symbols (iterative)."""
+        if scope is None:
+            return
+
+        stack = [(scope, scope_name)]
+        while stack:
+            current, cur_name = stack.pop()
+            if current is None or id(current) in visited:
+                continue
+            visited.add(id(current))
+
+            sym_dict = getattr(current, 'symbols', {})
+            for name, sym in sym_dict.items():
+                kind_str = sym.kind.name if hasattr(sym, 'kind') and hasattr(sym.kind, 'name') else "?"
+                type_str = str(sym.type) if hasattr(sym, 'type') and sym.type else "?"
+                symbols.append({"name": name, "kind": kind_str, "type": type_str, "scope": cur_name})
+
+            children = getattr(current, 'children', [])
+            for i, child in enumerate(reversed(children)):
+                child_name = getattr(child, 'name', f"scope_{len(children) - 1 - i}")
+                stack.append((child, child_name))
 
     def _display_source_panel(self, source_code: str, input_path: str):
         """Display source code with syntax highlighting."""
-        if self.tokenize_only:
+        if self.mode == "tokens":
             title = f"Tokenization: {input_path}"
-        elif self.parse_only:
+        elif self.mode == "ast":
             title = f"Parsing: {input_path}"
+        elif self.mode == "semantic":
+            title = f"Semantic Analysis: {input_path}"
+        elif self.mode == "pipeline":
+            title = f"Pipeline Inspection: {input_path}"
+        elif self.mode == "doc":
+            title = f"Documentation Build: {input_path}"
         else:
             title = f"Compilation: {input_path}"
 
@@ -135,10 +316,10 @@ class ConsoleFormatter:
 
                 self.console.print(tree)
 
-            # Stop here for parse-only mode
-            if self.parse_only:
+            # Stop here for AST mode
+            if self.mode == "ast":
                 self.console.print(
-                    "\n[bold dim]Stopping before code generation[/bold dim]"
+                    "\n[bold dim]Stopping before semantic analysis and code generation[/bold dim]"
                 )
         else:
             self.console.print("[red]Failed to parse AST[/red]")
@@ -193,84 +374,75 @@ class ConsoleFormatter:
         return label
 
     def format_type(self, type_node) -> str:
-        """Format a type node for display."""
+        """Format a type node for display (iterative for wrapper chains)."""
         if not type_node:
             return "?"
 
-        if hasattr(type_node, "kind"):
-            kind = type_node.kind.name
+        # Iteratively unwrap wrapper types (array/slice/pointer)
+        prefixes: list = []
+        current = type_node
 
-            if kind == "TYPE_PRIMITIVE":
-                return (
-                    type_node.type_name
-                    if hasattr(type_node, "type_name")
-                    else "primitive"
-                )
-            elif kind == "TYPE_IDENTIFIER":
-                return (
-                    type_node.name
-                    if hasattr(type_node, "name")
-                    else "identifier"
-                )
-            elif kind == "TYPE_GENERIC":
-                # Generic type like List($T) or Map(K, V)
-                base_name = type_node.name if hasattr(type_node, "name") else "?"
-                if hasattr(type_node, "type_args") and type_node.type_args:
-                    args = [self.format_type(arg) for arg in type_node.type_args]
-                    return f"{base_name}({', '.join(args)})"
-                return base_name
-            elif kind == "TYPE_ARRAY":
-                elem_type = (
-                    self.format_type(type_node.element_type)
-                    if hasattr(type_node, "element_type")
-                    else "?"
-                )
-                if hasattr(type_node, "size") and type_node.size:
-                    # Try to get literal value for size
-                    if hasattr(type_node.size, "literal_value"):
-                        size = str(type_node.size.literal_value)
-                    else:
-                        size = "?"
+        while current and hasattr(current, "kind"):
+            kind = current.kind.name
+            if kind == "TYPE_ARRAY":
+                if hasattr(current, "size") and current.size:
+                    size = str(current.size.literal_value) if hasattr(current.size, "literal_value") else "?"
                 else:
                     size = "?"
-                return f"[{size}]{elem_type}"
+                prefixes.append(f"[{size}]")
+                current = current.element_type if hasattr(current, "element_type") else None
             elif kind == "TYPE_SLICE":
-                elem_type = (
-                    self.format_type(type_node.element_type)
-                    if hasattr(type_node, "element_type")
-                    else "?"
-                )
-                return f"[]{elem_type}"
+                prefixes.append("[]")
+                current = current.element_type if hasattr(current, "element_type") else None
             elif kind == "TYPE_POINTER":
-                target_type = (
-                    self.format_type(type_node.target_type)
-                    if hasattr(type_node, "target_type")
-                    else "?"
-                )
-                return f"ref {target_type}"
+                prefixes.append("ref ")
+                current = current.target_type if hasattr(current, "target_type") else None
+            else:
+                break  # Leaf type
+
+        # Format the leaf type
+        leaf = "?"
+        if current and hasattr(current, "kind"):
+            kind = current.kind.name
+            if kind == "TYPE_PRIMITIVE":
+                leaf = current.type_name if hasattr(current, "type_name") else "primitive"
+            elif kind == "TYPE_IDENTIFIER":
+                leaf = current.name if hasattr(current, "name") else "identifier"
+            elif kind == "TYPE_GENERIC":
+                base_name = current.name if hasattr(current, "name") else "?"
+                if hasattr(current, "type_args") and current.type_args:
+                    args = [self.format_type(arg) for arg in current.type_args]
+                    leaf = f"{base_name}({', '.join(args)})"
+                else:
+                    leaf = base_name
             elif kind == "TYPE_FUNCTION":
-                # Function type like fn(i32, i32) i32
                 param_types = []
-                if hasattr(type_node, "parameter_types") and type_node.parameter_types:
-                    param_types = [self.format_type(pt) for pt in type_node.parameter_types]
+                if hasattr(current, "parameter_types") and current.parameter_types:
+                    param_types = [self.format_type(pt) for pt in current.parameter_types]
                 params_str = ", ".join(param_types)
-
                 ret_type = ""
-                if hasattr(type_node, "return_type") and type_node.return_type:
-                    ret_type = " " + self.format_type(type_node.return_type)
-
-                return f"fn({params_str}){ret_type}"
+                if hasattr(current, "return_type") and current.return_type:
+                    ret_type = " " + self.format_type(current.return_type)
+                leaf = f"fn({params_str}){ret_type}"
             elif kind == "TYPE_STRUCT":
-                # Inline struct type
-                field_count = len(type_node.fields) if hasattr(type_node, "fields") and type_node.fields else 0
-                return f"struct {{ {field_count} fields }}"
+                field_count = len(current.fields) if hasattr(current, "fields") and current.fields else 0
+                leaf = f"struct {{ {field_count} fields }}"
+            else:
+                if hasattr(current, "type_name"):
+                    leaf = current.type_name
+                elif hasattr(current, "name"):
+                    leaf = current.name
+                else:
+                    leaf = str(current)
+        elif current:
+            if hasattr(current, "type_name"):
+                leaf = current.type_name
+            elif hasattr(current, "name"):
+                leaf = current.name
+            else:
+                leaf = str(current)
 
-        # Fallback for simple types or unknown structures
-        if hasattr(type_node, "type_name"):
-            return type_node.type_name
-        elif hasattr(type_node, "name"):
-            return type_node.name
-        return str(type_node)
+        return "".join(prefixes) + leaf
 
     def format_expression_detail(self, expr) -> str:
         """Format expression detail for display in AST tree."""
@@ -520,21 +692,23 @@ class ConsoleFormatter:
         return stmt_label
 
     def _add_statements_to_tree(self, parent_node, statements):
-        """Add statement nodes to the tree."""
+        """Add statement nodes to the tree (iterative)."""
         if statements is None:
             return
-        for stmt in statements:
-            stmt_label = self.format_statement_label(stmt)
-            stmt_node = parent_node.add(stmt_label)
 
-            # Recursively add nested statements for blocks and control flow
-            if hasattr(stmt, "statements") and stmt.statements:
-                self._add_statements_to_tree(stmt_node, stmt.statements)
-            elif hasattr(stmt, "then_stmt") and stmt.then_stmt:
-                if hasattr(stmt.then_stmt, "statements"):
-                    self._add_statements_to_tree(stmt_node, stmt.then_stmt.statements)
-                if hasattr(stmt, "else_stmt") and stmt.else_stmt:
-                    if hasattr(stmt.else_stmt, "statements"):
-                        self._add_statements_to_tree(
-                            stmt_node, stmt.else_stmt.statements
-                        )
+        # Stack of (parent_tree_node, statements_list)
+        stack = [(parent_node, statements)]
+        while stack:
+            parent, stmts = stack.pop()
+            for stmt in stmts:
+                stmt_label = self.format_statement_label(stmt)
+                stmt_node = parent.add(stmt_label)
+
+                if hasattr(stmt, "statements") and stmt.statements:
+                    stack.append((stmt_node, stmt.statements))
+                elif hasattr(stmt, "then_stmt") and stmt.then_stmt:
+                    if hasattr(stmt.then_stmt, "statements") and stmt.then_stmt.statements:
+                        stack.append((stmt_node, stmt.then_stmt.statements))
+                    if hasattr(stmt, "else_stmt") and stmt.else_stmt:
+                        if hasattr(stmt.else_stmt, "statements") and stmt.else_stmt.statements:
+                            stack.append((stmt_node, stmt.else_stmt.statements))

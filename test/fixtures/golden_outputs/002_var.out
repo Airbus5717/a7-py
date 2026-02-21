@@ -1,0 +1,6 @@
+a = 1 (inferred as i32)
+PI = 3.14159
+count = 10 (explicit i32)
+name=A7, active=true, ratio=2.5
+count after increment = 15
+uninitialized value = 0

@@ -396,7 +396,7 @@ class TestParserRecoveryAndErrors:
                     match i {
                         case 0: {
                             while true {
-                                invalid_syntax_here  // This should cause an error
+                                invalid syntax here  // This should cause an error
                             }
                         }
                     }

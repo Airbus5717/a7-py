@@ -113,21 +113,16 @@ class Parser:
         such as immediately after if/while/for keywords at statement level.
         Returns True if we're in an expression context (after := or = or other operators).
         """
-        # CRITICAL: Check for assignment operators first - these strongly indicate expressions
-        # Looking back 1-3 tokens for := or = means we're definitely in an assignment
-        assignment_lookback = min(3, self.position)
-        for i in range(1, assignment_lookback + 1):
-            if self.position - i >= 0:
-                prev_token = self.tokens[self.position - i]
-                if prev_token.type in (TokenType.DECLARE_VAR, TokenType.ASSIGN):
-                    return True
+        # Explicit flag to suppress struct literals (e.g., inside match/if/while conditions)
+        if getattr(self, '_suppress_struct_literals', False):
+            return False
 
         # Check if we're immediately after control flow keywords
         # This handles: if expr { block }, for x in y { block }, etc.
-        # We look back through the recent tokens, and if we find a control keyword
-        # without finding an assignment operator first, we block struct literals
-        lookback_distance = min(8, self.position)
-        found_control_keyword = False
+        # We look back through the recent tokens. The NEAREST keyword wins:
+        # if we find a control keyword before an assignment, block struct literals.
+        # If we find an assignment before a control keyword, allow them.
+        lookback_distance = min(10, self.position)
 
         for i in range(1, lookback_distance + 1):
             if self.position - i >= 0:
@@ -137,18 +132,13 @@ class Parser:
                 if prev_token.type == TokenType.TERMINATOR:
                     break
 
-                # If we see assignment, allow struct literals (expression context)
+                # If we see assignment first, allow struct literals (expression context)
                 if prev_token.type in (TokenType.DECLARE_VAR, TokenType.ASSIGN):
                     return True
 
-                # If we see control flow keywords, mark it but keep searching
+                # If we see control flow keywords first, block struct literals
                 if prev_token.type in (TokenType.IF, TokenType.WHILE, TokenType.FOR, TokenType.MATCH, TokenType.ELSE):
-                    found_control_keyword = True
-                    # Don't break - keep looking for assignments
-
-        # If we found a control keyword and no assignment, block struct literals
-        if found_control_keyword:
-            return False
+                    return False
 
         # Default to allowing struct literals
         return True
@@ -308,6 +298,26 @@ class Parser:
                 return self.parse_const_or_function_decl(is_public)
             elif self.peek().type == TokenType.DECLARE_VAR:  # name :=
                 return self.parse_var_decl(is_public)
+            elif self.peek().type == TokenType.COLON:
+                # Typed declaration: name: type = value (or uninitialized)
+                name_token = self.advance()
+                self.consume(TokenType.COLON)
+                explicit_type = self.parse_type()
+                value = None
+                if self.match(TokenType.ASSIGN):
+                    self.advance()
+                    value = self.parse_expression()
+                var_decl = create_var_decl(
+                    name=name_token.value,
+                    value=value,
+                    is_public=is_public,
+                    span=create_span_from_token(name_token),
+                )
+                var_decl.explicit_type = explicit_type
+                return var_decl
+            elif self.peek().type == TokenType.LEFT_PAREN:
+                # Could be generic declaration: Name($T, $U) :: struct { ... }
+                return self.parse_generic_decl(is_public)
 
         # Function declarations can also start with just 'fn'
         if self.match(TokenType.FN):
@@ -319,6 +329,45 @@ class Parser:
             self.current(),
             self.filename,
         )
+
+    def parse_generic_decl(self, is_public: bool) -> ASTNode:
+        """Parse generic declarations: Name($T, $U) :: struct/fn/etc."""
+        name_token = self.consume(TokenType.IDENTIFIER)
+        name = name_token.value
+
+        # Parse generic parameters
+        generic_params = self.parse_generic_parameters()
+
+        self.consume(TokenType.DECLARE_CONST)  # ::
+
+        # Check what kind of declaration follows
+        if self.match(TokenType.STRUCT):
+            decl = self.parse_struct_decl_with_name(name, is_public, name_token)
+            decl.generic_params = generic_params
+            return decl
+        elif self.match(TokenType.ENUM):
+            decl = self.parse_enum_decl_with_name(name, is_public, name_token)
+            decl.generic_params = generic_params
+            return decl
+        elif self.match(TokenType.UNION):
+            decl = self.parse_union_decl_with_name(name, is_public, name_token)
+            decl.generic_params = generic_params
+            return decl
+        elif self.match(TokenType.FN):
+            decl = self.parse_function_decl_with_name(name, is_public, name_token)
+            decl.generic_params = generic_params
+            return decl
+        else:
+            # Generic constant — fall through to expression
+            value = self.parse_expression()
+            decl = create_const_decl(
+                name=name,
+                value=value,
+                is_public=is_public,
+                span=create_span_from_token(name_token),
+            )
+            decl.generic_params = generic_params
+            return decl
 
     def parse_import(self) -> ASTNode:
         """Parse import declarations including using and named imports."""
@@ -374,6 +423,13 @@ class Parser:
 
         # Check if this is a function (fn keyword)
         if self.match(TokenType.FN):
+            # Distinguish between function declaration and function TYPE alias:
+            #   fn(name: type, ...) RetType { body } → function declaration
+            #   fn(Type, ...) RetType               → function type alias (no body)
+            # Heuristic: peek inside fn( — if first token is IDENTIFIER followed
+            # by COLON, it's a named param → function decl. Otherwise → type alias.
+            if self._is_fn_type_alias():
+                return self._parse_fn_type_alias(name, is_public, name_token)
             return self.parse_function_decl_with_name(name, is_public, name_token)
 
         # Check if this is a struct declaration
@@ -405,11 +461,78 @@ class Parser:
                     "Expected module path after import", self.current(), self.filename
                 )
 
+        # Type alias: Handle :: u64, Vector :: [3]f32, etc.
+        if self._is_type_start() or self.match(TokenType.LEFT_BRACKET):
+            type_node = self.parse_type()
+            return ASTNode(
+                kind=NodeKind.TYPE_ALIAS,
+                name=name,
+                value=type_node,
+                is_public=is_public,
+                span=create_span_from_token(name_token),
+            )
+
         # Otherwise it's a constant declaration
         value = self.parse_expression()
         return create_const_decl(
             name=name,
             value=value,
+            is_public=is_public,
+            span=create_span_from_token(name_token),
+        )
+
+    def _is_fn_type_alias(self) -> bool:
+        """Check if current fn(...) is a type alias (no named params) vs function decl.
+
+        We're positioned at 'fn'. Peek into fn( to check if first param has a name:colon.
+        """
+        # fn should be current, ( should be next
+        paren = self.peek(1)
+        if paren.type != TokenType.LEFT_PAREN:
+            return False
+
+        # Skip terminators after '(' to find the first meaningful token
+        offset = 2
+        while self.peek(offset).type == TokenType.TERMINATOR:
+            offset += 1
+        first_inside = self.peek(offset)
+
+        # fn() — empty params, could be either. Check if body follows.
+        if first_inside.type == TokenType.RIGHT_PAREN:
+            # Look past ) for optional return type, then check for {
+            offset += 1
+            while offset < len(self.tokens) - self.position:
+                tok = self.peek(offset)
+                if tok.type == TokenType.LEFT_BRACE:
+                    return False  # Has body → function declaration
+                if tok.type in (TokenType.TERMINATOR, TokenType.EOF):
+                    return True  # No body → type alias
+                offset += 1
+            return True
+
+        # fn(IDENTIFIER COLON ...) → named param → function declaration
+        if first_inside.type == TokenType.IDENTIFIER:
+            # Skip terminators after identifier too
+            after_offset = offset + 1
+            while self.peek(after_offset).type == TokenType.TERMINATOR:
+                after_offset += 1
+            after_ident = self.peek(after_offset)
+            if after_ident.type == TokenType.COLON:
+                return False  # Named param
+            # IDENTIFIER without colon → type name → type alias
+            return True
+
+        # fn(type_keyword ...) or fn(ref ...) or fn([ ...) → type alias
+        return True
+
+    def _parse_fn_type_alias(self, name: str, is_public: bool, name_token) -> ASTNode:
+        """Parse function type alias: Name :: fn(Type, ...) RetType"""
+        # Use parse_type() which already handles fn(...) RetType as a type expression
+        fn_type = self.parse_type()
+        return ASTNode(
+            kind=NodeKind.TYPE_ALIAS,
+            name=name,
+            value=fn_type,
             is_public=is_public,
             span=create_span_from_token(name_token),
         )
@@ -835,18 +958,24 @@ class Parser:
                 value = self.parse_expression()
             return create_return_stmt(value, create_span_from_token(start_token))
 
-        # Break statement
+        # Break statement (optionally with label: break outer)
         if self.match(TokenType.BREAK):
             self.advance()
+            label = None
+            if self.match(TokenType.IDENTIFIER) and not self.match(TokenType.TERMINATOR, TokenType.RIGHT_BRACE):
+                label = self.advance().value
             return ASTNode(
-                kind=NodeKind.BREAK, span=create_span_from_token(start_token)
+                kind=NodeKind.BREAK, label=label, span=create_span_from_token(start_token)
             )
 
-        # Continue statement
+        # Continue statement (optionally with label: continue outer)
         if self.match(TokenType.CONTINUE):
             self.advance()
+            label = None
+            if self.match(TokenType.IDENTIFIER) and not self.match(TokenType.TERMINATOR, TokenType.RIGHT_BRACE):
+                label = self.advance().value
             return ASTNode(
-                kind=NodeKind.CONTINUE, span=create_span_from_token(start_token)
+                kind=NodeKind.CONTINUE, label=label, span=create_span_from_token(start_token)
             )
 
         # Fall statement (fallthrough in match)
@@ -899,6 +1028,15 @@ class Parser:
                     span=create_span_from_token(name_token),
                 )
             elif lookahead.type == TokenType.COLON:
+                # Check if this is a labeled loop: label: for/while
+                peek2 = self.peek(2)
+                if peek2.type in (TokenType.FOR, TokenType.WHILE):
+                    label_token = self.advance()
+                    self.consume(TokenType.COLON)
+                    loop_stmt = self.parse_statement()
+                    loop_stmt.label = label_token.value
+                    return loop_stmt
+
                 # Explicit type annotation: name: type = value (initialization optional)
                 name_token = self.advance()
                 self.consume(TokenType.COLON)
@@ -922,7 +1060,7 @@ class Parser:
                 # Constant or local type declaration: name :: value|struct|enum|union|fn
                 name_token = self.advance()
                 self.consume(TokenType.DECLARE_CONST)
-                
+
                 # Check for struct/enum/union/function declarations
                 if self.match(TokenType.STRUCT):
                     return self.parse_struct_decl_with_name(name_token.value, False, name_token)
@@ -931,8 +1069,20 @@ class Parser:
                 elif self.match(TokenType.UNION):
                     return self.parse_union_decl_with_name(name_token.value, False, name_token)
                 elif self.match(TokenType.FN):
-                    # Local function declaration
+                    # Check if this is a function type alias or function declaration
+                    if self._is_fn_type_alias():
+                        return self._parse_fn_type_alias(name_token.value, False, name_token)
                     return self.parse_function_decl_with_name(name_token.value, False, name_token)
+                elif self._is_type_start() or self.match(TokenType.LEFT_BRACKET):
+                    # Type alias: Handle :: u64, Vector :: [3]f32, etc.
+                    type_node = self.parse_type()
+                    return ASTNode(
+                        kind=NodeKind.TYPE_ALIAS,
+                        name=name_token.value,
+                        value=type_node,
+                        is_public=False,
+                        span=create_span_from_token(name_token),
+                    )
                 else:
                     # Regular constant declaration
                     value = self.parse_expression()
@@ -1068,8 +1218,12 @@ class Parser:
                     )
                 self.consume(TokenType.TERMINATOR)
 
-                # Parse update
+                # Parse update (suppress struct literals so `i = i + p {` doesn't
+                # treat `p { ... }` as a struct literal)
+                old_suppress = getattr(self, '_suppress_struct_literals', False)
+                self._suppress_struct_literals = True
                 update = self.parse_expression_or_assignment()
+                self._suppress_struct_literals = old_suppress
 
                 # Parse body
                 body = self.parse_block()
@@ -1103,8 +1257,11 @@ class Parser:
                     )
                 self.consume(TokenType.TERMINATOR)
 
-                # Parse update
+                # Parse update (suppress struct literals - same as above)
+                old_suppress = getattr(self, '_suppress_struct_literals', False)
+                self._suppress_struct_literals = True
                 update = self.parse_expression_or_assignment()
+                self._suppress_struct_literals = old_suppress
 
                 # Parse body
                 body = self.parse_block()
@@ -1150,34 +1307,24 @@ class Parser:
                     target=expr, op=assign_op, value=value, span=expr.span
                 )
 
-        # Validate that this expression is valid as a statement
-        if not self._is_valid_expression_statement(expr):
-            # Provide more specific error messages for common cases
-            if expr.kind == NodeKind.IDENTIFIER:
-                # Check if this looks like a missing assignment operator
-                if self.match(
-                    TokenType.INTEGER_LITERAL,
-                    TokenType.FLOAT_LITERAL,
-                    TokenType.STRING_LITERAL,
-                    TokenType.CHAR_LITERAL,
-                ):
-                    raise ParseError.from_token(
-                        f"Missing assignment operator (:= or =) between identifier and value",
-                        self.current(),
-                        self.filename,
-                    )
-                else:
-                    raise ParseError.from_token(
-                        f"Identifier '{expr.name if hasattr(expr, 'name') else 'unknown'}' cannot be used as a statement",
-                        self.current(),
-                        self.filename,
-                    )
-            else:
-                raise ParseError.from_token(
-                    f"Expression of type {expr.kind.name} cannot be used as a statement",
-                    self.current(),
-                    self.filename,
-                )
+        # Check for common error: identifier followed by literal or another identifier without operator
+        if expr.kind == NodeKind.IDENTIFIER and self.match(
+            TokenType.INTEGER_LITERAL,
+            TokenType.FLOAT_LITERAL,
+            TokenType.STRING_LITERAL,
+            TokenType.CHAR_LITERAL,
+        ):
+            raise ParseError.from_token(
+                f"Missing assignment operator (:= or =) between identifier and value",
+                self.current(),
+                self.filename,
+            )
+        if expr.kind == NodeKind.IDENTIFIER and self.match(TokenType.IDENTIFIER):
+            raise ParseError.from_token(
+                f"Unexpected identifier after '{getattr(expr, 'name', 'unknown')}'; missing operator?",
+                self.current(),
+                self.filename,
+            )
 
         # Otherwise it's an expression statement
         return ASTNode(
@@ -1187,15 +1334,9 @@ class Parser:
         )
 
     def _is_valid_expression_statement(self, expr: ASTNode) -> bool:
-        """Check if an expression is valid as a standalone statement."""
-        # These expression types are NOT valid as standalone statements
-        invalid_as_statements = {
-            NodeKind.LITERAL,  # Standalone literals like 42, "hello"
-            NodeKind.IDENTIFIER,  # Standalone identifiers like x
-        }
-
-        # All other expressions (calls, binary ops, unary ops, etc.) are valid
-        return expr.kind not in invalid_as_statements
+        """Check if an expression is valid as a standalone statement.
+        All expressions are syntactically valid; semantic analysis handles warnings."""
+        return True
 
     def parse_expression(self) -> ASTNode:
         """Parse expressions using precedence climbing."""
@@ -1307,18 +1448,64 @@ class Parser:
 
         return expr
 
+    def _is_type_start(self) -> bool:
+        """Check if the current token starts a type that cannot be an expression."""
+        return self.match(
+            TokenType.I8, TokenType.I16, TokenType.I32, TokenType.I64,
+            TokenType.U8, TokenType.U16, TokenType.U32, TokenType.U64,
+            TokenType.ISIZE, TokenType.USIZE, TokenType.F32, TokenType.F64,
+            TokenType.BOOL, TokenType.CHAR, TokenType.STRING,
+            TokenType.REF, TokenType.GENERIC_TYPE,
+        )
+
+    def _parse_call_argument(self) -> ASTNode:
+        """Parse a single call argument, which may be an expression or a type argument."""
+        # If the token is unambiguously a type keyword, parse as type
+        if self._is_type_start():
+            return self.parse_type()
+        # If it starts with [ it could be an array type [N]T or array literal [1,2,3]
+        # Try type first (speculatively), fall back to expression
+        if self.match(TokenType.LEFT_BRACKET):
+            saved = self.position
+            try:
+                type_node = self.parse_type()
+                # If the next token is , or ) then this was a valid type argument
+                if self.match(TokenType.COMMA, TokenType.RIGHT_PAREN):
+                    return type_node
+            except ParseError:
+                pass
+            self.position = saved
+        # If it starts with fn, could be function type or lambda — try type first
+        if self.match(TokenType.FN):
+            saved = self.position
+            try:
+                type_node = self.parse_type()
+                if self.match(TokenType.COMMA, TokenType.RIGHT_PAREN):
+                    return type_node
+            except ParseError:
+                pass
+            self.position = saved
+        # If it starts with an identifier, could be a named type like Option(i32)
+        # Try as expression first (handles both calls and identifier types)
+        return self.parse_expression()
+
     def parse_call_expression(self, function: ASTNode) -> ASTNode:
         """Parse function call expression."""
         self.consume(TokenType.LEFT_PAREN)
         arguments = []
+        self.skip_terminators()
 
         if not self.match(TokenType.RIGHT_PAREN):
-            arguments.append(self.parse_expression())
+            arguments.append(self._parse_call_argument())
             while self.match(TokenType.COMMA):
                 self.advance()
                 self.skip_terminators()  # Skip newlines after comma for multi-line calls
-                arguments.append(self.parse_expression())
+                if self.match(TokenType.RIGHT_PAREN):
+                    break  # Allow trailing comma
+                arguments.append(self._parse_call_argument())
+                self.skip_terminators()
 
+        self.skip_terminators()
         self.consume(TokenType.RIGHT_PAREN)
 
         return create_call_expr(
@@ -1427,6 +1614,20 @@ class Parser:
         ):
             return create_literal_from_token(self.advance())
 
+        # Inline struct type with initialization: struct { x: i32 } { x: 42 }
+        if self.match(TokenType.STRUCT):
+            struct_type = self.parse_type()  # Parses struct { fields... }
+            # If followed by { it's a struct literal initialization
+            if self.match(TokenType.LEFT_BRACE):
+                return self._parse_inline_struct_init(struct_type)
+            return struct_type
+
+        # Generic type parameters used in expression context (e.g., [$N]$T array sizes)
+        if self.match(TokenType.GENERIC_TYPE):
+            token = self.advance()
+            name = token.value[1:]  # Remove '$' prefix
+            return create_identifier(name, create_span_from_token(token))
+
         # New expression: new Type or new [size]Type
         if self.match(TokenType.NEW):
             return self.parse_new_expression()
@@ -1500,6 +1701,10 @@ class Parser:
         if self.match(TokenType.IF):
             return self.parse_if_expression()
 
+        # Match expressions (match used in expression context)
+        if self.match(TokenType.MATCH):
+            return self.parse_match_expression()
+
         raise ParseError.from_token(
             "Expected expression", self.current(), self.filename
         )
@@ -1564,31 +1769,48 @@ class Parser:
         )
     
     def parse_new_expression(self) -> ASTNode:
-        """Parse new expression: new Type or new [size]Type"""
+        """Parse new expression: new Type, new [size]Type, or new(Type)"""
         new_token = self.consume(TokenType.NEW)
-        
+
+        # Support optional parenthesized syntax: new(Type) or new([size]Type)
+        has_parens = False
+        if self.match(TokenType.LEFT_PAREN):
+            has_parens = True
+            self.advance()
+
         # Parse the type (which may include array dimensions)
         type_node = self.parse_type()
-        
+
+        if has_parens:
+            self.consume(TokenType.RIGHT_PAREN, "Expected ')' after type in new expression")
+
         return create_new_expr(
             type_node=type_node,
             span=create_span_from_token(new_token)
         )
     
     def parse_if_expression(self) -> ASTNode:
-        """Parse if expressions."""
+        """Parse if expressions: if cond { expr } else if cond { expr } else { expr }"""
         if_token = self.consume(TokenType.IF)
         condition = self.parse_expression()
         self.consume(TokenType.LEFT_BRACE)
+        self.skip_terminators()
         then_expr = self.parse_expression()
+        self.skip_terminators()
         self.consume(TokenType.RIGHT_BRACE)
 
         else_expr = None
         if self.match(TokenType.ELSE):
             self.advance()
-            self.consume(TokenType.LEFT_BRACE)
-            else_expr = self.parse_expression()
-            self.consume(TokenType.RIGHT_BRACE)
+            if self.match(TokenType.IF):
+                # else if — recursively parse another if expression
+                else_expr = self.parse_if_expression()
+            else:
+                self.consume(TokenType.LEFT_BRACE)
+                self.skip_terminators()
+                else_expr = self.parse_expression()
+                self.skip_terminators()
+                self.consume(TokenType.RIGHT_BRACE)
 
         return ASTNode(
             kind=NodeKind.IF_EXPR,
@@ -1596,6 +1818,54 @@ class Parser:
             then_expr=then_expr,
             else_expr=else_expr,
             span=create_span_from_token(if_token),
+        )
+
+    def parse_match_expression(self) -> ASTNode:
+        """Parse match expression (match used in expression context).
+        Reuses the same syntax as match statements but produces a MATCH_EXPR node."""
+        match_token = self.consume(TokenType.MATCH)
+        expression = self.parse_expression()
+
+        self.consume(TokenType.LEFT_BRACE)
+        cases = []
+        else_case = None
+
+        while not self.match(TokenType.RIGHT_BRACE) and not self.at_end():
+            if self.match(TokenType.CASE):
+                case_token = self.advance()
+
+                patterns = [self.parse_pattern()]
+                while self.match(TokenType.COMMA):
+                    self.advance()
+                    patterns.append(self.parse_pattern())
+
+                self.consume(TokenType.COLON)
+                # In expression context, parse an expression (not a statement)
+                value = self.parse_expression()
+
+                case_node = ASTNode(
+                    kind=NodeKind.CASE_BRANCH,
+                    patterns=patterns,
+                    expression=value,
+                    span=create_span_from_token(case_token),
+                )
+                cases.append(case_node)
+
+            elif self.match(TokenType.ELSE):
+                else_token = self.advance()
+                self.consume(TokenType.COLON)
+                else_case = self.parse_expression()
+
+            self.skip_terminators()
+
+        self.consume(TokenType.RIGHT_BRACE)
+
+        return ASTNode(
+            kind=NodeKind.MATCH_EXPR,
+            expression=expression,
+            cases=cases,
+            else_case=else_case,
+            span=create_span_from_token(match_token),
         )
 
     def parse_array_literal(self) -> ASTNode:
@@ -1697,6 +1967,12 @@ class Parser:
             span=span,
         )
 
+    def _parse_inline_struct_init(self, struct_type: ASTNode) -> ASTNode:
+        """Parse inline struct initialization: struct { ... } { field: value, ... }"""
+        init = self.parse_struct_literal("__inline__", struct_type.span)
+        init.inline_type = struct_type
+        return init
+
     def parse_struct_decl_with_name(
         self, name: str, is_public: bool, name_token: Token
     ) -> ASTNode:
@@ -1714,6 +1990,11 @@ class Parser:
             self.skip_terminators()
             if self.match(TokenType.RIGHT_BRACE):
                 break
+            # Handle optional 'pub' modifier on fields
+            field_is_public = False
+            if self.match(TokenType.PUB):
+                field_is_public = True
+                self.advance()
             field_name_token = self.consume(TokenType.IDENTIFIER)
             self.consume(TokenType.COLON)
             field_type = self.parse_type()
@@ -1722,6 +2003,7 @@ class Parser:
                 kind=NodeKind.FIELD,
                 name=field_name_token.value,
                 field_type=field_type,
+                is_public=field_is_public,
                 span=create_span_from_token(field_name_token),
             )
             fields.append(field)

@@ -1,140 +1,27 @@
-// Number guessing game
+// Deterministic number guessing demo
 
 io :: import "std/io"
 
-// Simple pseudo-random number generator (Linear Congruential Generator)
-Random :: struct {
-    seed: i32
-}
-
-random_init :: fn(seed: i32) Random {
-    ret Random{seed}
-}
-
-random_next :: fn(rng: ref Random) i32 {
-    // LCG parameters
-    a := 1103515245
-    c := 12345
-    m := 2147483647
-
-    rng.val.seed = (a * rng.val.seed + c) % m
-    ret rng.val.seed
-}
-
-random_range :: fn(rng: ref Random, min: i32, max: i32) i32 {
-    n := random_next(rng)
-    ret min + (n % (max - min + 1))
-}
-
-// Game state
-GameState :: struct {
-    target: i32
-    attempts: i32
-    max_attempts: i32
-    won: bool
-}
-
-// Initialize game
-init_game :: fn(target: i32, max_attempts: i32) GameState {
-    ret GameState{target, 0, max_attempts, false}
-}
-
-// Make a guess
-make_guess :: fn(game: ref GameState, guess: i32) bool {
-    game.val.attempts += 1
-
-    if guess == game.val.target {
-        io.println("Correct! You guessed the number in {} attempts!", game.val.attempts)
-        game.val.won = true
-        ret true
-    }
-
-    if guess < game.val.target {
-        io.println("Too low! Try higher.")
-    } else {
-        io.println("Too high! Try lower.")
-    }
-
-    remaining := game.val.max_attempts - game.val.attempts
-    if remaining > 0 {
-        io.println("Attempts remaining: {}", remaining)
-    } else {
-        io.println("Game over! The number was {}", game.val.target)
-    }
-
-    ret false
-}
-
-// Difficulty levels
-Difficulty :: enum {
-    EASY      // 1-10, 5 attempts
-    MEDIUM    // 1-50, 7 attempts
-    HARD      // 1-100, 10 attempts
-}
-
-get_difficulty_settings :: fn(diff: Difficulty) struct { min: i32, max: i32, attempts: i32 } {
-    ret if diff == Difficulty.EASY {
-        struct { min: i32, max: i32, attempts: i32 } { min: 1, max: 10, attempts: 5 }
-    } else if diff == Difficulty.MEDIUM {
-        struct { min: i32, max: i32, attempts: i32 } { min: 1, max: 50, attempts: 7 }
-    } else {
-        struct { min: i32, max: i32, attempts: i32 } { min: 1, max: 100, attempts: 10 }
-    }
-}
-
 main :: fn() {
-    io.println("=== Number Guessing Game ===")
-    io.println("")
+    io.println("=== Number Guessing ===")
 
-    // Initialize random number generator with current time (simulated)
-    rng := random_init(12345)
-    rng_ref := rng.adr
+    target := 37
+    guesses: [5]i32 = [10, 25, 37, 40, 50]
 
-    // Generate target number (1-50)
-    target := random_range(rng_ref, 1, 50)
-
-    io.println("I'm thinking of a number between 1 and 50")
-    io.println("You have 7 attempts to guess it!")
-    io.println("")
-
-    // Create game
-    game := init_game(target, 7)
-    game_ref := game.adr
-
-    // Simulate game with predetermined guesses
-    guesses: [7]i32  // Zero-initialized
-    guesses[0] = 25
-    guesses[1] = 38
-    guesses[2] = 31
-    guesses[3] = 28
-    guesses[4] = 33
-    guesses[5] = 35
-    guesses[6] = 37
-
-    for i := 0; i < game.max_attempts; i += 1 {
-        if game.won {
+    won := false
+    for i, guess in guesses {
+        if won {
             break
         }
 
-        guess := guesses[i]
-        io.println("Attempt {}: Guessing {}", i + 1, guess)
-
-        if make_guess(game_ref, guess) {
-            break
+        io.println("attempt {} -> {}", i + 1, guess)
+        if guess == target {
+            io.println("correct")
+            won = true
+        } else if guess < target {
+            io.println("too low")
+        } else {
+            io.println("too high")
         }
-        io.println("")
     }
-
-    if !game.won {
-        io.println("")
-        io.println("Better luck next time!")
-    }
-
-    // Statistics
-    io.println("")
-    io.println("--- Game Statistics ---")
-    io.println("Target number: {}", target)
-    io.println("Total attempts: {}", game.attempts)
-    success_rate := (1.0 * cast(f64, game.attempts)) / cast(f64, game.max_attempts) * 100.0
-    io.println("Success rate: {}%", success_rate)
 }

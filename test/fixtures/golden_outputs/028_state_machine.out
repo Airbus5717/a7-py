@@ -1,0 +1,8 @@
+=== State Machine ===
+transition
+state: Running
+transition
+state: Paused
+transition
+state: Stopped
+done

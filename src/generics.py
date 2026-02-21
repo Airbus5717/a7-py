@@ -4,12 +4,13 @@ Generic type system for A7.
 Handles generic type parameters, constraints, and monomorphization.
 """
 
+import copy
 from typing import Dict, List, Optional, Set
 from dataclasses import dataclass
 
 from src.types import (
     Type, TypeKind, GenericParamType, GenericInstanceType, TypeSet,
-    StructType, FunctionType, get_predefined_type_set
+    StructType, StructField, FunctionType, get_predefined_type_set
 )
 from src.ast_nodes import ASTNode
 
@@ -167,16 +168,16 @@ class GenericMonomorphizer:
                 # Constraint violation
                 return None
 
-        # In a real implementation, we would:
-        # 1. Clone the function AST
-        # 2. Substitute all generic type references with concrete types
-        # 3. Re-run type checking on the specialized version
-        # 4. Cache the result
+        # Generate mangled name: swap__i32, identity__f64, etc.
+        type_suffix = "__".join(str(t) for t in type_args)
+        mangled_name = f"{func_name}__{type_suffix}"
 
-        # For now, we just cache the intent
-        specialized_node = func_node  # Placeholder
+        # Deep clone the AST and substitute types
+        specialized_node = copy.deepcopy(func_node)
+        specialized_node.name = mangled_name
+        _substitute_types_in_ast(specialized_node, context.bindings)
+
         self.instances[cache_key] = specialized_node
-
         return specialized_node
 
     def instantiate_struct(
@@ -208,15 +209,27 @@ class GenericMonomorphizer:
         if len(type_args) != len(struct_type.generic_params):
             return None
 
-        # In a real implementation, we would:
-        # 1. Create a new StructType
-        # 2. Substitute generic type parameters in field types
-        # 3. Cache the specialized version
+        # Build bindings
+        bindings = {}
+        for param_name, type_arg in zip(struct_type.generic_params, type_args):
+            bindings[param_name] = type_arg
 
-        # For now, return the original (placeholder)
-        specialized_type = struct_type
+        # Generate mangled name: Box__i32, Pair__i32__string
+        type_suffix = "__".join(str(t) for t in type_args)
+        mangled_name = f"{struct_name}__{type_suffix}"
+
+        # Create specialized struct with substituted field types
+        specialized_fields = []
+        for field in struct_type.fields:
+            new_field_type = _substitute_type(field.type, bindings)
+            specialized_fields.append(StructField(name=field.name, type=new_field_type))
+
+        specialized_type = StructType(
+            name=mangled_name,
+            fields=specialized_fields,
+            generic_params=[],
+        )
         self.instances[cache_key] = specialized_type
-
         return specialized_type
 
     def get_instance(self, name: str, type_args: tuple) -> Optional[any]:
@@ -228,6 +241,45 @@ class GenericMonomorphizer:
         """Check if an instance exists in the cache."""
         cache_key = (name, type_args)
         return cache_key in self.instances
+
+
+def _substitute_type(type_: Type, bindings: Dict[str, Type]) -> Type:
+    """Substitute generic parameters in a type with concrete bindings."""
+    if isinstance(type_, GenericParamType):
+        return bindings.get(type_.name, type_)
+    # Could recurse into ArrayType, FunctionType, etc. for complex generics
+    return type_
+
+
+def _substitute_types_in_ast(node: ASTNode, bindings: Dict[str, Type]) -> None:
+    """Walk an AST tree and substitute generic type references with concrete types (iterative)."""
+    from src.ast_nodes import NodeKind
+    if node is None:
+        return
+
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        if current is None:
+            continue
+
+        # Substitute TYPE_GENERIC nodes
+        if current.kind == NodeKind.TYPE_GENERIC:
+            name = getattr(current, 'name', None)
+            if name and name in bindings:
+                concrete = bindings[name]
+                current.kind = NodeKind.TYPE_IDENTIFIER
+                current.name = str(concrete)
+
+        # Push children onto stack
+        for attr_name in vars(current):
+            val = getattr(current, attr_name)
+            if isinstance(val, ASTNode):
+                stack.append(val)
+            elif isinstance(val, list):
+                for item in val:
+                    if isinstance(item, ASTNode):
+                        stack.append(item)
 
 
 def resolve_generic_constraint(constraint_node: Optional[ASTNode]) -> Optional[TypeSet]:
@@ -306,7 +358,7 @@ def infer_type_arguments(
 
 def unify_types(pattern: Type, concrete: Type, bindings: Dict[str, Type]) -> bool:
     """
-    Unify a type pattern (possibly containing generics) with a concrete type.
+    Unify a type pattern (possibly containing generics) with a concrete type (iterative).
 
     Args:
         pattern: Type pattern (may contain GenericParamType)
@@ -316,36 +368,31 @@ def unify_types(pattern: Type, concrete: Type, bindings: Dict[str, Type]) -> boo
     Returns:
         True if unification succeeded
     """
-    # If pattern is a generic parameter
-    if isinstance(pattern, GenericParamType):
-        param_name = pattern.name
+    # Use a worklist of (pattern, concrete) pairs to unify
+    worklist = [(pattern, concrete)]
 
-        # Check if already bound
-        if param_name in bindings:
-            # Must match existing binding
-            return bindings[param_name].equals(concrete)
+    while worklist:
+        pat, conc = worklist.pop()
+
+        if isinstance(pat, GenericParamType):
+            param_name = pat.name
+            if param_name in bindings:
+                if not bindings[param_name].equals(conc):
+                    return False
+            else:
+                if pat.constraint and not pat.constraint.contains(conc):
+                    return False
+                bindings[param_name] = conc
+
+        elif isinstance(pat, GenericInstanceType) and isinstance(conc, GenericInstanceType):
+            if pat.base_name != conc.base_name:
+                return False
+            if len(pat.type_args) != len(conc.type_args):
+                return False
+            for p_arg, c_arg in zip(pat.type_args, conc.type_args):
+                worklist.append((p_arg, c_arg))
         else:
-            # Check constraint if present
-            if pattern.constraint and not pattern.constraint.contains(concrete):
+            if not pat.equals(conc):
                 return False
 
-            # Bind the type
-            bindings[param_name] = concrete
-            return True
-
-    # If pattern is a generic instance, unify recursively
-    if isinstance(pattern, GenericInstanceType) and isinstance(concrete, GenericInstanceType):
-        if pattern.base_name != concrete.base_name:
-            return False
-
-        if len(pattern.type_args) != len(concrete.type_args):
-            return False
-
-        for p_arg, c_arg in zip(pattern.type_args, concrete.type_args):
-            if not unify_types(p_arg, c_arg, bindings):
-                return False
-
-        return True
-
-    # Otherwise, types must be equal
-    return pattern.equals(concrete)
+    return True

@@ -1,88 +1,22 @@
-// Methods demonstration
+// Method-style behavior using functions and ref parameters
 
 io :: import "std/io"
 
-Vec2 :: struct {
-    x: f32
-    y: f32
+Counter :: struct {
+    value: i32
 }
 
-// Method that doesn't modify receiver
-length :: fn(self: ref Vec2) f32 {
-    ret sqrt_f32(self.x * self.x + self.y * self.y)
-}
-
-// Method that modifies receiver
-normalize :: fn(self: ref Vec2) {
-    len := sqrt_f32(self.x * self.x + self.y * self.y)
-    if len > 0.0 {
-        self.x /= len
-        self.y /= len
-    }
-}
-
-// Method to add two vectors
-add :: fn(self: ref Vec2, other: Vec2) Vec2 {
-    ret Vec2{self.x + other.x, self.y + other.y}
-}
-
-// Method to scale vector
-scale :: fn(self: ref Vec2, factor: f32) {
-    self.x *= factor
-    self.y *= factor
-}
-
-// Static-like method (doesn't need instance)
-zero :: fn() Vec2 {
-    ret Vec2{0.0, 0.0}
-}
-
-Rectangle :: struct {
-    width: f32
-    height: f32
-}
-
-area :: fn(self: ref Rectangle) f32 {
-    ret self.width * self.height
-}
-
-perimeter :: fn(self: ref Rectangle) f32 {
-    ret 2.0 * (self.width + self.height)
+increment :: fn(counter: ref Counter) {
+    counter.val.value += 1
 }
 
 main :: fn() {
-    // Create vectors
-    v1 := Vec2{3.0, 4.0}
-    v2 := Vec2{1.0, 2.0}
-    
-    // Call methods using dot notation (syntactic sugar)
-    len1 := v1.length()  // Equivalent to length(v1.adr)
-    io.println("Vector v1 length: {}", len1)
-    
-    // Method that modifies
-    io.println("Before normalize: v1 = ({}, {})", v1.x, v1.y)
-    v1.normalize()  // Equivalent to normalize(v1.adr)
-    io.println("After normalize: v1 = ({}, {})", v1.x, v1.y)
-    
-    // Method returning new value
-    v3 := v1.add(v2)  // Equivalent to add(v1.adr, v2)
-    io.println("v1 + v2 = ({}, {})", v3.x, v3.y)
-    
-    // Method with parameter
-    v2.scale(2.0)
-    io.println("v2 scaled by 2: ({}, {})", v2.x, v2.y)
-    
-    // Static-like method call
-    origin := zero()  // No receiver needed 
-    io.println("Zero vector: ({}, {})", origin.x, origin.y)
-    
-    // Methods on other types
-    rect := Rectangle{5.0, 3.0}
-    io.println("Rectangle area: {}", rect.area())
-    io.println("Rectangle perimeter: {}", rect.perimeter())
-    
-    // Direct function call (equivalent forms)
-    len2 := length(v1.adr)  // Direct call
-    len3 := v1.length()  // Method syntax
-    io.println("Direct call: {}, Method call: {}", len2, len3)
+    io.println("=== Methods ===")
+
+    c := Counter{value: 0}
+    c.value = 0
+    increment(c.adr)
+    increment(c.adr)
+
+    io.println("counter = {}", c.value)
 }

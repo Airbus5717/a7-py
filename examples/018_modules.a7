@@ -1,72 +1,12 @@
-// Modules and imports demonstration
+// Module imports in A7
 
-// Standard library imports
-math :: import "math"
-io :: import "io"
-string :: import "string"
-
-// Hypothetical user library import
-// utils :: import "utils"
-
-// Import with specific items (hypothetical)
-// import "vector" { Vec3, dot }
-
-// Import all public items (hypothetical)
-// using import "common"
-
-// Public exports (if this were a library module)
-pub PI :: 3.14159265359
-
-pub Point :: struct {
-    pub x: f32
-    pub y: f32
-}
-
-// Public function
-pub distance :: fn(p1: Point, p2: Point) f32 {
-    dx := p1.x - p2.x
-    dy := p1.y - p2.y
-    ret sqrt_f32(dx * dx + dy * dy)
-}
-
-// Private helper function (not exported)
-helper :: fn(x: f32) f32 {
-    ret x * x
-}
-
-// Public function using private helper
-pub square_area :: fn(side: f32) f32 {
-    ret helper(side)  // Using private function internally
-}
+io :: import "std/io"
+math :: import "std/math"
 
 main :: fn() {
-    // Using imported modules (hypothetical usage)
-    // result := math.sqrt(16.0)
-    // io.println("Square root of 16 is: " + result)
-    
-    // Using public types and functions from this module
-    p1 := Point{0.0, 0.0}
-    p2 := Point{3.0, 4.0}
-    
-    dist := distance(p1, p2)
-    io.println("Distance between points: {}", dist)
-    
-    area := square_area(5.0)
-    io.println("Square area: {}", area)
-    
-    io.println("PI constant: {}", PI)
-    
-    // Demonstrate visibility
-    // helper(2.0)  // This would be accessible within this file
-    
-    // If this were imported by another module:
-    // - PI, Point, distance, square_area would be accessible
-    // - helper would not be accessible (private)
-    
-    // Relative import examples (commented as they don't exist):
-    // sibling :: import "./sibling_module"
-    // parent :: import "../parent_module" 
-    // subfolder :: import "subfolder/helper"
-    
-    io.println("Module demonstration complete")
+    io.println("=== Modules ===")
+
+    x := 9.0
+    io.println("sqrt({}) = {}", x, math.sqrt(x))
+    io.println("abs(-5) = {}", math.abs(-5.0))
 }

@@ -114,12 +114,19 @@ class NameResolutionPass:
     def visit_import(self, node: ASTNode) -> None:
         """Visit an import declaration."""
         # Import resolution will be handled by ModuleResolver
-        # For now, just register the import intent
+        # Register the import intent and create module symbols
         module_path = node.module_path or "<unknown>"
 
         if node.alias:
-            # import "io" as console
+            # io :: import "std/io" → register 'io' as a MODULE symbol
             self.modules.add_alias(node.alias, module_path)
+            module_symbol = Symbol(
+                name=node.alias,
+                kind=SymbolKind.MODULE,
+                type=UNKNOWN,
+                is_mutable=False,
+            )
+            self.symbols.define(module_symbol)
         elif node.is_using:
             # using import "io"
             self.modules.add_using_import(module_path)
@@ -368,189 +375,120 @@ class NameResolutionPass:
             self.add_error(SemanticErrorType.ALREADY_DEFINED, node.span, f"Variable '{var_name}'")
 
     def visit_statement(self, node: ASTNode) -> None:
-        """Visit a statement."""
-        if node.kind == NodeKind.BLOCK:
-            self.visit_block(node)
-        elif node.kind == NodeKind.VAR:
-            self.visit_var_decl(node)
-        elif node.kind == NodeKind.CONST:
-            self.visit_const_decl(node)
-        elif node.kind == NodeKind.IF_STMT:
-            self.visit_if_stmt(node)
-        elif node.kind == NodeKind.WHILE:
-            self.visit_while_stmt(node)
-        elif node.kind == NodeKind.FOR:
-            self.visit_for_stmt(node)
-        elif node.kind == NodeKind.FOR_IN:
-            self.visit_for_in_stmt(node)
-        elif node.kind == NodeKind.FOR_IN_INDEXED:
-            self.visit_for_in_indexed_stmt(node)
-        elif node.kind == NodeKind.MATCH:
-            self.visit_match_stmt(node)
-        elif node.kind == NodeKind.RETURN:
-            # Return statements don't introduce names
-            pass
-        elif node.kind == NodeKind.BREAK:
-            # Break statements don't introduce names
-            pass
-        elif node.kind == NodeKind.CONTINUE:
-            # Continue statements don't introduce names
-            pass
-        elif node.kind == NodeKind.DEFER:
-            # Defer statements don't introduce names (expression handled separately)
-            pass
-        elif node.kind == NodeKind.DEL:
-            # Del statements don't introduce names
-            pass
-        elif node.kind == NodeKind.ASSIGNMENT:
-            # Assignments don't introduce names (lhs must already exist)
-            pass
-        elif node.kind == NodeKind.EXPRESSION_STMT:
-            # Expression statements don't introduce names
-            pass
+        """Visit a statement (iterative)."""
+        # Stack items: ('visit', node) or ('action', callable)
+        stack: list = [('visit', node)]
 
-    def visit_block(self, node: ASTNode) -> None:
-        """Visit a block statement."""
-        # Enter new scope for block
-        self.symbols.enter_scope("block")
+        while stack:
+            action, item = stack.pop()
 
-        # Visit all statements in block
-        if node.statements:
-            for stmt in node.statements:
-                self.visit_statement(stmt)
+            if action == 'action':
+                item()  # Execute deferred action (scope exit, etc.)
+                continue
 
-        # Exit block scope
-        self.symbols.exit_scope()
+            nd = item  # action == 'visit'
 
-    def visit_if_stmt(self, node: ASTNode) -> None:
-        """Visit an if statement."""
-        # Then branch
-        if node.then_stmt:
-            if node.then_stmt.kind == NodeKind.BLOCK:
-                self.visit_statement(node.then_stmt)
-            else:
-                # Single statement - create implicit scope
-                self.symbols.enter_scope("if_then")
-                self.visit_statement(node.then_stmt)
-                self.symbols.exit_scope()
+            if nd.kind == NodeKind.BLOCK:
+                self.symbols.enter_scope("block")
+                stack.append(('action', lambda: self.symbols.exit_scope()))
+                for stmt in reversed(nd.statements or []):
+                    stack.append(('visit', stmt))
 
-        # Else branch
-        if node.else_stmt:
-            if node.else_stmt.kind == NodeKind.BLOCK:
-                self.visit_statement(node.else_stmt)
-            else:
-                # Single statement - create implicit scope
-                self.symbols.enter_scope("if_else")
-                self.visit_statement(node.else_stmt)
-                self.symbols.exit_scope()
+            elif nd.kind == NodeKind.VAR:
+                self.visit_var_decl(nd)
+            elif nd.kind == NodeKind.CONST:
+                self.visit_const_decl(nd)
 
-    def visit_while_stmt(self, node: ASTNode) -> None:
-        """Visit a while loop."""
-        if node.body:
-            if node.body.kind == NodeKind.BLOCK:
-                self.visit_statement(node.body)
-            else:
-                self.symbols.enter_scope("while")
-                self.visit_statement(node.body)
-                self.symbols.exit_scope()
+            elif nd.kind == NodeKind.IF_STMT:
+                # Else branch
+                if nd.else_stmt:
+                    if nd.else_stmt.kind == NodeKind.BLOCK:
+                        stack.append(('visit', nd.else_stmt))
+                    else:
+                        stack.append(('action', lambda: self.symbols.exit_scope()))
+                        stack.append(('visit', nd.else_stmt))
+                        stack.append(('action', lambda: self.symbols.enter_scope("if_else")))
+                # Then branch
+                if nd.then_stmt:
+                    if nd.then_stmt.kind == NodeKind.BLOCK:
+                        stack.append(('visit', nd.then_stmt))
+                    else:
+                        stack.append(('action', lambda: self.symbols.exit_scope()))
+                        stack.append(('visit', nd.then_stmt))
+                        stack.append(('action', lambda: self.symbols.enter_scope("if_then")))
 
-    def visit_for_stmt(self, node: ASTNode) -> None:
-        """Visit a C-style for loop."""
-        # For loop has its own scope
-        self.symbols.enter_scope("for")
+            elif nd.kind == NodeKind.WHILE:
+                if nd.body:
+                    if nd.body.kind == NodeKind.BLOCK:
+                        stack.append(('visit', nd.body))
+                    else:
+                        stack.append(('action', lambda: self.symbols.exit_scope()))
+                        stack.append(('visit', nd.body))
+                        stack.append(('action', lambda: self.symbols.enter_scope("while")))
 
-        # Init statement may declare variables
-        if node.init:
-            self.visit_statement(node.init)
+            elif nd.kind == NodeKind.FOR:
+                self.symbols.enter_scope("for")
+                stack.append(('action', lambda: self.symbols.exit_scope()))
+                if nd.body:
+                    stack.append(('visit', nd.body))
+                if nd.init:
+                    stack.append(('visit', nd.init))
 
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
+            elif nd.kind == NodeKind.FOR_IN:
+                self.symbols.enter_scope("for_in")
+                iterator_name = nd.iterator or "<unknown>"
+                iter_symbol = Symbol(
+                    name=iterator_name, kind=SymbolKind.VARIABLE,
+                    type=UNKNOWN, node=nd, is_mutable=False
+                )
+                if not self.symbols.define(iter_symbol):
+                    self.add_error(SemanticErrorType.ALREADY_DEFINED, nd.span, f"Iterator variable '{iterator_name}'")
+                stack.append(('action', lambda: self.symbols.exit_scope()))
+                if nd.body:
+                    stack.append(('visit', nd.body))
 
-        self.symbols.exit_scope()
+            elif nd.kind == NodeKind.FOR_IN_INDEXED:
+                self.symbols.enter_scope("for_in_indexed")
+                index_name = nd.index_var or "<unknown>"
+                index_symbol = Symbol(
+                    name=index_name, kind=SymbolKind.VARIABLE,
+                    type=UNKNOWN, node=nd, is_mutable=False
+                )
+                if not self.symbols.define(index_symbol):
+                    self.add_error(SemanticErrorType.ALREADY_DEFINED, nd.span, f"Index variable '{index_name}'")
+                iterator_name = nd.iterator or "<unknown>"
+                iter_symbol = Symbol(
+                    name=iterator_name, kind=SymbolKind.VARIABLE,
+                    type=UNKNOWN, node=nd, is_mutable=False
+                )
+                if not self.symbols.define(iter_symbol):
+                    self.add_error(SemanticErrorType.ALREADY_DEFINED, nd.span, f"Iterator variable '{iterator_name}'")
+                stack.append(('action', lambda: self.symbols.exit_scope()))
+                if nd.body:
+                    stack.append(('visit', nd.body))
 
-    def visit_for_in_stmt(self, node: ASTNode) -> None:
-        """Visit a for-in loop."""
-        # For-in loop has its own scope
-        self.symbols.enter_scope("for_in")
+            elif nd.kind == NodeKind.MATCH:
+                # Schedule else case (pushed first, executes last)
+                if nd.else_case:
+                    stack.append(('action', lambda: self.symbols.exit_scope()))
+                    for stmt in reversed(nd.else_case):
+                        stack.append(('visit', stmt))
+                    stack.append(('action', lambda: self.symbols.enter_scope("match_else")))
+                # Schedule case branches
+                if nd.cases:
+                    for case in reversed(nd.cases):
+                        if case.kind == NodeKind.CASE_BRANCH:
+                            stack.append(('action', lambda: self.symbols.exit_scope()))
+                            case_stmt = getattr(case, "statement", None)
+                            if case_stmt:
+                                stack.append(('visit', case_stmt))
+                            elif case.statements:
+                                for stmt in reversed(case.statements):
+                                    stack.append(('visit', stmt))
+                            stack.append(('action', lambda: self.symbols.enter_scope("match_case")))
 
-        # Register iterator variable
-        iterator_name = node.iterator or "<unknown>"
-        iter_symbol = Symbol(
-            name=iterator_name,
-            kind=SymbolKind.VARIABLE,
-            type=UNKNOWN,  # Will be inferred from iterable type
-            node=node,
-            is_mutable=False  # Iterator is immutable
-        )
-
-        if not self.symbols.define(iter_symbol):
-            self.add_error(SemanticErrorType.ALREADY_DEFINED, node.span, f"Iterator variable '{iterator_name}'")
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        self.symbols.exit_scope()
-
-    def visit_for_in_indexed_stmt(self, node: ASTNode) -> None:
-        """Visit an indexed for-in loop."""
-        # For-in loop has its own scope
-        self.symbols.enter_scope("for_in_indexed")
-
-        # Register index variable
-        index_name = node.index_var or "<unknown>"
-        index_symbol = Symbol(
-            name=index_name,
-            kind=SymbolKind.VARIABLE,
-            type=UNKNOWN,  # Will be integer type
-            node=node,
-            is_mutable=False
-        )
-
-        if not self.symbols.define(index_symbol):
-            self.add_error(SemanticErrorType.ALREADY_DEFINED, node.span, f"Index variable '{index_name}'")
-
-        # Register iterator variable
-        iterator_name = node.iterator or "<unknown>"
-        iter_symbol = Symbol(
-            name=iterator_name,
-            kind=SymbolKind.VARIABLE,
-            type=UNKNOWN,
-            node=node,
-            is_mutable=False
-        )
-
-        if not self.symbols.define(iter_symbol):
-            self.add_error(SemanticErrorType.ALREADY_DEFINED, node.span, f"Iterator variable '{iterator_name}'")
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        self.symbols.exit_scope()
-
-    def visit_match_stmt(self, node: ASTNode) -> None:
-        """Visit a match statement."""
-        # Each case branch gets its own scope
-        if node.cases:
-            for case in node.cases:
-                if case.kind == NodeKind.CASE_BRANCH:
-                    self.symbols.enter_scope("match_case")
-
-                    # Visit case body
-                    if case.statements:
-                        for stmt in case.statements:
-                            self.visit_statement(stmt)
-
-                    self.symbols.exit_scope()
-
-        # Else case
-        if node.else_case:
-            self.symbols.enter_scope("match_else")
-            for stmt in node.else_case:
-                self.visit_statement(stmt)
-            self.symbols.exit_scope()
+            # RETURN, BREAK, CONTINUE, DEFER, DEL, ASSIGNMENT, EXPRESSION_STMT
+            # don't introduce names — nothing to do
 
     def get_module_table(self) -> ModuleTable:
         """Get the module table."""

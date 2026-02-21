@@ -263,6 +263,31 @@ class TestForLoops:
         """
         assert expect_success(source)
 
+    def test_for_initializer_scope_does_not_leak(self):
+        """Variables declared in for init should not be visible after loop."""
+        source = """
+        main :: fn() {
+            for i := 0; i < 2; i += 1 {
+            }
+            x := i
+        }
+        """
+        assert expect_error(source, "undefined")
+
+    def test_block_scope_does_not_leak_between_sibling_blocks(self):
+        """Names from one block should not be visible in a later sibling block."""
+        source = """
+        main :: fn() {
+            {
+                a := 1
+            }
+            {
+                b := a
+            }
+        }
+        """
+        assert expect_error(source, "undefined")
+
 
 class TestBreakContinue:
     """Test break and continue statement validation."""
@@ -379,6 +404,32 @@ class TestMatchStatements:
         }
         """
         assert expect_success(source)
+
+    def test_match_case_body_reports_undefined_identifier(self):
+        """Case bodies must participate in semantic analysis."""
+        source = """
+        main :: fn() {
+            x := 1
+            match x {
+                case 1: y := z
+                else: y := 0
+            }
+        }
+        """
+        assert expect_error(source, "undefined")
+
+    def test_match_case_body_reports_type_mismatch(self):
+        """Type checking should run for statements inside case branches."""
+        source = """
+        main :: fn() {
+            x := 1
+            match x {
+                case 1: y: i32 = "oops"
+                else: y: i32 = 0
+            }
+        }
+        """
+        assert expect_error(source, "type mismatch")
 
     @pytest.mark.skip(reason="Match as expression parsing not yet implemented")
     def test_match_as_expression(self):

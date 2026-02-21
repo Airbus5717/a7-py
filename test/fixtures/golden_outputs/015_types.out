@@ -1,0 +1,6 @@
+=== Types ===
+i = 42
+f = 3.5
+b = true
+c = Z
+s = typed

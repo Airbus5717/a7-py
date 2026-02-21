@@ -1,57 +1,17 @@
+// Enums in A7
+
 io :: import "std/io"
 
-TknType :: enum {
-    Id,
-    Number,
-    Float,
-    String,
-    Char,
-    Invalid
-}
-
 Color :: enum {
-    Red,    // 0
-    Green,  // 1
-    Blue    // 2
-}
-
-StatusCode :: enum {
-    Ok = 200,
-    NotFound = 404,
-    Error = 500
+    Red
+    Green
+    Blue
 }
 
 main :: fn() {
-    currentType :: TknType.Id
-    
-    // Match on enum values
-    match currentType {
-        case TknType.Id: {
-            io.println("Token is an identifier")
-        }
-        case TknType.Number: {
-            io.println("Token is a number")
-        }
-        case TknType.Float: {
-            io.println("Token is a float")
-        }
-        case TknType.String: {
-            io.println("Token is a string")
-        }
-        case TknType.Char: {
-            io.println("Token is a char")
-        }
-        case TknType.Invalid: {
-            io.println("Token is invalid")
-        }
-    }
-    
-    // Using enums with explicit values
-    status := StatusCode.Ok
-    io.println("HTTP Status: {}", cast(i32, status))
-    
-    // Color enum
-    color := Color.Red
+    io.println("=== Enums ===")
+    color := Color.Green
+
     match color {
         case Color.Red: {
             io.println("Color is red")

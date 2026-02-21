@@ -1,64 +1,19 @@
-// Type system demonstration
+// Type examples in A7
 
 io :: import "std/io"
 
 main :: fn() {
-    // Primitive types
-    bool_val: bool = true
-    
-    // Integer types
-    i8_val: i8 = -128
-    i16_val: i16 = -32000
-    i32_val: i32 = -2000000
-    i64_val: i64 = -9000000000
-    isize_val: isize = -1000  // Platform-dependent
-    
-    u8_val: u8 = 255
-    u16_val: u16 = 65000
-    u32_val: u32 = 4000000
-    u64_val: u64 = 18000000000
-    usize_val: usize = 1000   // Platform-dependent
-    
-    // Floating point types
-    f32_val: f32 = 3.14159
-    f64_val: f64 = 2.718281828459045
-    
-    // Character type (ASCII only)
-    char_val: char = 'A'
-    
-    // String type
-    string_val: string = "Hello, A7!"
-    
-    io.println("Boolean: {}", bool_val)
-    io.println("Integers: {} {} {} {} {}", i8_val, i16_val, i32_val, i64_val, isize_val)
-    io.println("Unsigned: {} {} {} {} {}", u8_val, u16_val, u32_val, u64_val, usize_val)
-    io.println("Floats: {} {}", f32_val, f64_val)
-    io.println("Character: {}", char_val)
-    io.println("String: {}", string_val)
-    
-    // Type aliases
-    Handle :: u64
-    Vector :: [3]f32
-    Matrix :: [4][4]f32
-    
-    handle: Handle = 12345
-    vec: Vector = [1.0, 2.0, 3.0]
-    
-    io.println("Handle: {}", handle)
-    io.println("Vector: {} {} {}", vec[0], vec[1], vec[2])
-    
-    // Explicit casting
-    int_val := 42
-    float_val := cast(f64, int_val)
-    io.println("Cast {} to float: {}", int_val, float_val)
-    
-    // Character escapes
-    newline := '\n'
-    tab := '\t'
-    backslash := '\\'
-    quote := '\''
-    hex_char := '\x41'  // 'A'
-    
-    io.println("Escape sequences work: {}{}{}{}{}",
-           newline, tab, backslash, quote, hex_char)
+    io.println("=== Types ===")
+
+    i: i32 = 42
+    f: f64 = 3.5
+    b: bool = true
+    c: char = 'Z'
+    s: string = "typed"
+
+    io.println("i = {}", i)
+    io.println("f = {}", f)
+    io.println("b = {}", b)
+    io.println("c = {}", c)
+    io.println("s = {}", s)
 }

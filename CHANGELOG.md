@@ -8,6 +8,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Examples End-to-End Verifier**
+  - Added `scripts/verify_examples_e2e.py` to enforce compile → `zig ast-check` → `zig build-exe` → runtime output verification.
+  - Added golden fixtures for all examples in `test/fixtures/golden_outputs/*.out`.
+  - Added `test/test_examples_e2e.py` pytest gate for output-level regression checks.
+
+- **CLI V2: MODE + FORMAT CONTRACT**
+  - Added `--mode {compile,tokens,ast,semantic,pipeline,doc}`.
+  - Added `--format {human,json}` with schema versioned JSON output (`schema_version: "2.0"`).
+  - Added stable exit codes by failure class:
+    - `2` usage, `3` I/O, `4` tokenize, `5` parse, `6` semantic, `7` codegen, `8` internal.
+  - Added `--doc-out PATH` for markdown reports (pass `auto` for `<file>.md`), including compile+doc in one run.
+
+- **STANDARD LIBRARY REGISTRY** (`src/stdlib/`)
+  - `StdlibRegistry` with `resolve_call()`, `resolve_builtin()`, `get_backend_mapping()`
+  - Module definitions: `io` (println, print, eprintln), `math` (sqrt, abs, floor, ceil, sin, cos, etc.)
+  - Backend-specific mappings (e.g., `sqrt` → `@sqrt` for Zig)
+  - Typed builtin variants: `sqrt_f32`, `abs_f64`, etc.
+
+- **AST NODE ANNOTATIONS** (`src/ast_nodes.py`)
+  - `is_mutable`, `is_used`, `emit_name`, `resolved_type`, `hoisted`, `stdlib_canonical`
+  - Populated by preprocessor, read by backends
+
+### Changed
+- **Examples Stabilized for E2E Verification**
+  - Updated `examples/*.a7` so all 36 compile, build, run, and produce deterministic output for golden checks.
+  - Updated status docs to reflect `36/36` end-to-end verified examples.
+
+- **Zig Backend Runtime Output and Arithmetic**
+  - `io.println`/`io.print` placeholder conversion is now type-aware (`string` → `{s}`, `char` → `{c}`).
+  - Division codegen now emits `/` for floating-point operands and keeps `@divTrunc` for integer division.
+  - Mutation analysis no longer marks dereference targets as pointer-binding mutations.
+
+- **ENHANCED AST PREPROCESSOR** (`src/ast_preprocessor.py`)
+  - Now accepts `symbol_table`, `type_map`, and `StdlibRegistry` from pipeline
+  - 9 sub-passes: stdlib resolution, struct init normalization, mutation analysis, usage analysis, type inference, shadowing resolution, nested function hoisting, constant folding
+  - All traversals are iterative (no recursion)
+
+- **ELIMINATED RECURSION** across entire codebase
+  - Converted all recursive AST walkers to iterative (explicit stack) implementations
+  - Files: `ast_preprocessor.py`, `backends/zig.py`, `passes/semantic_validator.py`, `passes/name_resolution.py`, `passes/type_checker.py`, `generics.py`, `formatters/console_formatter.py`, `formatters/markdown_formatter.py`
+  - Full compilation pipeline works with Python recursion limit of 100
+
+- **ZIG BACKEND** now reads preprocessor annotations (`emit_name`, `hoisted`, `is_used`, `resolved_type`)
+
+- **ZIG CODE GENERATION BACKEND** (`src/backends/zig.py`, ~1200 LOC)
+  - Complete A7 → Zig translation for all AST node types
+  - Type mapping: A7 primitives → Zig types, `string` → `[]const u8`, `ref T` → `?*T`
+  - Statement mapping: `ret` → `return`, `match` → `switch`, C-style `for` → Zig `while` with continue expression
+  - Expression mapping: arithmetic, comparisons, `a / b` → `@divTrunc(a, b)`, shift ops with `@intCast`
+  - Memory management: `new T` → `allocator.create(T)`, `del p` → `allocator.destroy(p)`
+  - I/O special-casing: `io.println(...)` → `std.debug.print(... ++ "\n", .{...})`
+  - Smart preamble: only emits `std` import / allocator when needed
+  - All 36 example programs compile successfully to Zig
+
+- **AST PREPROCESSING** (`src/ast_preprocessor.py`)
+  - Runs between semantic analysis and code generation
+  - Lowers `.adr`/`.val` sugar to ADDRESS_OF/DEREF nodes
+  - Constant folding for literal arithmetic, boolean logic, unary negation
+
+- **MARKDOWN DOCUMENTATION OUTPUT** (`--doc-out` / doc-mode)
+  - `src/formatters/markdown_formatter.py` generates full compilation reports
+  - Documents all stages: source code, token table, AST structure, semantic results, generated Zig, summary
+  - Usage: `uv run python main.py examples/001_hello.a7 --mode compile --doc-out auto`
+
+- **FULL PIPELINE CONSOLE OUTPUT** (Rich formatting for all stages)
+  - `display_full_pipeline()` in console_formatter.py shows all 4 stages with Rich tables and panels
+  - Symbol table display, semantic pass results, Zig syntax-highlighted output
+
+- **CODEGEN INTEGRATION TESTS** (`test/test_codegen_zig.py`, 77 tests)
+  - Level 1: All 36 examples compile A7 → Zig without errors
+  - Level 2: Generated Zig passes `zig ast-check` for simple programs
+  - Level 3: Specific code pattern assertions (30+ tests)
+  - Level 4: Zig build checks for simple programs
+  - Total test suite: 777 passed, 39 skipped
+
+### Changed
+- Semantic analysis errors are now non-fatal (displayed as warnings, codegen proceeds)
+- Module imports registered as `SymbolKind.MODULE` symbols for proper field access resolution
+
+### Fixed
+- Switch/match prong trailing commas (Zig requires `,` after `=> { ... }`)
+- Character literal escaping (newline, tab, etc. now properly escaped)
+- Correct AST attribute names throughout codegen: `operator` not `op`, `literal_value` not `value`, `parameter_types` not `param_types`
+
+---
+
 - 🔥 **COMPREHENSIVE ERROR SYSTEM: Professional Multi-Error Reporting**
   - **53 Structured Error Types**: SemanticErrorType (25) + TypeErrorType (28)
   - **Multiple Error Collection**: Shows ALL errors in one compilation run (not just first!)
@@ -33,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Same beautiful output, cleaner codebase
 
 - 🚀 **SEMANTIC ANALYSIS INTEGRATED INTO COMPILATION PIPELINE!**
-  - Semantic analysis now runs automatically during compilation (unless `--parse-only` or `--tokenize-only` flags are used)
+  - Semantic analysis now runs automatically during compilation (except analysis-only modes like `--mode ast` and `--mode tokens`)
   - Three-pass semantic analysis: Name Resolution → Type Checking → Semantic Validation
   - Error detection and reporting for type errors, undefined identifiers, control flow violations
   - Test results: 98/228 semantic tests passing (43% - foundation complete)

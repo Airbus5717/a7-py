@@ -1,135 +1,23 @@
-// Advanced control flow demonstration
+// Control flow in A7
 
 io :: import "std/io"
 
 main :: fn() {
-    // Break and continue in loops
-    io.println("=== Break and Continue ===")
-    for i := 0; i < 10; i += 1 {
-        if i == 3 {
-            continue  // Skip when i is 3
+    io.println("=== Control Flow ===")
+
+    total := 0
+    for i := 1; i <= 5; i += 1 {
+        if i % 2 == 0 {
+            continue
         }
-        if i == 7 {
-            break     // Stop when i is 7
-        }
-        io.println("i = {}", i)
+        total += i
     }
 
-    // Labeled break and continue
-    io.println("")
-    io.println("=== Labeled Break ===")
-    outer: for i := 0; i < 3; i += 1 {
-        for j := 0; j < 3; j += 1 {
-            if i == 1 and j == 1 {
-                break outer  // Break from outer loop
-            }
-            io.println("({}, {})", i, j)
-        }
-    }
+    io.println("sum of odd numbers 1..5 = {}", total)
 
-    // Infinite loop with break
-    io.println("")
-    io.println("=== Infinite Loop ===")
-    counter := 0
-    for {
-        counter += 1
-        io.println("Counter: {}", counter)
-        if counter >= 3 {
-            break
-        }
-    }
-
-    // While loop with complex condition
-    io.println("")
-    io.println("=== While Loop ===")
-    running := true
-    count := 0
-    while running and count < 5 {
-        io.println("While iteration: {}", count)
-        count += 1
-        if count == 3 {
-            running = false
-        }
-    }
-
-    // Nested control structures
-    io.println("")
-    io.println("=== Nested Control ===")
-    for x := 1; x <= 3; x += 1 {
-        for y := 1; y <= 3; y += 1 {
-            if x == y {
-                io.println("Diagonal: ({}, {})", x, y)
-            } else if x + y == 4 {
-                io.println("Anti-diagonal: ({}, {})", x, y)
-            } else {
-                io.println("Other: ({}, {})", x, y)
-            }
-        }
-    }
-
-    // Match with complex patterns
-    io.println("")
-    io.println("=== Match Patterns ===")
-    for value := 0; value <= 15; value += 1 {
-        match value {
-            case 0: {
-                io.println("Zero")
-            }
-            case 1, 2, 3: {
-                io.println("Small number")
-            }
-            case 4..10: {
-                io.println("Medium range")
-            }
-            case 11: {
-                io.print("Eleven")
-                fall  // Fallthrough to next case
-            }
-            case 12: {
-                io.println(" or Twelve")
-            }
-            else: {
-                io.println("Large number")
-            }
-        }
-    }
-
-    // Early return pattern
-    io.println("")
-    io.println("=== Early Returns ===")
-
-    check_value :: fn(x: i32) {
-        if x < 0 {
-            io.println("Negative value, returning early")
-            ret
-        }
-
-        if x == 0 {
-            io.println("Zero value, returning early")
-            ret
-        }
-
-        io.println("Positive value: {}", x)
-    }
-
-    check_value(-5)
-    check_value(0)
-    check_value(10)
-
-    // Function with multiple return points
-    classify :: fn(x: i32) string {
-        if x < 0 {
-            ret "negative"
-        } else if x == 0 {
-            ret "zero"
-        } else if x < 10 {
-            ret "small positive"
-        } else {
-            ret "large positive"
-        }
-    }
-
-    for test_val := -2; test_val <= 12; test_val += 5 {
-        io.println("{} is {}", test_val, classify(test_val))
+    n := 3
+    while n > 0 {
+        io.println("countdown: {}", n)
+        n -= 1
     }
 }

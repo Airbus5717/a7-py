@@ -117,139 +117,109 @@ class SemanticValidationPass:
         if node.body:
             self.visit_statement(node.body)
 
-        # Check for non-void functions without return
-        if node.return_type and not self.context.function_has_return():
-            # This is a potential issue but might be intentional (infinite loop, etc.)
-            # Could be a warning
-            pass
+        # Check for non-void functions without return on all paths
+        if node.return_type and node.body:
+            if not self._returns_on_all_paths(node.body):
+                self.add_error(
+                    SemanticErrorType.MISSING_RETURN,
+                    node.span,
+                    f"Function '{func_name}' does not return on all paths"
+                )
 
         # Exit function context
         self.context.exit_function()
 
     def visit_statement(self, node: ASTNode) -> None:
-        """Visit a statement."""
-        if node.kind == NodeKind.BLOCK:
-            self.visit_block(node)
+        """Visit a statement (iterative)."""
+        # Stack items: ('visit_stmt', node) or ('action', callable)
+        stack: list = [('visit_stmt', node)]
 
-        elif node.kind == NodeKind.IF_STMT:
-            self.visit_if_stmt(node)
+        while stack:
+            action, item = stack.pop()
 
-        elif node.kind == NodeKind.WHILE:
-            self.visit_while_stmt(node)
+            if action == 'action':
+                item()  # Execute deferred action
+                continue
 
-        elif node.kind == NodeKind.FOR:
-            self.visit_for_stmt(node)
+            if action == 'visit_expr':
+                self._visit_expression_iterative(item)
+                continue
 
-        elif node.kind == NodeKind.FOR_IN or node.kind == NodeKind.FOR_IN_INDEXED:
-            self.visit_for_in_stmt(node)
+            # action == 'visit_stmt'
+            nd = item
+            if nd.kind == NodeKind.BLOCK:
+                scope_depth = self.symbols.get_scope_depth()
+                # Schedule: pop defers after block statements
+                stack.append(('action', lambda sd=scope_depth: self.context.pop_defers_at_depth(sd)))
+                # Push statements in reverse so first executes first
+                for stmt in reversed(nd.statements or []):
+                    stack.append(('visit_stmt', stmt))
 
-        elif node.kind == NodeKind.MATCH:
-            self.visit_match_stmt(node)
+            elif nd.kind == NodeKind.IF_STMT:
+                if nd.else_stmt:
+                    stack.append(('visit_stmt', nd.else_stmt))
+                if nd.then_stmt:
+                    stack.append(('visit_stmt', nd.then_stmt))
 
-        elif node.kind == NodeKind.BREAK:
-            self.visit_break_stmt(node)
+            elif nd.kind == NodeKind.WHILE:
+                self.context.enter_loop(nd.label)
+                stack.append(('action', lambda: self.context.exit_loop()))
+                if nd.body:
+                    stack.append(('visit_stmt', nd.body))
 
-        elif node.kind == NodeKind.CONTINUE:
-            self.visit_continue_stmt(node)
+            elif nd.kind == NodeKind.FOR:
+                self.context.enter_loop(nd.label)
+                stack.append(('action', lambda: self.context.exit_loop()))
+                if nd.body:
+                    stack.append(('visit_stmt', nd.body))
+                if nd.init:
+                    stack.append(('visit_stmt', nd.init))
 
-        elif node.kind == NodeKind.RETURN:
-            self.visit_return_stmt(node)
+            elif nd.kind in (NodeKind.FOR_IN, NodeKind.FOR_IN_INDEXED):
+                self.context.enter_loop(nd.label)
+                stack.append(('action', lambda: self.context.exit_loop()))
+                if nd.body:
+                    stack.append(('visit_stmt', nd.body))
 
-        elif node.kind == NodeKind.DEFER:
-            self.visit_defer_stmt(node)
+            elif nd.kind == NodeKind.MATCH:
+                # Schedule else case
+                if nd.else_case:
+                    for stmt in reversed(nd.else_case):
+                        stack.append(('visit_stmt', stmt))
+                # Schedule case branches
+                if nd.cases:
+                    for case in reversed(nd.cases):
+                        case_stmt = getattr(case, "statement", None)
+                        if case_stmt:
+                            stack.append(('visit_stmt', case_stmt))
+                        elif case.statements:
+                            for stmt in reversed(case.statements):
+                                stack.append(('visit_stmt', stmt))
 
-        elif node.kind == NodeKind.DEL:
-            self.visit_del_stmt(node)
+            elif nd.kind == NodeKind.BREAK:
+                self.visit_break_stmt(nd)
+            elif nd.kind == NodeKind.CONTINUE:
+                self.visit_continue_stmt(nd)
+            elif nd.kind == NodeKind.RETURN:
+                self.visit_return_stmt(nd)
+            elif nd.kind == NodeKind.DEFER:
+                self.visit_defer_stmt(nd)
+            elif nd.kind == NodeKind.DEL:
+                self.visit_del_stmt(nd)
 
-        elif node.kind == NodeKind.EXPRESSION_STMT:
-            if node.expression:
-                self.visit_expression(node.expression)
+            elif nd.kind == NodeKind.EXPRESSION_STMT:
+                if nd.expression:
+                    stack.append(('visit_expr', nd.expression))
 
-        elif node.kind == NodeKind.VAR or node.kind == NodeKind.CONST:
-            # Check initializer
-            if node.value:
-                self.visit_expression(node.value)
+            elif nd.kind in (NodeKind.VAR, NodeKind.CONST):
+                if nd.value:
+                    stack.append(('visit_expr', nd.value))
 
-        elif node.kind == NodeKind.ASSIGNMENT:
-            if node.target:
-                self.visit_expression(node.target)
-            if node.value:
-                self.visit_expression(node.value)
-
-    def visit_block(self, node: ASTNode) -> None:
-        """Visit a block statement."""
-        # Track scope depth for defer
-        scope_depth = self.symbols.get_scope_depth()
-
-        # Visit statements
-        if node.statements:
-            for stmt in node.statements:
-                self.visit_statement(stmt)
-
-        # Pop defers at this scope depth
-        self.context.pop_defers_at_depth(scope_depth)
-
-    def visit_if_stmt(self, node: ASTNode) -> None:
-        """Visit an if statement."""
-        # Visit branches
-        if node.then_stmt:
-            self.visit_statement(node.then_stmt)
-        if node.else_stmt:
-            self.visit_statement(node.else_stmt)
-
-    def visit_while_stmt(self, node: ASTNode) -> None:
-        """Visit a while statement."""
-        # Enter loop context
-        self.context.enter_loop(node.label)
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        # Exit loop context
-        self.context.exit_loop()
-
-    def visit_for_stmt(self, node: ASTNode) -> None:
-        """Visit a for loop."""
-        # Enter loop context
-        self.context.enter_loop(node.label)
-
-        # Visit init
-        if node.init:
-            self.visit_statement(node.init)
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        # Exit loop context
-        self.context.exit_loop()
-
-    def visit_for_in_stmt(self, node: ASTNode) -> None:
-        """Visit a for-in loop."""
-        # Enter loop context
-        self.context.enter_loop(node.label)
-
-        # Visit body
-        if node.body:
-            self.visit_statement(node.body)
-
-        # Exit loop context
-        self.context.exit_loop()
-
-    def visit_match_stmt(self, node: ASTNode) -> None:
-        """Visit a match statement."""
-        # Visit all cases
-        if node.cases:
-            for case in node.cases:
-                if case.statements:
-                    for stmt in case.statements:
-                        self.visit_statement(stmt)
-
-        # Visit else case
-        if node.else_case:
-            for stmt in node.else_case:
-                self.visit_statement(stmt)
+            elif nd.kind == NodeKind.ASSIGNMENT:
+                if nd.value:
+                    stack.append(('visit_expr', nd.value))
+                if nd.target:
+                    stack.append(('visit_expr', nd.target))
 
     def visit_break_stmt(self, node: ASTNode) -> None:
         """Validate a break statement."""
@@ -311,79 +281,87 @@ class SemanticValidationPass:
                 )
 
     def visit_expression(self, node: ASTNode) -> None:
-        """Visit an expression for validation."""
-        if node.kind == NodeKind.LITERAL:
-            self.visit_literal_expr(node)
+        """Visit an expression for validation (delegates to iterative impl)."""
+        self._visit_expression_iterative(node)
 
-        elif node.kind == NodeKind.BINARY:
-            if node.left:
-                self.visit_expression(node.left)
-            if node.right:
-                self.visit_expression(node.right)
+    def _visit_expression_iterative(self, node: ASTNode) -> None:
+        """Visit an expression for validation (iterative)."""
+        stack = [node]
 
-        elif node.kind == NodeKind.UNARY:
-            if node.operand:
-                self.visit_expression(node.operand)
+        while stack:
+            nd = stack.pop()
 
-        elif node.kind == NodeKind.CALL:
-            if node.function:
-                self.visit_expression(node.function)
-            if node.arguments:
-                for arg in node.arguments:
-                    self.visit_expression(arg)
+            if nd.kind == NodeKind.LITERAL:
+                self.visit_literal_expr(nd)
 
-        elif node.kind == NodeKind.INDEX:
-            if node.object:
-                self.visit_expression(node.object)
-            if node.index:
-                self.visit_expression(node.index)
+            elif nd.kind == NodeKind.BINARY:
+                if nd.right:
+                    stack.append(nd.right)
+                if nd.left:
+                    stack.append(nd.left)
 
-        elif node.kind == NodeKind.SLICE:
-            if node.object:
-                self.visit_expression(node.object)
-            if node.start:
-                self.visit_expression(node.start)
-            if node.end:
-                self.visit_expression(node.end)
+            elif nd.kind == NodeKind.UNARY:
+                if nd.operand:
+                    stack.append(nd.operand)
 
-        elif node.kind == NodeKind.FIELD_ACCESS:
-            if node.object:
-                self.visit_expression(node.object)
+            elif nd.kind == NodeKind.CALL:
+                if nd.arguments:
+                    for arg in reversed(nd.arguments):
+                        stack.append(arg)
+                if nd.function:
+                    stack.append(nd.function)
 
-        elif node.kind == NodeKind.ADDRESS_OF:
-            if node.operand:
-                self.visit_expression(node.operand)
+            elif nd.kind == NodeKind.INDEX:
+                if nd.index:
+                    stack.append(nd.index)
+                if nd.object:
+                    stack.append(nd.object)
 
-        elif node.kind == NodeKind.DEREF:
-            if node.pointer:
-                self.visit_expression(node.pointer)
+            elif nd.kind == NodeKind.SLICE:
+                if nd.end:
+                    stack.append(nd.end)
+                if nd.start:
+                    stack.append(nd.start)
+                if nd.object:
+                    stack.append(nd.object)
 
-        elif node.kind == NodeKind.CAST:
-            if node.expression:
-                self.visit_expression(node.expression)
+            elif nd.kind == NodeKind.FIELD_ACCESS:
+                if nd.object:
+                    stack.append(nd.object)
 
-        elif node.kind == NodeKind.IF_EXPR:
-            if node.condition:
-                self.visit_expression(node.condition)
-            if node.then_expr:
-                self.visit_expression(node.then_expr)
-            if node.else_expr:
-                self.visit_expression(node.else_expr)
+            elif nd.kind == NodeKind.ADDRESS_OF:
+                if nd.operand:
+                    stack.append(nd.operand)
 
-        elif node.kind == NodeKind.STRUCT_INIT:
-            if node.field_inits:
-                for field_init in node.field_inits:
-                    if field_init.value:
-                        self.visit_expression(field_init.value)
+            elif nd.kind == NodeKind.DEREF:
+                if nd.pointer:
+                    stack.append(nd.pointer)
 
-        elif node.kind == NodeKind.ARRAY_INIT:
-            if node.elements:
-                for elem in node.elements:
-                    self.visit_expression(elem)
+            elif nd.kind == NodeKind.CAST:
+                if nd.expression:
+                    stack.append(nd.expression)
 
-        elif node.kind == NodeKind.NEW_EXPR:
-            # Track allocation
-            self.visit_new_expr(node)
+            elif nd.kind == NodeKind.IF_EXPR:
+                if nd.else_expr:
+                    stack.append(nd.else_expr)
+                if nd.then_expr:
+                    stack.append(nd.then_expr)
+                if nd.condition:
+                    stack.append(nd.condition)
+
+            elif nd.kind == NodeKind.STRUCT_INIT:
+                if nd.field_inits:
+                    for fi in reversed(nd.field_inits):
+                        if fi.value:
+                            stack.append(fi.value)
+
+            elif nd.kind == NodeKind.ARRAY_INIT:
+                if nd.elements:
+                    for elem in reversed(nd.elements):
+                        stack.append(elem)
+
+            elif nd.kind == NodeKind.NEW_EXPR:
+                self.visit_new_expr(nd)
 
     def visit_literal_expr(self, node: ASTNode) -> None:
         """Validate a literal expression."""
@@ -404,6 +382,60 @@ class SemanticValidationPass:
             alloc_type = node.target_type
             # Could track allocation for leak detection
             pass
+
+    def _returns_on_all_paths(self, node: ASTNode) -> bool:
+        """Check if a node returns on all execution paths (iterative)."""
+        # Use an iterative approach: drill down through blocks/ifs/matches
+        current = node
+        while current is not None:
+            if current.kind == NodeKind.RETURN:
+                return True
+
+            if current.kind == NodeKind.BLOCK:
+                stmts = current.statements or []
+                if not stmts:
+                    return False
+                current = stmts[-1]
+                continue
+
+            if current.kind == NodeKind.IF_STMT:
+                if current.else_stmt is None:
+                    return False
+                # Both branches must return — check each iteratively
+                if not self._returns_on_all_paths(current.then_stmt):
+                    return False
+                current = current.else_stmt
+                continue
+
+            if current.kind == NodeKind.MATCH:
+                if not current.else_case:
+                    return False
+                # Check all case branches
+                for case in (current.cases or []):
+                    case_stmt = getattr(case, "statement", None)
+                    if case_stmt is not None:
+                        if not self._returns_on_all_paths(case_stmt):
+                            return False
+                    else:
+                        case_stmts = getattr(case, "statements", None)
+                        if case_stmts:
+                            if not self._returns_on_all_paths(case_stmts[-1]):
+                                return False
+                        else:
+                            return False
+                # Check else case — tail-call into last else stmt
+                else_stmts = current.else_case or []
+                found_return = False
+                for stmt in else_stmts:
+                    if self._returns_on_all_paths(stmt):
+                        found_return = True
+                        break
+                return found_return
+
+            # Any other node kind doesn't return
+            return False
+
+        return False
 
     def validate_nil_usage(self, node: ASTNode, target_type: Type) -> bool:
         """
