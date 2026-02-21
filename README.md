@@ -1,5 +1,7 @@
 # A7 Programming Language Compiler
 
+This whole application was vibecoded using Codex and Claude Code.
+
 A Python-based compiler for A7, a statically-typed systems programming language. A7 combines the simplicity of C-style syntax with modern features like generics, type inference, and property-based pointer operations.
 
 The compiler features a complete pipeline: tokenizer, parser, 3-pass semantic analysis, AST preprocessing, and Zig code generation.
