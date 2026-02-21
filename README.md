@@ -69,13 +69,13 @@ uv run python scripts/verify_error_stages.py       # Error-stage audit across mo
 Source (.a7) → Tokenizer → Parser → Semantic Analysis (3-pass) → AST Preprocessing → Zig Codegen → Output (.zig)
 ```
 
-1. **Tokenizer** — Lexes source into tokens. Handles single-token generics (`$T`), nested comments, all number formats.
-2. **Parser** — Recursive descent with precedence climbing. Parses all A7 constructs.
-3. **Semantic Analysis** — Name resolution, type checking with inference, control flow validation.
-4. **AST Preprocessing** — 9 sub-passes: sugar lowering, stdlib resolution, mutation/usage analysis, type inference, shadowing resolution, function hoisting, constant folding.
-5. **Zig Code Generation** — Translates AST to valid Zig source code.
+1. **Tokenizer**. Lexes source into tokens. Handles single-token generics (`$T`), nested comments, and number formats.
+2. **Parser**. Uses recursive descent with precedence climbing. Parses all A7 constructs.
+3. **Semantic Analysis**. Runs name resolution, type checking with inference, and control flow validation.
+4. **AST Preprocessing**. Runs 9 sub-passes: sugar lowering, stdlib resolution, mutation and usage analysis, type inference, shadowing resolution, function hoisting, and constant folding.
+5. **Zig Code Generation**. Translates AST to valid Zig source code.
 
-All AST traversals are iterative (no recursion) — the pipeline works with Python's recursion limit set to 100.
+All AST traversals are iterative with no recursion. The pipeline works with Python's recursion limit set to 100.
 
 ## What Works
 
