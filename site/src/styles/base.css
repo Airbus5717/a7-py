@@ -333,6 +333,71 @@ kbd {
   font-size: 0.88rem;
 }
 
+.visual-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  margin: var(--space-4) 0;
+}
+
+.visual-card {
+  border: 1px solid var(--atlas-border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--atlas-panel-strong) 64%, var(--atlas-panel) 36%);
+  padding: var(--space-3);
+}
+
+.visual-card h3 {
+  margin: 0 0 var(--space-1);
+  font-family: var(--atlas-font-display);
+  font-size: 1.35rem;
+}
+
+.visual-card p {
+  margin: 0 0 var(--space-2);
+  color: var(--atlas-text-soft);
+  font-size: 0.95rem;
+}
+
+.visual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.visual-link {
+  display: inline-block;
+  border: 1px solid var(--atlas-border);
+  border-radius: 999px;
+  padding: 0.36rem 0.75rem;
+  text-decoration: none;
+  color: var(--atlas-text-soft);
+  background: color-mix(in srgb, var(--atlas-panel) 92%, transparent 8%);
+  font-size: 0.82rem;
+}
+
+.visual-link:hover {
+  color: var(--atlas-text);
+  border-color: color-mix(in srgb, var(--atlas-accent) 45%, var(--atlas-border) 55%);
+  background: color-mix(in srgb, var(--atlas-accent-soft) 55%, var(--atlas-panel) 45%);
+}
+
+.visual-frame {
+  margin-top: var(--space-2);
+  border: 1px solid var(--atlas-border);
+  border-radius: 0.78rem;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--atlas-panel-inset) 70%, var(--atlas-panel) 30%);
+}
+
+.visual-frame iframe {
+  display: block;
+  width: 100%;
+  height: 22rem;
+  border: 0;
+  background: transparent;
+}
+
 @media (max-width: 72rem) {
   .site-shell {
     grid-template-columns: 1fr;

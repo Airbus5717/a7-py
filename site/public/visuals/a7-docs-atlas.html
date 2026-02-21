@@ -9,32 +9,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4eee4;
+      --bg: #f4eee3;
       --surface: #fffdf8;
-      --surface-2: #f7f0e4;
-      --border: rgba(34, 26, 19, 0.14);
-      --text: #241d15;
-      --text-dim: #615544;
-      --accent: #0d6e84;
-      --accent-dim: rgba(13, 110, 132, 0.14);
-      --signal: #946226;
-      --signal-dim: rgba(148, 98, 38, 0.15);
-      --ok: #2f6a4b;
+      --surface-2: #f8f1e5;
+      --border: rgba(31, 24, 18, 0.14);
+      --text: #211910;
+      --text-dim: #625544;
+      --accent: #0c6f87;
+      --accent-dim: rgba(12, 111, 135, 0.14);
+      --signal: #98632b;
+      --signal-dim: rgba(152, 99, 43, 0.14);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #18130f;
-        --surface: #241d17;
-        --surface-2: #2e251d;
-        --border: rgba(241, 230, 214, 0.16);
-        --text: #f1e6d6;
-        --text-dim: #c5b398;
-        --accent: #68cde7;
-        --accent-dim: rgba(104, 205, 231, 0.2);
-        --signal: #e6b878;
-        --signal-dim: rgba(230, 184, 120, 0.2);
-        --ok: #9bcfaf;
+        --bg: #18120e;
+        --surface: #251d16;
+        --surface-2: #30251d;
+        --border: rgba(240, 227, 206, 0.17);
+        --text: #f0e3ce;
+        --text-dim: #c7b18f;
+        --accent: #70d1ea;
+        --accent-dim: rgba(112, 209, 234, 0.2);
+        --signal: #f0c186;
+        --signal-dim: rgba(240, 193, 134, 0.2);
       }
     }
 
@@ -46,93 +44,139 @@
       color: var(--text);
       background: var(--bg);
       background-image:
-        radial-gradient(1000px 380px at 0% -6%, var(--accent-dim), transparent 60%),
-        radial-gradient(1000px 420px at 100% 0%, var(--signal-dim), transparent 60%);
-      padding: 28px;
+        radial-gradient(1200px 460px at 0% -8%, var(--accent-dim), transparent 60%),
+        radial-gradient(1200px 420px at 100% 0%, var(--signal-dim), transparent 62%);
+      padding: 24px;
     }
 
     .wrap {
-      max-width: 1400px;
+      max-width: 1480px;
       margin: 0 auto;
       display: grid;
-      gap: 22px;
+      gap: 16px;
     }
 
-    .hero {
-      background: var(--surface);
+    .bar,
+    .hero,
+    .grid,
+    .table {
       border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 30px;
+      border-radius: 18px;
+      background: var(--surface);
+      padding: 20px;
     }
 
-    .kicker {
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .bar .title {
       margin: 0;
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
-      letter-spacing: 0.08em;
       text-transform: uppercase;
+      letter-spacing: 0.07em;
       color: var(--text-dim);
     }
 
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .links a {
+      display: inline-block;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--text-dim);
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--surface-2);
+    }
+
+    .links a:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
     h1 {
-      margin: 8px 0 12px;
+      margin: 8px 0 10px;
       font-family: 'Fraunces', serif;
-      font-size: clamp(44px, 7vw, 84px);
+      font-size: clamp(48px, 7vw, 92px);
       line-height: 1.02;
       letter-spacing: -0.02em;
     }
 
     .lead {
       margin: 0;
-      font-size: clamp(20px, 1.6vw, 28px);
-      line-height: 1.4;
+      max-width: 56ch;
       color: var(--text-dim);
-      max-width: 52ch;
+      font-size: clamp(20px, 1.6vw, 29px);
+      line-height: 1.4;
     }
 
     .stats {
-      margin-top: 22px;
+      margin-top: 18px;
       display: grid;
-      gap: 14px;
+      gap: 10px;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
 
     .stat {
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 18px;
+      border-radius: 12px;
       background: var(--surface-2);
+      padding: 12px;
     }
 
-    .stat .value {
-      margin: 0;
+    .stat strong {
+      display: block;
       font-family: 'Fraunces', serif;
-      font-size: 42px;
+      font-size: 40px;
       line-height: 1;
     }
 
-    .stat .label {
-      margin: 6px 0 0;
-      font-size: 16px;
+    .stat span {
+      display: block;
+      margin-top: 4px;
       color: var(--text-dim);
+      font-size: 15px;
     }
 
     .grid {
       display: grid;
-      gap: 18px;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
     }
 
     .card {
-      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      min-width: 0;
+      border-radius: 12px;
+      background: var(--surface-2);
+      padding: 14px;
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      background: var(--accent-dim);
     }
 
     .card h2 {
-      margin: 0 0 10px;
+      margin: 0 0 6px;
       font-family: 'Fraunces', serif;
       font-size: 34px;
       line-height: 1.1;
@@ -141,153 +185,160 @@
     .card p {
       margin: 0;
       color: var(--text-dim);
-      font-size: 18px;
-      line-height: 1.5;
+      font-size: 17px;
+      line-height: 1.45;
     }
 
     .card ul {
-      margin: 14px 0 0;
+      margin: 10px 0 0;
       padding-left: 18px;
-      font-size: 17px;
-      line-height: 1.5;
-    }
-
-    .card li + li { margin-top: 5px; }
-
-    .chip {
-      display: inline-block;
-      margin-bottom: 10px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--accent-dim);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      color: var(--accent);
-    }
-
-    .timeline {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-    }
-
-    .timeline h2 {
-      margin: 0 0 14px;
-      font-family: 'Fraunces', serif;
-      font-size: 34px;
-    }
-
-    .line {
-      display: grid;
-      gap: 10px;
-    }
-
-    .step {
-      border-left: 3px solid var(--accent);
-      padding: 8px 0 8px 12px;
-    }
-
-    .step strong {
-      display: block;
-      font-size: 18px;
-    }
-
-    .step span {
-      color: var(--text-dim);
       font-size: 16px;
     }
 
-    .foot {
-      text-align: right;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 820px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 16px;
+      line-height: 1.4;
+    }
+
+    th {
+      background: var(--surface-2);
       font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
       color: var(--text-dim);
-      font-size: 13px;
-      padding: 8px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      background: var(--accent-dim);
+      border-radius: 6px;
+      padding: 2px 6px;
+      color: var(--accent);
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 12px; }
+      .bar,
+      .hero,
+      .grid,
+      .table { padding: 12px; }
     }
   </style>
 </head>
 <body>
   <main class="wrap">
+    <section class="bar">
+      <p class="title">A7 visual atlas</p>
+      <nav class="links" aria-label="Visual pages">
+        <a href="./a7-docs-atlas.html">Atlas</a>
+        <a href="./a7-pipeline-reference.html">Pipeline</a>
+        <a href="./a7-examples-reference.html">Examples</a>
+        <a href="./a7-language-map.html">Language</a>
+        <a href="./">Back to Visuals</a>
+      </nav>
+    </section>
+
     <section class="hero">
-      <p class="kicker">A7 docs visual overview</p>
       <h1>Docs Atlas</h1>
-      <p class="lead">This atlas shows how the rebuilt docs are organized. It keeps route lookup, maintenance priorities, and visual references in one scan.</p>
+      <p class="lead">This atlas defines how the documentation is structured after the template removal. It keeps the new route system, page intent, and update path in one scan.</p>
       <div class="stats">
-        <article class="stat">
-          <p class="value">10</p>
-          <p class="label">Primary routes</p>
-        </article>
-        <article class="stat">
-          <p class="value">4</p>
-          <p class="label">Visual references</p>
-        </article>
-        <article class="stat">
-          <p class="value">36</p>
-          <p class="label">Examples indexed</p>
-        </article>
-        <article class="stat">
-          <p class="value">5</p>
-          <p class="label">Compiler stages</p>
-        </article>
+        <article class="stat"><strong>10</strong><span>Flat documentation routes</span></article>
+        <article class="stat"><strong>4</strong><span>Standalone visual references</span></article>
+        <article class="stat"><strong>36</strong><span>Indexed examples</span></article>
+        <article class="stat"><strong>5</strong><span>Compiler pipeline stages</span></article>
       </div>
     </section>
 
     <section class="grid">
       <article class="card">
-        <span class="chip">Start</span>
-        <h2>Onboarding Surface</h2>
-        <p>These routes move a new reader from install to runtime output quickly.</p>
+        <span class="tag">Start Surface</span>
+        <h2>Entry Routes</h2>
+        <p>These pages move a new reader from setup to stage level debugging.</p>
         <ul>
           <li><code>/start/</code> install and first compile</li>
-          <li><code>/cli/</code> command and mode contract</li>
-          <li><code>/pipeline/</code> stage map for debugging</li>
+          <li><code>/cli/</code> command and output contract</li>
+          <li><code>/pipeline/</code> stage sequence and diagnostics path</li>
         </ul>
       </article>
-
       <article class="card">
-        <span class="chip">Language</span>
-        <h2>Behavior Surface</h2>
-        <p>This section keeps type and syntax behavior in one route for direct reading.</p>
+        <span class="tag">Language Surface</span>
+        <h2>Behavior Routes</h2>
+        <p>These pages hold language behavior and runnable learning paths.</p>
         <ul>
-          <li><code>/language/</code> declarations, types, flow, memory</li>
-          <li><code>/examples/</code> file to purpose index</li>
-          <li><code>/topics/</code> inline snippets by topic</li>
+          <li><code>/language/</code> syntax, types, flow, memory</li>
+          <li><code>/examples/</code> file by file purpose list</li>
+          <li><code>/topics/</code> inline snippets grouped by topic</li>
         </ul>
       </article>
-
       <article class="card">
-        <span class="chip">Project</span>
-        <h2>Maintenance Surface</h2>
-        <p>This area tracks release notes, status, and visual references.</p>
+        <span class="tag">Maintenance Surface</span>
+        <h2>Project Routes</h2>
+        <p>These pages track release state and reference assets.</p>
         <ul>
-          <li><code>/status/</code> tested coverage and deferred work</li>
-          <li><code>/changelog/</code> release level notes</li>
-          <li><code>/visuals/</code> links to static visual pages</li>
+          <li><code>/status/</code> capability and deferred features</li>
+          <li><code>/changelog/</code> release notes summary</li>
+          <li><code>/visuals/</code> integrated visual gallery</li>
         </ul>
       </article>
     </section>
 
-    <section class="timeline">
-      <h2>Maintenance Rhythm</h2>
-      <div class="line">
-        <div class="step">
-          <strong>Step 1 Update command behavior docs</strong>
-          <span>Update `/cli/` and `/pipeline/` in the same change as compiler flag behavior.</span>
-        </div>
-        <div class="step">
-          <strong>Step 2 Update language behavior docs</strong>
-          <span>Update `/language/` and refresh topic snippets when semantics shift.</span>
-        </div>
-        <div class="step">
-          <strong>Step 3 Update quality surfaces</strong>
-          <span>Update `/status/`, `/changelog/`, and related visual pages for each release.</span>
-        </div>
+    <section class="table">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Update Trigger</th>
+              <th>Primary Page</th>
+              <th>Required Companion Updates</th>
+              <th>Reference Visual</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>CLI option changes</td>
+              <td><code>/cli/</code></td>
+              <td><code>/pipeline/</code>, root <code>README.md</code></td>
+              <td><code>a7-pipeline-reference.html</code></td>
+            </tr>
+            <tr>
+              <td>Language behavior changes</td>
+              <td><code>/language/</code></td>
+              <td><code>/topics/</code>, <code>/examples/</code></td>
+              <td><code>a7-language-map.html</code></td>
+            </tr>
+            <tr>
+              <td>Example corpus changes</td>
+              <td><code>/examples/</code></td>
+              <td><code>/topics/</code>, test coverage docs</td>
+              <td><code>a7-examples-reference.html</code></td>
+            </tr>
+            <tr>
+              <td>Release and status updates</td>
+              <td><code>/status/</code>, <code>/changelog/</code></td>
+              <td>Root <code>CHANGELOG.md</code>, project notes</td>
+              <td><code>a7-docs-atlas.html</code></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
-
-    <p class="foot">A7 docs atlas • static HTML reference</p>
   </main>
 </body>
 </html>

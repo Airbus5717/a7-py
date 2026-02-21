@@ -6,35 +6,37 @@
   <title>A7 Pipeline Reference</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f1f6f8;
+      --bg: #edf3f6;
       --surface: #ffffff;
-      --surface-2: #e8f2f5;
-      --border: rgba(18, 37, 44, 0.14);
-      --text: #112229;
-      --text-dim: #4e6670;
-      --accent: #0b7e9b;
-      --accent-dim: rgba(11, 126, 155, 0.14);
-      --warning: #ab6a20;
-      --warning-dim: rgba(171, 106, 32, 0.13);
-      --ok: #2d6b4b;
+      --surface-2: #e6f0f4;
+      --border: rgba(20, 40, 49, 0.14);
+      --text: #14242c;
+      --text-dim: #4f6872;
+      --accent: #097d9f;
+      --accent-dim: rgba(9, 125, 159, 0.15);
+      --signal: #a46421;
+      --signal-dim: rgba(164, 100, 33, 0.14);
+      --ok: #2c694a;
+      --ok-dim: rgba(44, 105, 74, 0.14);
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0d171b;
-        --surface: #132026;
-        --surface-2: #1b2d35;
-        --border: rgba(214, 239, 247, 0.16);
-        --text: #d6eff7;
-        --text-dim: #9db9c3;
-        --accent: #68d2f0;
-        --accent-dim: rgba(104, 210, 240, 0.2);
-        --warning: #f0be81;
-        --warning-dim: rgba(240, 190, 129, 0.2);
-        --ok: #93cfaf;
+        --bg: #0f171b;
+        --surface: #15232a;
+        --surface-2: #1f3139;
+        --border: rgba(218, 238, 245, 0.16);
+        --text: #daeef5;
+        --text-dim: #9cbac5;
+        --accent: #69d2ef;
+        --accent-dim: rgba(105, 210, 239, 0.2);
+        --signal: #f0c086;
+        --signal-dim: rgba(240, 192, 134, 0.2);
+        --ok: #9dcfb3;
+        --ok-dim: rgba(157, 207, 179, 0.2);
       }
     }
 
@@ -46,89 +48,107 @@
       color: var(--text);
       background: var(--bg);
       background-image:
-        radial-gradient(900px 380px at 0% -8%, var(--accent-dim), transparent 60%),
-        radial-gradient(900px 420px at 100% 0%, var(--warning-dim), transparent 60%);
+        radial-gradient(1100px 440px at 0% -8%, var(--accent-dim), transparent 60%),
+        radial-gradient(1100px 440px at 100% 0%, var(--signal-dim), transparent 60%);
       padding: 24px;
     }
 
     .wrap {
-      max-width: 1450px;
+      max-width: 1500px;
       margin: 0 auto;
       display: grid;
-      gap: 18px;
+      gap: 16px;
     }
 
+    .bar,
     .hero,
-    .panel {
-      background: var(--surface);
+    .mermaid-wrap,
+    .meta {
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 24px;
+      background: var(--surface);
+      padding: 20px;
     }
 
-    .kicker {
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar .title {
       margin: 0;
       font-family: 'JetBrains Mono', monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
       font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
       color: var(--text-dim);
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .links a {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      text-decoration: none;
+      color: var(--text-dim);
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--surface-2);
+    }
+
+    .links a:hover {
+      color: var(--text);
+      border-color: var(--accent);
     }
 
     h1 {
       margin: 8px 0 10px;
       font-family: 'Fraunces', serif;
-      font-size: clamp(40px, 6vw, 78px);
-      line-height: 1.03;
+      font-size: clamp(48px, 7vw, 90px);
+      line-height: 1.02;
     }
 
     .lead {
       margin: 0;
-      max-width: 50ch;
       color: var(--text-dim);
-      font-size: clamp(19px, 1.4vw, 26px);
+      max-width: 56ch;
+      font-size: clamp(19px, 1.4vw, 28px);
       line-height: 1.42;
     }
 
-    .legend {
-      margin-top: 16px;
+    .chips {
+      margin-top: 14px;
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 10px;
+    .chip {
       border: 1px solid var(--border);
       border-radius: 999px;
-      font-family: 'JetBrains Mono', monospace;
+      padding: 5px 10px;
       font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
       background: var(--surface-2);
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: currentColor;
-      display: inline-block;
+      color: var(--text-dim);
     }
 
     .mermaid-wrap {
       position: relative;
       overflow: auto;
-      min-height: 520px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 22px;
+      min-height: 560px;
     }
 
     .mermaid {
-      min-width: 1100px;
+      min-width: 1160px;
       display: flex;
       justify-content: center;
       transition: transform 0.18s ease;
@@ -137,9 +157,9 @@
 
     .zoom-controls {
       position: absolute;
-      right: 10px;
-      top: 10px;
-      z-index: 20;
+      right: 12px;
+      top: 12px;
+      z-index: 10;
       display: flex;
       gap: 4px;
       padding: 4px;
@@ -149,9 +169,9 @@
     }
 
     .zoom-controls button {
+      width: 36px;
+      height: 36px;
       border: 0;
-      width: 34px;
-      height: 34px;
       border-radius: 8px;
       background: var(--surface-2);
       color: var(--text);
@@ -167,34 +187,9 @@
     .mermaid-wrap.is-zoomed { cursor: grab; }
     .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
 
-    .meta {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      margin-top: 6px;
-    }
-
-    .meta .item {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: var(--surface-2);
-      padding: 14px;
-    }
-
-    .meta .item strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 18px;
-    }
-
-    .meta .item span {
-      color: var(--text-dim);
-      font-size: 16px;
-    }
-
     .mermaid .nodeLabel {
       font-family: 'Manrope', sans-serif !important;
-      font-size: 18px !important;
+      font-size: 19px !important;
       line-height: 1.35;
     }
 
@@ -204,27 +199,62 @@
       padding: 2px 6px !important;
     }
 
-    .mermaid .edge-pattern-solid {
-      stroke-width: 2px !important;
+    .meta-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .meta-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      padding: 12px;
+    }
+
+    .meta-item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .meta-item span {
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.45;
     }
 
     @media (max-width: 900px) {
       body { padding: 12px; }
-      .hero, .panel, .mermaid-wrap { padding: 14px; }
-      .mermaid-wrap { min-height: 460px; }
+      .bar,
+      .hero,
+      .mermaid-wrap,
+      .meta { padding: 12px; }
+      .mermaid-wrap { min-height: 500px; }
     }
   </style>
 </head>
 <body>
   <main class="wrap">
+    <section class="bar">
+      <p class="title">A7 visual atlas</p>
+      <nav class="links" aria-label="Visual pages">
+        <a href="./a7-docs-atlas.html">Atlas</a>
+        <a href="./a7-pipeline-reference.html">Pipeline</a>
+        <a href="./a7-examples-reference.html">Examples</a>
+        <a href="./a7-language-map.html">Language</a>
+        <a href="./">Back to Visuals</a>
+      </nav>
+    </section>
+
     <section class="hero">
-      <p class="kicker">A7 compiler visual reference</p>
       <h1>Pipeline Reference</h1>
-      <p class="lead">Use this view when a compile fails and you need fast stage isolation. Zoom and pan are enabled for large graphs.</p>
-      <div class="legend">
-        <span class="badge" style="color: var(--accent)"><i class="dot"></i>front end stages</span>
-        <span class="badge" style="color: var(--warning)"><i class="dot"></i>normalization stages</span>
-        <span class="badge" style="color: var(--ok)"><i class="dot"></i>output stage</span>
+      <p class="lead">Use this page during debugging. It maps every stage from source to Zig output and shows where diagnostics originate.</p>
+      <div class="chips">
+        <span class="chip">Tokenizer and parser</span>
+        <span class="chip">Three semantic passes</span>
+        <span class="chip">Preprocessor transformations</span>
+        <span class="chip">Backend generation</span>
       </div>
     </section>
 
@@ -236,44 +266,45 @@
       </div>
       <div class="mermaid" id="diagram">
 flowchart LR
-  A[Source File<br/>.a7] --> B[Tokenizer<br/>lexes tokens]
-  B --> C[Parser<br/>builds AST]
-  C --> D1[Pass 1<br/>Name Resolution]
-  D1 --> D2[Pass 2<br/>Type Checking]
-  D2 --> D3[Pass 3<br/>Semantic Validation]
-  D3 --> E[AST Preprocessor<br/>lowering and analysis]
-  E --> F[Zig Code Generator]
-  F --> G[Output<br/>.zig file]
+  A[Source file<br/>.a7] --> B[Tokenizer]
+  B --> C[Parser]
+  C --> D1[Semantic pass 1<br/>Name resolution]
+  D1 --> D2[Semantic pass 2<br/>Type checking]
+  D2 --> D3[Semantic pass 3<br/>Validation]
+  D3 --> E[AST preprocessor]
+  E --> F[Zig codegen]
+  F --> G[Output .zig]
 
-  B -. token errors .-> X1[Tokenizer Diagnostics]
-  C -. parse errors .-> X2[Parser Diagnostics]
-  D3 -. semantic errors .-> X3[Semantic Diagnostics]
+  B -. tokenize errors .-> X1[Tokenizer diagnostics]
+  C -. parse errors .-> X2[Parser diagnostics]
+  D3 -. semantic errors .-> X3[Semantic diagnostics]
+  F -. backend errors .-> X4[Codegen diagnostics]
 
-  classDef stage fill:#d8eff5,stroke:#0b7e9b,color:#112229,stroke-width:2px;
-  classDef check fill:#f6ead9,stroke:#ab6a20,color:#2f2418,stroke-width:2px;
-  classDef out fill:#dcefe4,stroke:#2d6b4b,color:#173022,stroke-width:2px;
-  classDef err fill:#f6dede,stroke:#9f3333,color:#4a1313,stroke-width:2px;
+  classDef front fill:#d6ecf3,stroke:#097d9f,color:#132229,stroke-width:2px;
+  classDef middle fill:#f7ead8,stroke:#a46421,color:#33220f,stroke-width:2px;
+  classDef out fill:#deefe4,stroke:#2c694a,color:#182c20,stroke-width:2px;
+  classDef err fill:#f6e0e0,stroke:#9f3434,color:#4a1414,stroke-width:2px;
 
-  class A,B,C stage;
-  class D1,D2,D3,E check;
+  class A,B,C front;
+  class D1,D2,D3,E middle;
   class F,G out;
-  class X1,X2,X3 err;
+  class X1,X2,X3,X4 err;
       </div>
     </section>
 
-    <section class="panel">
-      <div class="meta">
-        <article class="item">
-          <strong>Debug path</strong>
-          <span>Run `--mode tokens`, then `--mode ast`, then `--mode semantic` to isolate stage failures.</span>
+    <section class="meta">
+      <div class="meta-grid">
+        <article class="meta-item">
+          <strong>Isolation order</strong>
+          <span>Run <code>--mode tokens</code>, then <code>--mode ast</code>, then <code>--mode semantic</code>.</span>
         </article>
-        <article class="item">
-          <strong>Machine path</strong>
-          <span>Use `--format json` and stable exit codes for automation and CI checks.</span>
+        <article class="meta-item">
+          <strong>Machine integration</strong>
+          <span>Use <code>--format json</code> with stage specific exit codes for CI checks.</span>
         </article>
-        <article class="item">
-          <strong>Doc path</strong>
-          <span>Use `--doc-out auto` during compile to capture stage summaries in markdown output.</span>
+        <article class="meta-item">
+          <strong>Documentation output</strong>
+          <span>Use <code>--doc-out auto</code> in compile mode to capture stage summaries.</span>
         </article>
       </div>
     </section>
@@ -291,17 +322,17 @@ flowchart LR
       layout: 'elk',
       themeVariables: {
         background: 'transparent',
-        primaryColor: '#d8eff5',
-        primaryBorderColor: '#0b7e9b',
-        primaryTextColor: '#112229',
-        secondaryColor: '#f6ead9',
-        secondaryBorderColor: '#ab6a20',
-        secondaryTextColor: '#2f2418',
-        tertiaryColor: '#dcefe4',
-        tertiaryBorderColor: '#2d6b4b',
-        tertiaryTextColor: '#173022',
-        lineColor: '#6b8a97',
-        edgeLabelBackground: '#f1f6f8',
+        primaryColor: '#d6ecf3',
+        primaryBorderColor: '#097d9f',
+        primaryTextColor: '#132229',
+        secondaryColor: '#f7ead8',
+        secondaryBorderColor: '#a46421',
+        secondaryTextColor: '#33220f',
+        tertiaryColor: '#deefe4',
+        tertiaryBorderColor: '#2c694a',
+        tertiaryTextColor: '#182c20',
+        lineColor: '#5f808d',
+        edgeLabelBackground: '#edf3f6',
         fontSize: '18px',
         fontFamily: 'Manrope',
       },
@@ -330,7 +361,7 @@ flowchart LR
     };
 
     btnIn.addEventListener('click', () => {
-      zoom = Math.min(zoom + 0.12, 2.8);
+      zoom = Math.min(zoom + 0.12, 3);
       applyZoom();
     });
 
@@ -351,7 +382,7 @@ flowchart LR
       }
       event.preventDefault();
       zoom += event.deltaY < 0 ? 0.08 : -0.08;
-      zoom = Math.min(Math.max(zoom, 0.65), 2.8);
+      zoom = Math.min(Math.max(zoom, 0.65), 3);
       applyZoom();
     }, { passive: false });
 
