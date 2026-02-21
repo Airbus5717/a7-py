@@ -1,0 +1,69 @@
+:root {
+  --atlas-font-display: 'Fraunces', 'Times New Roman', serif;
+  --atlas-font-body: 'Manrope', 'Segoe UI', sans-serif;
+  --atlas-font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+
+  --atlas-canvas: #f3eee4;
+  --atlas-mesh-a: rgba(26, 124, 145, 0.14);
+  --atlas-mesh-b: rgba(201, 133, 61, 0.12);
+  --atlas-mesh-c: rgba(67, 132, 103, 0.11);
+
+  --atlas-panel: #fffdf8;
+  --atlas-panel-strong: #f7f1e5;
+  --atlas-panel-inset: #ede6d8;
+
+  --atlas-text: #1f1a14;
+  --atlas-text-soft: #5f5446;
+  --atlas-text-mute: #827664;
+
+  --atlas-border: rgba(31, 26, 20, 0.12);
+  --atlas-border-strong: rgba(31, 26, 20, 0.24);
+
+  --atlas-accent: #0e6e85;
+  --atlas-accent-soft: rgba(14, 110, 133, 0.12);
+  --atlas-signal: #8b5f1f;
+  --atlas-signal-soft: rgba(139, 95, 31, 0.14);
+  --atlas-success: #2c6b49;
+  --atlas-warning: #a55a21;
+  --atlas-danger: #9f3333;
+
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 2.75rem;
+  --space-7: 3.5rem;
+
+  --radius-sm: 0.55rem;
+  --radius-md: 0.9rem;
+  --radius-lg: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --atlas-canvas: #18130f;
+    --atlas-mesh-a: rgba(94, 211, 235, 0.18);
+    --atlas-mesh-b: rgba(222, 164, 98, 0.15);
+    --atlas-mesh-c: rgba(120, 196, 155, 0.15);
+
+    --atlas-panel: #231c17;
+    --atlas-panel-strong: #2d251e;
+    --atlas-panel-inset: #19140f;
+
+    --atlas-text: #f2e8d9;
+    --atlas-text-soft: #c8b9a2;
+    --atlas-text-mute: #a28f74;
+
+    --atlas-border: rgba(242, 232, 217, 0.14);
+    --atlas-border-strong: rgba(242, 232, 217, 0.3);
+
+    --atlas-accent: #63cce6;
+    --atlas-accent-soft: rgba(99, 204, 230, 0.17);
+    --atlas-signal: #e6b77d;
+    --atlas-signal-soft: rgba(230, 183, 125, 0.18);
+    --atlas-success: #9bd4b1;
+    --atlas-warning: #efb37a;
+    --atlas-danger: #ef9a9a;
+  }
+}

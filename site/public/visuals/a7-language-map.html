@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,41 +6,245 @@
   <title>A7 Language Map</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#f6faff;--surface:#fff;--surface2:#eef4ff;--text:#1b2737;--text-dim:#62758c;
-      --border:rgba(24,58,95,.14);--accent:#2a62b2;--green:#1d8a67;--orange:#ba7518;--purple:#7b56c8;
-      --font:'Chakra Petch',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+      --bg: #eef2ea;
+      --surface: #fcfefb;
+      --surface-2: #f2f7ee;
+      --border: rgba(27, 36, 28, 0.14);
+      --text: #1d251c;
+      --text-dim: #556355;
+      --accent: #266f58;
+      --accent-dim: rgba(38, 111, 88, 0.14);
+      --second: #1d6f8c;
+      --second-dim: rgba(29, 111, 140, 0.14);
+      --third: #965f25;
+      --third-dim: rgba(150, 95, 37, 0.14);
     }
-    @media (prefers-color-scheme: dark){
-      :root{--bg:#101723;--surface:#172131;--surface2:#202d42;--text:#eaf1ff;--text-dim:#9fb1ca;--border:rgba(184,208,240,.2);--accent:#8bb7ff;--green:#7adfb8;--orange:#ffc685;--purple:#c7b2f3}
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141914;
+        --surface: #1f2620;
+        --surface-2: #29342b;
+        --border: rgba(224, 240, 227, 0.16);
+        --text: #e0f0e3;
+        --text-dim: #adc0b0;
+        --accent: #8dccb4;
+        --accent-dim: rgba(141, 204, 180, 0.2);
+        --second: #8ad7ef;
+        --second-dim: rgba(138, 215, 239, 0.2);
+        --third: #f0c089;
+        --third-dim: rgba(240, 192, 137, 0.2);
+      }
     }
-    *{box-sizing:border-box}body{margin:0;padding:40px;background:radial-gradient(900px 340px at 14% -8%, rgba(42,98,178,.2), transparent 58%),radial-gradient(840px 360px at 90% 2%, rgba(29,138,103,.16), transparent 54%),var(--bg);color:var(--text);font-family:var(--font);font-size:18px;line-height:1.62}
-    .wrap{max-width:1080px;margin:0 auto}
-    h1{margin:0;font-size:clamp(2.35rem,4.8vw,3.55rem);line-height:1.02;letter-spacing:-.01em}
-    .sub{margin:.7rem 0 1.5rem;color:var(--text-dim);font-family:var(--mono);font-size:14px}
-    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-    .card{border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:16px}
-    .label{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
-    .title{font-size:1.44rem;line-height:1.15;margin:0 0 8px}
-    .desc{margin:0;color:var(--text-dim);line-height:1.55}
-    ul{margin:.62rem 0 0;padding-left:16px} li{margin:.28rem 0;color:var(--text-dim)}
-    @media (max-width:900px){body{padding:24px}.grid{grid-template-columns:1fr}}
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      background-image:
+        radial-gradient(960px 400px at 0% -6%, var(--accent-dim), transparent 60%),
+        radial-gradient(960px 420px at 100% 0%, var(--second-dim), transparent 60%);
+      padding: 26px;
+    }
+
+    .wrap {
+      max-width: 1380px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero,
+    .grid,
+    .flow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .kicker {
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-family: 'Fraunces', serif;
+      font-size: clamp(42px, 6vw, 78px);
+      line-height: 1.04;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: clamp(18px, 1.4vw, 24px);
+      max-width: 54ch;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      min-width: 0;
+      background: var(--surface-2);
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .tag.a { color: var(--accent); background: var(--accent-dim); }
+    .tag.b { color: var(--second); background: var(--second-dim); }
+    .tag.c { color: var(--third); background: var(--third-dim); }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-family: 'Fraunces', serif;
+      font-size: 32px;
+      line-height: 1.12;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 17px;
+      color: var(--text-dim);
+    }
+
+    .card ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+      font-size: 16px;
+    }
+
+    .flow h2 {
+      margin: 0 0 14px;
+      font-family: 'Fraunces', serif;
+      font-size: 34px;
+    }
+
+    .steps {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .step {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: var(--surface-2);
+    }
+
+    .step strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .step span {
+      color: var(--text-dim);
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>A7 Language Map</h1>
-    <p class="sub">Visual breakdown of core language guide domains and where they connect in the docs.</p>
-    <div class="grid">
-      <article class="card"><div class="label">Types</div><h2 class="title">Type System Core</h2><p class="desc">Primitives, composites, aliases, references, and pointer semantics define the shared foundation for all expressions.</p><ul><li><code>language/types</code></li><li><code>language/declarations-and-expressions</code></li></ul></article>
-      <article class="card"><div class="label">Execution</div><h2 class="title">Control + Functions</h2><p class="desc">Control flow rules combine with function declarations, method patterns, and return-path semantics.</p><ul><li><code>language/control-flow</code></li><li><code>language/functions</code></li></ul></article>
-      <article class="card"><div class="label">Abstractions</div><h2 class="title">Generics + Modules</h2><p class="desc">Generic constraints and module boundaries shape reuse, API design, and compile-time specialization.</p><ul><li><code>language/generics</code></li><li><code>language/modules-and-visibility</code></li></ul></article>
-      <article class="card"><div class="label">Runtime</div><h2 class="title">Memory + Builtins</h2><p class="desc">Heap lifecycle, defer behavior, and intrinsic operator/builtin semantics govern runtime safety and performance.</p><ul><li><code>language/memory-management</code></li><li><code>language/builtins-and-operators</code></li></ul></article>
-      <article class="card"><div class="label">Formalism</div><h2 class="title">Grammar + Diagnostics</h2><p class="desc">Grammar summary and diagnostics pages provide quick parse-level and error-model grounding during implementation.</p><ul><li><code>language/grammar-summary</code></li><li><code>language/diagnostics-and-limits</code></li></ul></article>
-      <article class="card"><div class="label">Bridge</div><h2 class="title">Examples + Pipeline</h2><p class="desc">Examples validate language behavior through pipeline stages and generated backend output expectations.</p><ul><li><code>examples/by-topic</code></li><li><code>compiler/pipeline-overview</code></li></ul></article>
-    </div>
-  </div>
+  <main class="wrap">
+    <section class="hero">
+      <p class="kicker">A7 reference topology</p>
+      <h1>Language Map</h1>
+      <p class="lead">Use this map when you need the right page quickly. It separates syntax, semantics, and runtime oriented topics into direct reading blocks.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <span class="tag a">Type Core</span>
+        <h2>Declarations And Types</h2>
+        <p>Start here when updating parser nodes or type inference behavior.</p>
+        <ul>
+          <li><code>/language/</code> declaration forms</li>
+          <li>Primitive and composite types</li>
+          <li>Alias and generic type usage</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <span class="tag b">Control</span>
+        <h2>Flow And Functions</h2>
+        <p>Use this area when control structures or call behavior changes.</p>
+        <ul>
+          <li>if, while, for, and match</li>
+          <li>function signatures and returns</li>
+          <li>generic parameters and constraints</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <span class="tag c">Memory</span>
+        <h2>Pointers And Modules</h2>
+        <p>Use this area for ownership style behavior and import semantics.</p>
+        <ul>
+          <li>new, delete, and defer</li>
+          <li>.adr and .val helper lowering</li>
+          <li>module imports and visibility</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <span class="tag a">Diagnostics</span>
+        <h2>Error Surfaces</h2>
+        <p>Use this area when error type contract or output format changes.</p>
+        <ul>
+          <li>stage based failures</li>
+          <li>human and JSON output contracts</li>
+          <li>exit code mapping</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="flow">
+      <h2>Fast Lookup Path</h2>
+      <div class="steps">
+        <article class="step">
+          <strong>Syntax issue</strong>
+          <span>Open `/language/` and verify declarations, operators, and grammar notes.</span>
+        </article>
+        <article class="step">
+          <strong>Compile stage issue</strong>
+          <span>Open `/pipeline/` then run stage mode commands in `/cli/`.</span>
+        </article>
+        <article class="step">
+          <strong>Behavior example needed</strong>
+          <span>Open `/topics/` for inline snippets or `/examples/` for full file index.</span>
+        </article>
+        <article class="step">
+          <strong>Release maintenance</strong>
+          <span>Open `/status/` and `/changelog/` after behavior updates.</span>
+        </article>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

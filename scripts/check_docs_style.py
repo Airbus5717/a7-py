@@ -52,10 +52,15 @@ def iter_doc_paths(root: Path) -> list[Path]:
     if docs_dir.exists():
         paths.update(docs_dir.glob("*.md"))
 
-    site_docs = root / "site" / "src" / "content" / "docs"
-    if site_docs.exists():
-        paths.update(site_docs.rglob("*.mdx"))
-        paths.update(site_docs.rglob("*.md"))
+    site_content_docs = root / "site" / "src" / "content" / "docs"
+    if site_content_docs.exists():
+        paths.update(site_content_docs.rglob("*.mdx"))
+        paths.update(site_content_docs.rglob("*.md"))
+
+    site_pages = root / "site" / "src" / "pages"
+    if site_pages.exists():
+        paths.update(site_pages.rglob("*.md"))
+        paths.update(site_pages.rglob("*.mdx"))
 
     return sorted(paths)
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,101 +6,382 @@
   <title>A7 Pipeline Reference</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#f1fcf8; --surface:#ffffff; --surface2:#e8faf3; --text:#17342b; --text-dim:#4f7b6e;
-      --border:rgba(12,63,50,.14); --accent:#0f7b66; --accent-dim:rgba(15,123,102,.12);
-      --blue:#196baf; --amber:#ba7318; --rose:#b2425e;
-      --font:'Bricolage Grotesque',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+      --bg: #f1f6f8;
+      --surface: #ffffff;
+      --surface-2: #e8f2f5;
+      --border: rgba(18, 37, 44, 0.14);
+      --text: #112229;
+      --text-dim: #4e6670;
+      --accent: #0b7e9b;
+      --accent-dim: rgba(11, 126, 155, 0.14);
+      --warning: #ab6a20;
+      --warning-dim: rgba(171, 106, 32, 0.13);
+      --ok: #2d6b4b;
     }
+
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg:#0f1d1a; --surface:#152824; --surface2:#1a312c; --text:#e8f7f1; --text-dim:#9bc6b7;
-        --border:rgba(186,230,214,.2); --accent:#65d0b2; --accent-dim:rgba(101,208,178,.16);
-        --blue:#82c8ff; --amber:#ffcd8d; --rose:#f3a0b5;
+        --bg: #0d171b;
+        --surface: #132026;
+        --surface-2: #1b2d35;
+        --border: rgba(214, 239, 247, 0.16);
+        --text: #d6eff7;
+        --text-dim: #9db9c3;
+        --accent: #68d2f0;
+        --accent-dim: rgba(104, 210, 240, 0.2);
+        --warning: #f0be81;
+        --warning-dim: rgba(240, 190, 129, 0.2);
+        --ok: #93cfaf;
       }
     }
-    *{box-sizing:border-box} body{margin:0;padding:40px;background:
-      radial-gradient(900px 360px at 10% -8%, var(--accent-dim), transparent 60%),
-      radial-gradient(860px 360px at 92% 0%, rgba(186,115,24,.16), transparent 58%), var(--bg);
-      color:var(--text); font-family:var(--font); font-size:18px; line-height:1.6;}
-    .wrap{max-width:1100px;margin:0 auto}
-    h1{margin:0;font-size:clamp(2.4rem,4.8vw,3.6rem);line-height:1.02;letter-spacing:-.02em}
-    .sub{margin:.75rem 0 1.5rem;color:var(--text-dim);font-family:var(--mono);font-size:14px}
-    .panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px}
-    .legend{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 10px}
-    .legend span{font-family:var(--mono);font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:6px}
-    .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
-    .dot-a{background:var(--accent)} .dot-b{background:var(--blue)} .dot-c{background:var(--amber)} .dot-d{background:var(--rose)}
-    .mermaid-wrap{position:relative;border:1px solid var(--border);border-radius:14px;background:var(--surface2);padding:34px 20px 22px;overflow:auto}
-    .mermaid-wrap .mermaid{display:flex;justify-content:center;transition:transform .2s ease;transform-origin:top center;min-width:740px}
-    .zoom{position:absolute;top:8px;right:8px;display:flex;gap:2px;padding:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;z-index:8}
-    .zoom button{width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--text-dim);font-family:var(--mono);cursor:pointer}
-    .zoom button:hover{background:var(--accent-dim);color:var(--text)}
-    .mermaid-wrap.is-zoomed{cursor:grab}.mermaid-wrap.is-panning{cursor:grabbing;user-select:none}
-    .mermaid .nodeLabel{font-family:var(--font)!important;font-size:18px!important;color:var(--text)!important}
-    .mermaid .edgeLabel{font-family:var(--mono)!important;font-size:14px!important;color:var(--text-dim)!important}
-    .mermaid .edgeLabel rect{fill:var(--bg)!important}
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      background-image:
+        radial-gradient(900px 380px at 0% -8%, var(--accent-dim), transparent 60%),
+        radial-gradient(900px 420px at 100% 0%, var(--warning-dim), transparent 60%);
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1450px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+    }
+
+    .kicker {
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    h1 {
+      margin: 8px 0 10px;
+      font-family: 'Fraunces', serif;
+      font-size: clamp(40px, 6vw, 78px);
+      line-height: 1.03;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 50ch;
+      color: var(--text-dim);
+      font-size: clamp(19px, 1.4vw, 26px);
+      line-height: 1.42;
+    }
+
+    .legend {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--surface-2);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+    }
+
+    .mermaid-wrap {
+      position: relative;
+      overflow: auto;
+      min-height: 520px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .mermaid {
+      min-width: 1100px;
+      display: flex;
+      justify-content: center;
+      transition: transform 0.18s ease;
+      transform-origin: top center;
+    }
+
+    .zoom-controls {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      z-index: 20;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .zoom-controls button {
+      border: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    .zoom-controls button:hover {
+      background: var(--accent-dim);
+    }
+
+    .mermaid-wrap.is-zoomed { cursor: grab; }
+    .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+    .meta {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-top: 6px;
+    }
+
+    .meta .item {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface-2);
+      padding: 14px;
+    }
+
+    .meta .item strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .meta .item span {
+      color: var(--text-dim);
+      font-size: 16px;
+    }
+
+    .mermaid .nodeLabel {
+      font-family: 'Manrope', sans-serif !important;
+      font-size: 18px !important;
+      line-height: 1.35;
+    }
+
+    .mermaid .edgeLabel {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 13px !important;
+      padding: 2px 6px !important;
+    }
+
+    .mermaid .edge-pattern-solid {
+      stroke-width: 2px !important;
+    }
+
+    @media (max-width: 900px) {
+      body { padding: 12px; }
+      .hero, .panel, .mermaid-wrap { padding: 14px; }
+      .mermaid-wrap { min-height: 460px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>A7 Pipeline Reference</h1>
-    <p class="sub">Compiler stage map with semantic passes and output artifacts.</p>
-    <section class="panel">
+  <main class="wrap">
+    <section class="hero">
+      <p class="kicker">A7 compiler visual reference</p>
+      <h1>Pipeline Reference</h1>
+      <p class="lead">Use this view when a compile fails and you need fast stage isolation. Zoom and pan are enabled for large graphs.</p>
       <div class="legend">
-        <span><i class="dot dot-a"></i>Frontend parsing</span>
-        <span><i class="dot dot-b"></i>Semantic analysis</span>
-        <span><i class="dot dot-c"></i>Preprocess/codegen</span>
-        <span><i class="dot dot-d"></i>Artifacts</span>
-      </div>
-      <div class="mermaid-wrap" id="m1">
-        <div class="zoom"><button data-z="in">+</button><button data-z="out">−</button><button data-z="reset">↺</button></div>
-        <pre class="mermaid">
-graph LR
-  SRC["source .a7"] --> TOK["tokenizer"] --> PAR["parser"] --> AST["AST"]
-  AST --> NR["name resolution"] --> TC["type checker"] --> SV["semantic validator"]
-  SV --> AP["AST preprocessor"] --> ZIG["zig backend"]
-  ZIG --> OUT[".zig output"]
-  AP -. doc mode .-> DOC["markdown report"]
-  TOK -. mode .-> MT["tokens output"]
-  PAR -. mode .-> MA["AST output"]
-  SV -. mode .-> MS["semantic report"]
-
-  classDef a fill:#0f7b6624,stroke:#0f7b66,stroke-width:1.5px
-  classDef b fill:#196baf24,stroke:#196baf,stroke-width:1.5px
-  classDef c fill:#ba731824,stroke:#ba7318,stroke-width:1.5px
-  classDef d fill:#b2425e24,stroke:#b2425e,stroke-width:1.5px
-
-  class SRC,TOK,PAR,AST a
-  class NR,TC,SV b
-  class AP,ZIG c
-  class OUT,DOC,MT,MA,MS d
-        </pre>
+        <span class="badge" style="color: var(--accent)"><i class="dot"></i>front end stages</span>
+        <span class="badge" style="color: var(--warning)"><i class="dot"></i>normalization stages</span>
+        <span class="badge" style="color: var(--ok)"><i class="dot"></i>output stage</span>
       </div>
     </section>
-  </div>
+
+    <section class="mermaid-wrap" id="diagramWrap">
+      <div class="zoom-controls">
+        <button type="button" data-zoom-in>+</button>
+        <button type="button" data-zoom-out>-</button>
+        <button type="button" data-zoom-reset>1x</button>
+      </div>
+      <div class="mermaid" id="diagram">
+flowchart LR
+  A[Source File<br/>.a7] --> B[Tokenizer<br/>lexes tokens]
+  B --> C[Parser<br/>builds AST]
+  C --> D1[Pass 1<br/>Name Resolution]
+  D1 --> D2[Pass 2<br/>Type Checking]
+  D2 --> D3[Pass 3<br/>Semantic Validation]
+  D3 --> E[AST Preprocessor<br/>lowering and analysis]
+  E --> F[Zig Code Generator]
+  F --> G[Output<br/>.zig file]
+
+  B -. token errors .-> X1[Tokenizer Diagnostics]
+  C -. parse errors .-> X2[Parser Diagnostics]
+  D3 -. semantic errors .-> X3[Semantic Diagnostics]
+
+  classDef stage fill:#d8eff5,stroke:#0b7e9b,color:#112229,stroke-width:2px;
+  classDef check fill:#f6ead9,stroke:#ab6a20,color:#2f2418,stroke-width:2px;
+  classDef out fill:#dcefe4,stroke:#2d6b4b,color:#173022,stroke-width:2px;
+  classDef err fill:#f6dede,stroke:#9f3333,color:#4a1313,stroke-width:2px;
+
+  class A,B,C stage;
+  class D1,D2,D3,E check;
+  class F,G out;
+  class X1,X2,X3 err;
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="meta">
+        <article class="item">
+          <strong>Debug path</strong>
+          <span>Run `--mode tokens`, then `--mode ast`, then `--mode semantic` to isolate stage failures.</span>
+        </article>
+        <article class="item">
+          <strong>Machine path</strong>
+          <span>Use `--format json` and stable exit codes for automation and CI checks.</span>
+        </article>
+        <article class="item">
+          <strong>Doc path</strong>
+          <span>Use `--doc-out auto` during compile to capture stage summaries in markdown output.</span>
+        </article>
+      </div>
+    </section>
+  </main>
+
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+    import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0/dist/mermaid-layout-elk.esm.min.mjs';
+
     mermaid.registerLayoutLoaders(elkLayouts);
-    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    mermaid.initialize({ startOnLoad:true, theme:'base', layout:'elk', look:'classic', themeVariables:{
-      primaryColor: dark ? '#1a312c' : '#e8faf3', primaryBorderColor: dark ? '#65d0b2' : '#0f7b66', primaryTextColor: dark ? '#e8f7f1' : '#17342b',
-      secondaryColor: dark ? '#1d2f43' : '#e7f2ff', secondaryBorderColor: dark ? '#82c8ff' : '#196baf', secondaryTextColor: dark ? '#e8f7f1' : '#17342b',
-      tertiaryColor: dark ? '#362b1f' : '#fff2df', tertiaryBorderColor: dark ? '#ffcd8d' : '#ba7318', tertiaryTextColor: dark ? '#e8f7f1' : '#17342b',
-      lineColor: dark ? '#89b7a9' : '#4f7b6e', fontSize:'15px', fontFamily:'Bricolage Grotesque'
-    }});
-    const wrap=document.getElementById('m1'); const mer=wrap.querySelector('.mermaid'); const zoom=wrap.querySelector('.zoom');
-    let s=1.18, p=false, sx=0, sy=0, sl=0, st=0;
-    const apply=()=>{mer.style.transform=`scale(${s})`; wrap.classList.toggle('is-zoomed', s>1.01)};
-    zoom.addEventListener('click',(e)=>{const b=e.target.closest('button'); if(!b)return; const z=b.dataset.z; if(z==='in')s=Math.min(3,s+.14); if(z==='out')s=Math.max(.7,s-.14); if(z==='reset')s=1; apply();});
-    wrap.addEventListener('wheel',(e)=>{if(!(e.ctrlKey||e.metaKey))return; e.preventDefault(); s += e.deltaY<0?.08:-.08; s=Math.max(.7,Math.min(3,s)); apply();},{passive:false});
-    wrap.addEventListener('mousedown',(e)=>{if(s<=1.01||e.button!==0)return; p=true; wrap.classList.add('is-panning'); sx=e.pageX-wrap.offsetLeft; sy=e.pageY-wrap.offsetTop; sl=wrap.scrollLeft; st=wrap.scrollTop;});
-    window.addEventListener('mouseup',()=>{p=false; wrap.classList.remove('is-panning');});
-    wrap.addEventListener('mousemove',(e)=>{if(!p)return; e.preventDefault(); const x=e.pageX-wrap.offsetLeft; const y=e.pageY-wrap.offsetTop; wrap.scrollLeft=sl-(x-sx); wrap.scrollTop=st-(y-sy);});
-    apply();
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      look: 'classic',
+      layout: 'elk',
+      themeVariables: {
+        background: 'transparent',
+        primaryColor: '#d8eff5',
+        primaryBorderColor: '#0b7e9b',
+        primaryTextColor: '#112229',
+        secondaryColor: '#f6ead9',
+        secondaryBorderColor: '#ab6a20',
+        secondaryTextColor: '#2f2418',
+        tertiaryColor: '#dcefe4',
+        tertiaryBorderColor: '#2d6b4b',
+        tertiaryTextColor: '#173022',
+        lineColor: '#6b8a97',
+        edgeLabelBackground: '#f1f6f8',
+        fontSize: '18px',
+        fontFamily: 'Manrope',
+      },
+      flowchart: {
+        curve: 'basis',
+        htmlLabels: true,
+      },
+    });
+
+    const wrap = document.getElementById('diagramWrap');
+    const graph = document.getElementById('diagram');
+    const btnIn = document.querySelector('[data-zoom-in]');
+    const btnOut = document.querySelector('[data-zoom-out]');
+    const btnReset = document.querySelector('[data-zoom-reset]');
+
+    let zoom = 1;
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+    let scrollLeft = 0;
+    let scrollTop = 0;
+
+    const applyZoom = () => {
+      graph.style.transform = `scale(${zoom})`;
+      wrap.classList.toggle('is-zoomed', zoom > 1.01);
+    };
+
+    btnIn.addEventListener('click', () => {
+      zoom = Math.min(zoom + 0.12, 2.8);
+      applyZoom();
+    });
+
+    btnOut.addEventListener('click', () => {
+      zoom = Math.max(zoom - 0.12, 0.65);
+      applyZoom();
+    });
+
+    btnReset.addEventListener('click', () => {
+      zoom = 1;
+      applyZoom();
+      wrap.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    });
+
+    wrap.addEventListener('wheel', (event) => {
+      if (!(event.ctrlKey || event.metaKey)) {
+        return;
+      }
+      event.preventDefault();
+      zoom += event.deltaY < 0 ? 0.08 : -0.08;
+      zoom = Math.min(Math.max(zoom, 0.65), 2.8);
+      applyZoom();
+    }, { passive: false });
+
+    wrap.addEventListener('mousedown', (event) => {
+      if (zoom <= 1.01) {
+        return;
+      }
+      isPanning = true;
+      wrap.classList.add('is-panning');
+      startX = event.pageX - wrap.offsetLeft;
+      startY = event.pageY - wrap.offsetTop;
+      scrollLeft = wrap.scrollLeft;
+      scrollTop = wrap.scrollTop;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isPanning = false;
+      wrap.classList.remove('is-panning');
+    });
+
+    wrap.addEventListener('mousemove', (event) => {
+      if (!isPanning) {
+        return;
+      }
+      event.preventDefault();
+      const x = event.pageX - wrap.offsetLeft;
+      const y = event.pageY - wrap.offsetTop;
+      wrap.scrollLeft = scrollLeft - (x - startX);
+      wrap.scrollTop = scrollTop - (y - startY);
+    });
   </script>
 </body>
 </html>

@@ -1,6 +1,10 @@
 # A7 Documentation Site
 
-Astro + Starlight documentation site for the A7 compiler project.
+This site is a custom Astro static site.
+
+It does not use a docs template.
+
+Routes are flat and direct.
 
 ## Local development
 
@@ -26,8 +30,8 @@ npm run check
 
 ## Deployment
 
-Deployment is handled by GitHub Actions workflow `.github/workflows/deploy-docs.yml`.
+GitHub Actions deploys `site/dist` to GitHub Pages.
 
-Production URL:
+Workflow file: `.github/workflows/deploy-docs.yml`
 
-- `https://airbus5717.github.io/a7-py/`
+Production URL: `https://airbus5717.github.io/a7-py/`

@@ -1,0 +1,82 @@
+---
+import { NAV_SECTIONS } from '../data/nav';
+import { SITE_TAGLINE, SITE_TITLE, stripBase, withBase } from '../data/site';
+import '../styles/tokens.css';
+import '../styles/base.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = '' } = Astro.props;
+const activePath = stripBase(Astro.url.pathname).replace(/\/$/, '') || '/';
+
+const isActive = (path: string): boolean => {
+  const clean = path.replace(/\/$/, '') || '/';
+  return clean === activePath;
+};
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} | {SITE_TITLE}</title>
+    <meta name="description" content={description || SITE_TAGLINE} />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="site-brand" href={withBase('/')}>
+          <h1 class="site-brand__title">A7 Docs</h1>
+          <p class="site-brand__tagline">{SITE_TAGLINE}</p>
+        </a>
+        <div class="site-header__links" aria-label="Quick links">
+          <a class="top-link" href={withBase('/topics')}>Inline Topics</a>
+          <a class="top-link" href={withBase('/visuals')}>Visual References</a>
+          <a class="top-link" href="https://github.com/airbus5717/a7-py">GitHub</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="site-shell">
+      <aside class="site-nav" aria-label="Section navigation">
+        {NAV_SECTIONS.map((section) => (
+          <section class="site-nav__section">
+            <h2 class="site-nav__label">{section.label}</h2>
+            <ul class="site-nav__list">
+              {section.links.map((link) => (
+                <li>
+                  <a
+                    class="site-nav__link"
+                    href={withBase(link.path)}
+                    aria-current={isActive(link.path) ? 'page' : undefined}
+                  >
+                    <strong>{link.label}</strong>
+                    <p class="site-nav__summary">{link.summary}</p>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </aside>
+
+      <main class="site-content">
+        <article class="doc-page">
+          <h1>{title}</h1>
+          {description ? <p class="page-lead">{description}</p> : null}
+          <slot />
+        </article>
+      </main>
+    </div>
+  </body>
+</html>

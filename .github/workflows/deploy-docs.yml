@@ -5,6 +5,8 @@ on:
     branches: [master, main]
     paths:
       - 'site/**'
+      - 'docs/**'
+      - 'scripts/check_docs_style.py'
       - '.github/workflows/deploy-docs.yml'
       - 'README.md'
   workflow_dispatch:
@@ -36,6 +38,9 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Check docs writing style
+        run: python3 scripts/check_docs_style.py
 
       - name: Install dependencies
         working-directory: site

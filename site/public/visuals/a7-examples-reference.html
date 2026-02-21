@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,97 +6,248 @@
   <title>A7 Examples Reference</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg:#fff8f5; --surface:#fff; --surface2:#fff1eb; --text:#2a1f1b; --text-dim:#7a665e;
-      --border:rgba(82,44,31,.14); --accent:#b24d1f; --mint:#1d8860; --amber:#b57713; --rose:#b33b5e;
-      --font:'Instrument Serif',serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+      --bg: #f6efe8;
+      --surface: #fffdf9;
+      --surface-2: #f8f0e6;
+      --border: rgba(36, 28, 19, 0.14);
+      --text: #211a13;
+      --text-dim: #675a48;
+      --accent: #0e6e86;
+      --ok: #2d6c4c;
+      --warn: #9c6021;
     }
+
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg:#1b1210; --surface:#261a17; --surface2:#30221e; --text:#f7e7df; --text-dim:#c8a99d;
-        --border:rgba(243,205,187,.2); --accent:#ff9a6f; --mint:#72d7b1; --amber:#ffc781; --rose:#ff9fbd;
+        --bg: #1a140f;
+        --surface: #261f19;
+        --surface-2: #30271f;
+        --border: rgba(243, 229, 210, 0.16);
+        --text: #f3e5d2;
+        --text-dim: #ceb99d;
+        --accent: #68cfe9;
+        --ok: #98d1b0;
+        --warn: #efc089;
       }
     }
-    *{box-sizing:border-box} body{margin:0;padding:40px;background:
-      radial-gradient(920px 360px at 12% -10%, rgba(178,77,31,.18), transparent 58%),
-      radial-gradient(780px 340px at 90% 0%, rgba(29,136,96,.16), transparent 56%),var(--bg);
-      color:var(--text);font-family:var(--font);font-size:18px;line-height:1.62}
-    .wrap{max-width:1050px;margin:0 auto}
-    h1{margin:0;font-size:clamp(2.35rem,4.8vw,3.5rem);line-height:1.02;letter-spacing:-.01em}
-    .sub{margin:.7rem 0 1.5rem;color:var(--text-dim);font-family:var(--mono);font-size:14px}
-    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
-    .stat{border:1px solid var(--border);border-radius:13px;background:var(--surface);padding:13px 14px}
-    .stat strong{display:block;font-size:1.5rem;line-height:1.1;margin-bottom:2px}
-    .stat span{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
-    .table-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)}
-    .table-scroll{overflow:auto}
-    table{width:100%;border-collapse:collapse;font-size:15px;min-width:940px}
-    th{position:sticky;top:0;background:var(--surface2);text-align:left;padding:14px 15px;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
-    td{padding:14px 15px;border-bottom:1px solid var(--border);vertical-align:top}
-    tbody tr:nth-child(even){background:rgba(178,77,31,.06)}
-    tbody tr:hover{background:rgba(29,136,96,.09)}
-    .status{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:999px;padding:4px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
-    .done{color:var(--mint);background:color-mix(in srgb,var(--mint) 14%, transparent 86%);border-color:color-mix(in srgb,var(--mint) 32%, transparent 68%)}
-    .study{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%, transparent 84%);border-color:color-mix(in srgb,var(--amber) 32%, transparent 68%)}
-    .advanced{color:var(--rose);background:color-mix(in srgb,var(--rose) 14%, transparent 86%);border-color:color-mix(in srgb,var(--rose) 32%, transparent 68%)}
-    code{font-family:var(--mono);font-size:12px;background:rgba(178,77,31,.1);padding:1px 6px;border-radius:4px}
-    @media (max-width:860px){body{padding:24px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))} table{font-size:14px}}
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Manrope', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      background-image:
+        radial-gradient(1000px 430px at 0% -6%, rgba(14, 110, 134, 0.14), transparent 60%),
+        radial-gradient(1000px 470px at 100% 0%, rgba(156, 96, 33, 0.14), transparent 60%);
+      padding: 24px;
+    }
+
+    .wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero,
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+    }
+
+    .kicker {
+      margin: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 8px 0 12px;
+      font-family: 'Fraunces', serif;
+      font-size: clamp(40px, 6vw, 74px);
+      line-height: 1.05;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: clamp(18px, 1.3vw, 24px);
+      max-width: 52ch;
+    }
+
+    .kpis {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface-2);
+      padding: 12px;
+    }
+
+    .kpi strong {
+      display: block;
+      font-family: 'Fraunces', serif;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .kpi span {
+      display: block;
+      margin-top: 4px;
+      color: var(--text-dim);
+      font-size: 15px;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1200px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--surface-2);
+      border-bottom: 2px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-align: left;
+      padding: 12px 14px;
+    }
+
+    td {
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      vertical-align: top;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    tbody tr:nth-child(even) {
+      background: color-mix(in srgb, var(--surface-2) 70%, transparent 30%);
+    }
+
+    tbody tr:hover {
+      background: color-mix(in srgb, var(--surface-2) 90%, transparent 10%);
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      background: color-mix(in srgb, var(--accent) 12%, transparent 88%);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .tag.ok { color: var(--ok); }
+    .tag.warn { color: var(--warn); }
+
+    @media (max-width: 900px) {
+      body { padding: 12px; }
+      .hero, .table-wrap { padding: 12px; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>A7 Examples Reference</h1>
-    <p class="sub">Topic map + progression guidance for all runnable examples.</p>
-    <div class="stats">
-      <div class="stat"><strong>36</strong><span>Total Files</span></div>
-      <div class="stat"><strong>5</strong><span>Learning Tracks</span></div>
-      <div class="stat"><strong>14</strong><span>Core Syntax Files</span></div>
-      <div class="stat"><strong>8</strong><span>Larger Programs</span></div>
-    </div>
-    <div class="table-wrap"><div class="table-scroll">
-      <table aria-label="A7 example reference matrix">
-        <thead><tr><th>Track</th><th>Goal</th><th>Start Files</th><th>Deep Files</th><th>Readiness</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>Fundamentals</td>
-            <td>Syntax, declarations, operators, literals</td>
-            <td><code>001_hello</code>, <code>002_var</code>, <code>004_func</code></td>
-            <td><code>015_types</code>, <code>019_literals</code>, <code>020_operators</code></td>
-            <td><span class="status done">Core</span></td>
-          </tr>
-          <tr>
-            <td>Control Flow</td>
-            <td>Branching, loops, match, defer behavior</td>
-            <td><code>005_for_loop</code>, <code>006_if</code>, <code>007_while</code></td>
-            <td><code>008_switch</code>, <code>021_control_flow</code>, <code>024_defer</code></td>
-            <td><span class="status done">Core</span></td>
-          </tr>
-          <tr>
-            <td>Data + Memory</td>
-            <td>Structs, enums, unions, arrays, pointers</td>
-            <td><code>009_struct</code>, <code>010_enum</code>, <code>012_arrays</code></td>
-            <td><code>013_pointers</code>, <code>016_unions</code>, <code>035_matrix</code></td>
-            <td><span class="status study">Intermediate</span></td>
-          </tr>
-          <tr>
-            <td>Abstractions</td>
-            <td>Generics, methods, function pointers, callbacks</td>
-            <td><code>014_generics</code>, <code>017_methods</code></td>
-            <td><code>022_function_pointers</code>, <code>027_callbacks</code></td>
-            <td><span class="status study">Intermediate</span></td>
-          </tr>
-          <tr>
-            <td>Programs</td>
-            <td>Multi-step examples and complete workflows</td>
-            <td><code>029_sorting</code>, <code>030_calculator</code></td>
-            <td><code>031_number_guessing</code>, <code>033_fibonacci</code>, <code>034_string_utils</code></td>
-            <td><span class="status advanced">Advanced</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div></div>
-  </div>
+  <main class="wrap">
+    <section class="hero">
+      <p class="kicker">A7 sample coverage</p>
+      <h1>Examples Reference</h1>
+      <p class="lead">This table maps each sample file to its core topic. Use it for teaching order, test design, and regression selection.</p>
+      <div class="kpis">
+        <div class="kpi"><strong>36</strong><span>Sample files</span></div>
+        <div class="kpi"><strong>6</strong><span>Topic groups</span></div>
+        <div class="kpi"><strong>36/36</strong><span>E2E verification target</span></div>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Topic Group</th>
+              <th>Main Concept</th>
+              <th>Runtime Level</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>000_empty.a7</code></td><td>Utility</td><td>Pipeline smoke input</td><td><span class="tag warn">No runtime behavior</span></td></tr>
+            <tr><td><code>001_hello.a7</code></td><td>Fundamentals</td><td>Console output baseline</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>002_var.a7</code></td><td>Fundamentals</td><td>Variables and updates</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>003_comments.a7</code></td><td>Fundamentals</td><td>Comment forms</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>004_func.a7</code></td><td>Fundamentals</td><td>Function declaration and call</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>005_for_loop.a7</code></td><td>Control Flow</td><td>C style and range loops</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>006_if.a7</code></td><td>Control Flow</td><td>Conditional branches</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>007_while.a7</code></td><td>Control Flow</td><td>While loops</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>008_switch.a7</code></td><td>Control Flow</td><td>Switch style dispatch</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>009_struct.a7</code></td><td>Data</td><td>Struct values</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>010_enum.a7</code></td><td>Data</td><td>Enums and variants</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>011_memory.a7</code></td><td>Data</td><td>Stack and heap usage</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>012_arrays.a7</code></td><td>Data</td><td>Fixed arrays and loops</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>013_pointers.a7</code></td><td>Data</td><td>Reference helpers</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>014_generics.a7</code></td><td>Abstractions</td><td>Generic surface sample</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>015_types.a7</code></td><td>Fundamentals</td><td>Type annotation patterns</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>016_unions.a7</code></td><td>Data</td><td>Union declarations</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>017_methods.a7</code></td><td>Abstractions</td><td>Method style functions</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>018_modules.a7</code></td><td>Modules</td><td>Import statements</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>019_literals.a7</code></td><td>Fundamentals</td><td>Literal forms</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>020_operators.a7</code></td><td>Fundamentals</td><td>Operator behavior</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>021_control_flow.a7</code></td><td>Control Flow</td><td>Combined flow patterns</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>022_function_pointers.a7</code></td><td>Abstractions</td><td>Function values</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>023_inline_structs.a7</code></td><td>Data</td><td>Inline struct literals</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>024_defer.a7</code></td><td>Control Flow</td><td>Defer execution order</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>025_linked_list.a7</code></td><td>Data</td><td>Linked structure modeling</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>026_binary_tree.a7</code></td><td>Data</td><td>Tree structure modeling</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>027_callbacks.a7</code></td><td>Abstractions</td><td>Callback style dispatch</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>028_state_machine.a7</code></td><td>Modules</td><td>State transitions</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>029_sorting.a7</code></td><td>Modules</td><td>Sorting algorithm</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>030_calculator.a7</code></td><td>Modules</td><td>Expression evaluator</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>031_number_guessing.a7</code></td><td>Modules</td><td>Interactive loop</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>032_prime_numbers.a7</code></td><td>Modules</td><td>Prime generation</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>033_fibonacci.a7</code></td><td>Modules</td><td>Sequence generation</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>034_string_utils.a7</code></td><td>Modules</td><td>String utilities</td><td><span class="tag ok">Runnable</span></td></tr>
+            <tr><td><code>035_matrix.a7</code></td><td>Data</td><td>Matrix style arrays</td><td><span class="tag ok">Runnable</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
