@@ -47,6 +47,14 @@
   --docs-mesh-a: #cae8f56a;
   --docs-mesh-b: #ffe1b454;
   --docs-mesh-c: #d2f0e46b;
+
+  --sl-text-xs: 0.82rem;
+  --sl-text-sm: 0.95rem;
+  --sl-text-body: 1.06rem;
+  --sl-text-h4: 1.32rem;
+  --sl-text-h3: 1.66rem;
+  --sl-text-h2: 2.12rem;
+  --sl-text-h1: 2.9rem;
 }
 
 :root[data-theme='dark'] {
@@ -98,6 +106,10 @@ body {
   background-color: var(--sl-color-bg);
 }
 
+html {
+  font-size: 17px;
+}
+
 body {
   background-image:
     radial-gradient(980px 380px at 10% -8%, var(--docs-mesh-a), transparent 56%),
@@ -127,6 +139,7 @@ header .header {
 .sidebar-content a {
   border-radius: 0.58rem;
   transition: background-color 140ms ease, transform 140ms ease;
+  font-size: 0.95rem;
 }
 
 .sidebar-content a:hover {
@@ -207,6 +220,15 @@ header .header {
   border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 74%, transparent 26%);
 }
 
+.sl-markdown-content pre code {
+  font-size: 0.95rem;
+}
+
+.sl-markdown-content p,
+.sl-markdown-content li {
+  font-size: 1.03rem;
+}
+
 .sl-markdown-content a {
   text-underline-offset: 0.16em;
   text-decoration-thickness: 0.1em;
@@ -264,6 +286,10 @@ header .header {
 }
 
 @media (max-width: 50rem) {
+  html {
+    font-size: 16px;
+  }
+
   .hero {
     border-radius: 0.95rem;
   }

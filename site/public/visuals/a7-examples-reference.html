@@ -19,30 +19,30 @@
         --border:rgba(243,205,187,.2); --accent:#ff9a6f; --mint:#72d7b1; --amber:#ffc781; --rose:#ff9fbd;
       }
     }
-    *{box-sizing:border-box} body{margin:0;padding:36px;background:
+    *{box-sizing:border-box} body{margin:0;padding:40px;background:
       radial-gradient(920px 360px at 12% -10%, rgba(178,77,31,.18), transparent 58%),
       radial-gradient(780px 340px at 90% 0%, rgba(29,136,96,.16), transparent 56%),var(--bg);
-      color:var(--text);font-family:var(--font)}
+      color:var(--text);font-family:var(--font);font-size:18px;line-height:1.62}
     .wrap{max-width:1050px;margin:0 auto}
-    h1{margin:0;font-size:clamp(2rem,4vw,3rem);line-height:1.02;letter-spacing:-.01em}
-    .sub{margin:.6rem 0 1.4rem;color:var(--text-dim);font-family:var(--mono);font-size:12px}
+    h1{margin:0;font-size:clamp(2.35rem,4.8vw,3.5rem);line-height:1.02;letter-spacing:-.01em}
+    .sub{margin:.7rem 0 1.5rem;color:var(--text-dim);font-family:var(--mono);font-size:14px}
     .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
-    .stat{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:11px 12px}
-    .stat strong{display:block;font-size:1.24rem;line-height:1.1;margin-bottom:2px}
-    .stat span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+    .stat{border:1px solid var(--border);border-radius:13px;background:var(--surface);padding:13px 14px}
+    .stat strong{display:block;font-size:1.5rem;line-height:1.1;margin-bottom:2px}
+    .stat span{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
     .table-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)}
     .table-scroll{overflow:auto}
-    table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
-    th{position:sticky;top:0;background:var(--surface2);text-align:left;padding:12px 13px;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
-    td{padding:12px 13px;border-bottom:1px solid var(--border);vertical-align:top}
+    table{width:100%;border-collapse:collapse;font-size:15px;min-width:940px}
+    th{position:sticky;top:0;background:var(--surface2);text-align:left;padding:14px 15px;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+    td{padding:14px 15px;border-bottom:1px solid var(--border);vertical-align:top}
     tbody tr:nth-child(even){background:rgba(178,77,31,.06)}
     tbody tr:hover{background:rgba(29,136,96,.09)}
-    .status{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:999px;padding:3px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+    .status{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:999px;padding:4px 10px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
     .done{color:var(--mint);background:color-mix(in srgb,var(--mint) 14%, transparent 86%);border-color:color-mix(in srgb,var(--mint) 32%, transparent 68%)}
     .study{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%, transparent 84%);border-color:color-mix(in srgb,var(--amber) 32%, transparent 68%)}
     .advanced{color:var(--rose);background:color-mix(in srgb,var(--rose) 14%, transparent 86%);border-color:color-mix(in srgb,var(--rose) 32%, transparent 68%)}
-    code{font-family:var(--mono);font-size:11px;background:rgba(178,77,31,.1);padding:1px 5px;border-radius:4px}
-    @media (max-width:860px){body{padding:22px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    code{font-family:var(--mono);font-size:12px;background:rgba(178,77,31,.1);padding:1px 6px;border-radius:4px}
+    @media (max-width:860px){body{padding:24px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))} table{font-size:14px}}
   </style>
 </head>
 <body>

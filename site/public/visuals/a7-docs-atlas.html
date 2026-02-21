@@ -65,8 +65,9 @@
         radial-gradient(860px 340px at 94% 2%, var(--amber-dim), transparent 56%),
         radial-gradient(940px 360px at 60% 112%, var(--mint-dim), transparent 58%),
         var(--bg);
-      line-height: 1.62;
-      padding: 28px 40px 64px;
+      line-height: 1.64;
+      font-size: 18px;
+      padding: 30px 42px 64px;
     }
 
     .wrap {
@@ -95,7 +96,7 @@
 
     .toc-title {
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 0.16em;
       text-transform: uppercase;
       color: var(--text-dim);
@@ -109,7 +110,7 @@
       color: var(--text-dim);
       text-decoration: none;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
       line-height: 1.32;
       padding: 7px 8px;
       border-left: 2px solid transparent;
@@ -131,7 +132,7 @@
     h1 {
       margin: 0;
       font-family: var(--font-head);
-      font-size: clamp(2.1rem, 4vw, 3.3rem);
+      font-size: clamp(2.45rem, 4.8vw, 3.7rem);
       line-height: 1.03;
       letter-spacing: -0.01em;
     }
@@ -140,7 +141,7 @@
       margin: 10px 0 24px;
       color: var(--text-dim);
       font-family: var(--font-mono);
-      font-size: 12px;
+      font-size: 14px;
     }
 
     .hero {
@@ -195,7 +196,7 @@
     .kpi strong {
       display: block;
       font-family: var(--font-head);
-      font-size: 1.25rem;
+      font-size: 1.46rem;
       line-height: 1.1;
       letter-spacing: -0.01em;
       margin-bottom: 3px;
@@ -204,7 +205,7 @@
     .kpi span {
       font-family: var(--font-mono);
       color: var(--text-dim);
-      font-size: 11px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.11em;
     }
@@ -217,7 +218,7 @@
       font-family: var(--font-head);
       letter-spacing: .04em;
       text-transform: uppercase;
-      font-size: 0.9rem;
+      font-size: 1.02rem;
       background: color-mix(in srgb, var(--surface2) 68%, transparent 32%);
       scroll-margin-top: 24px;
     }
@@ -250,7 +251,7 @@
 
     .node b {
       font-family: var(--font-head);
-      font-size: 1.02rem;
+      font-size: 1.16rem;
       display: block;
       margin-bottom: 4px;
     }
@@ -259,7 +260,7 @@
       display: block;
       color: var(--text-dim);
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
       margin-top: 6px;
       overflow-wrap: break-word;
     }
@@ -279,7 +280,7 @@
       justify-content: center;
       transition: transform .2s ease;
       transform-origin: top center;
-      min-width: 640px;
+      min-width: 760px;
     }
 
     .zoom-controls {
@@ -318,14 +319,14 @@
     .mermaid .nodeLabel {
       color: var(--text) !important;
       font-family: var(--font-head) !important;
-      font-size: 16px !important;
+      font-size: 18px !important;
     }
 
     .mermaid .edgeLabel {
       color: var(--text-dim) !important;
       background-color: var(--bg) !important;
       font-family: var(--font-mono) !important;
-      font-size: 12px !important;
+      font-size: 14px !important;
     }
 
     .mermaid .edgeLabel rect {
@@ -344,7 +345,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 13px;
+      font-size: 15px;
       min-width: 840px;
     }
 
@@ -355,7 +356,7 @@
       background: var(--surface2);
       color: var(--text-dim);
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: .12em;
       text-transform: uppercase;
       text-align: left;
@@ -384,7 +385,7 @@
       border-radius: 999px;
       padding: 3px 9px;
       font-family: var(--font-mono);
-      font-size: 10px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: .08em;
       border: 1px solid transparent;
@@ -455,7 +456,7 @@
     .milestone small {
       color: var(--text-dim);
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .callout {
@@ -733,7 +734,7 @@ graph LR
       const controls = wrap.querySelector('.zoom-controls');
       if (!target || !controls) return;
 
-      let scale = 1;
+      let scale = 1.15;
       let isPanning = false;
       let startX = 0;
       let startY = 0;
