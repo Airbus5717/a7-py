@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A7 Examples Reference</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#fff8f5; --surface:#fff; --surface2:#fff1eb; --text:#2a1f1b; --text-dim:#7a665e;
+      --border:rgba(82,44,31,.14); --accent:#b24d1f; --mint:#1d8860; --amber:#b57713; --rose:#b33b5e;
+      --font:'Instrument Serif',serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#1b1210; --surface:#261a17; --surface2:#30221e; --text:#f7e7df; --text-dim:#c8a99d;
+        --border:rgba(243,205,187,.2); --accent:#ff9a6f; --mint:#72d7b1; --amber:#ffc781; --rose:#ff9fbd;
+      }
+    }
+    *{box-sizing:border-box} body{margin:0;padding:36px;background:
+      radial-gradient(920px 360px at 12% -10%, rgba(178,77,31,.18), transparent 58%),
+      radial-gradient(780px 340px at 90% 0%, rgba(29,136,96,.16), transparent 56%),var(--bg);
+      color:var(--text);font-family:var(--font)}
+    .wrap{max-width:1050px;margin:0 auto}
+    h1{margin:0;font-size:clamp(2rem,4vw,3rem);line-height:1.02;letter-spacing:-.01em}
+    .sub{margin:.6rem 0 1.4rem;color:var(--text-dim);font-family:var(--mono);font-size:12px}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
+    .stat{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:11px 12px}
+    .stat strong{display:block;font-size:1.24rem;line-height:1.1;margin-bottom:2px}
+    .stat span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+    .table-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)}
+    .table-scroll{overflow:auto}
+    table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}
+    th{position:sticky;top:0;background:var(--surface2);text-align:left;padding:12px 13px;border-bottom:2px solid var(--border);font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim)}
+    td{padding:12px 13px;border-bottom:1px solid var(--border);vertical-align:top}
+    tbody tr:nth-child(even){background:rgba(178,77,31,.06)}
+    tbody tr:hover{background:rgba(29,136,96,.09)}
+    .status{display:inline-flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:999px;padding:3px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+    .done{color:var(--mint);background:color-mix(in srgb,var(--mint) 14%, transparent 86%);border-color:color-mix(in srgb,var(--mint) 32%, transparent 68%)}
+    .study{color:var(--amber);background:color-mix(in srgb,var(--amber) 16%, transparent 84%);border-color:color-mix(in srgb,var(--amber) 32%, transparent 68%)}
+    .advanced{color:var(--rose);background:color-mix(in srgb,var(--rose) 14%, transparent 86%);border-color:color-mix(in srgb,var(--rose) 32%, transparent 68%)}
+    code{font-family:var(--mono);font-size:11px;background:rgba(178,77,31,.1);padding:1px 5px;border-radius:4px}
+    @media (max-width:860px){body{padding:22px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>A7 Examples Reference</h1>
+    <p class="sub">Topic map + progression guidance for all runnable examples.</p>
+    <div class="stats">
+      <div class="stat"><strong>36</strong><span>Total Files</span></div>
+      <div class="stat"><strong>5</strong><span>Learning Tracks</span></div>
+      <div class="stat"><strong>14</strong><span>Core Syntax Files</span></div>
+      <div class="stat"><strong>8</strong><span>Larger Programs</span></div>
+    </div>
+    <div class="table-wrap"><div class="table-scroll">
+      <table aria-label="A7 example reference matrix">
+        <thead><tr><th>Track</th><th>Goal</th><th>Start Files</th><th>Deep Files</th><th>Readiness</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Fundamentals</td>
+            <td>Syntax, declarations, operators, literals</td>
+            <td><code>001_hello</code>, <code>002_var</code>, <code>004_func</code></td>
+            <td><code>015_types</code>, <code>019_literals</code>, <code>020_operators</code></td>
+            <td><span class="status done">Core</span></td>
+          </tr>
+          <tr>
+            <td>Control Flow</td>
+            <td>Branching, loops, match, defer behavior</td>
+            <td><code>005_for_loop</code>, <code>006_if</code>, <code>007_while</code></td>
+            <td><code>008_switch</code>, <code>021_control_flow</code>, <code>024_defer</code></td>
+            <td><span class="status done">Core</span></td>
+          </tr>
+          <tr>
+            <td>Data + Memory</td>
+            <td>Structs, enums, unions, arrays, pointers</td>
+            <td><code>009_struct</code>, <code>010_enum</code>, <code>012_arrays</code></td>
+            <td><code>013_pointers</code>, <code>016_unions</code>, <code>035_matrix</code></td>
+            <td><span class="status study">Intermediate</span></td>
+          </tr>
+          <tr>
+            <td>Abstractions</td>
+            <td>Generics, methods, function pointers, callbacks</td>
+            <td><code>014_generics</code>, <code>017_methods</code></td>
+            <td><code>022_function_pointers</code>, <code>027_callbacks</code></td>
+            <td><span class="status study">Intermediate</span></td>
+          </tr>
+          <tr>
+            <td>Programs</td>
+            <td>Multi-step examples and complete workflows</td>
+            <td><code>029_sorting</code>, <code>030_calculator</code></td>
+            <td><code>031_number_guessing</code>, <code>033_fibonacci</code>, <code>034_string_utils</code></td>
+            <td><span class="status advanced">Advanced</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</body>
+</html>

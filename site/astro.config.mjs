@@ -64,6 +64,7 @@ export default defineConfig({
 				{
 					label: 'Project Status',
 					items: [
+						{ label: 'Visual References', slug: 'project/visual-references' },
 						{ label: 'Visual Atlas', slug: 'project/visual-atlas' },
 						{ label: 'Changelog', slug: 'project/changelog' },
 						{ label: 'Missing Features', slug: 'project/missing-features' },

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A7 Language Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#f6faff;--surface:#fff;--surface2:#eef4ff;--text:#1b2737;--text-dim:#62758c;
+      --border:rgba(24,58,95,.14);--accent:#2a62b2;--green:#1d8a67;--orange:#ba7518;--purple:#7b56c8;
+      --font:'Chakra Petch',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{--bg:#101723;--surface:#172131;--surface2:#202d42;--text:#eaf1ff;--text-dim:#9fb1ca;--border:rgba(184,208,240,.2);--accent:#8bb7ff;--green:#7adfb8;--orange:#ffc685;--purple:#c7b2f3}
+    }
+    *{box-sizing:border-box}body{margin:0;padding:36px;background:radial-gradient(900px 340px at 14% -8%, rgba(42,98,178,.2), transparent 58%),radial-gradient(840px 360px at 90% 2%, rgba(29,138,103,.16), transparent 54%),var(--bg);color:var(--text);font-family:var(--font)}
+    .wrap{max-width:1080px;margin:0 auto}
+    h1{margin:0;font-size:clamp(2rem,4vw,3rem);line-height:1.02;letter-spacing:-.01em}
+    .sub{margin:.6rem 0 1.3rem;color:var(--text-dim);font-family:var(--mono);font-size:12px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .card{border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:14px}
+    .label{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px}
+    .title{font-size:1.18rem;line-height:1.2;margin:0 0 8px}
+    .desc{margin:0;color:var(--text-dim);line-height:1.55}
+    ul{margin:.55rem 0 0;padding-left:14px} li{margin:.22rem 0;color:var(--text-dim)}
+    @media (max-width:900px){body{padding:22px}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>A7 Language Map</h1>
+    <p class="sub">Visual breakdown of core language guide domains and where they connect in the docs.</p>
+    <div class="grid">
+      <article class="card"><div class="label">Types</div><h2 class="title">Type System Core</h2><p class="desc">Primitives, composites, aliases, references, and pointer semantics define the shared foundation for all expressions.</p><ul><li><code>language/types</code></li><li><code>language/declarations-and-expressions</code></li></ul></article>
+      <article class="card"><div class="label">Execution</div><h2 class="title">Control + Functions</h2><p class="desc">Control flow rules combine with function declarations, method patterns, and return-path semantics.</p><ul><li><code>language/control-flow</code></li><li><code>language/functions</code></li></ul></article>
+      <article class="card"><div class="label">Abstractions</div><h2 class="title">Generics + Modules</h2><p class="desc">Generic constraints and module boundaries shape reuse, API design, and compile-time specialization.</p><ul><li><code>language/generics</code></li><li><code>language/modules-and-visibility</code></li></ul></article>
+      <article class="card"><div class="label">Runtime</div><h2 class="title">Memory + Builtins</h2><p class="desc">Heap lifecycle, defer behavior, and intrinsic operator/builtin semantics govern runtime safety and performance.</p><ul><li><code>language/memory-management</code></li><li><code>language/builtins-and-operators</code></li></ul></article>
+      <article class="card"><div class="label">Formalism</div><h2 class="title">Grammar + Diagnostics</h2><p class="desc">Grammar summary and diagnostics pages provide quick parse-level and error-model grounding during implementation.</p><ul><li><code>language/grammar-summary</code></li><li><code>language/diagnostics-and-limits</code></li></ul></article>
+      <article class="card"><div class="label">Bridge</div><h2 class="title">Examples + Pipeline</h2><p class="desc">Examples validate language behavior through pipeline stages and generated backend output expectations.</p><ul><li><code>examples/by-topic</code></li><li><code>compiler/pipeline-overview</code></li></ul></article>
+    </div>
+  </div>
+</body>
+</html>

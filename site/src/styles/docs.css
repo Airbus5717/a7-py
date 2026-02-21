@@ -1,102 +1,96 @@
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:opsz,wght@7..72,500;7..72,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Sora:wght@500;600;700&display=swap');
 
 :root {
-  --sl-font: 'Literata', Georgia, serif;
-  --sl-font-system: 'Chakra Petch', 'Trebuchet MS', sans-serif;
+  --sl-font: 'Source Serif 4', Georgia, serif;
+  --sl-font-system: 'Sora', 'Segoe UI', sans-serif;
   --sl-font-system-mono: 'IBM Plex Mono', ui-monospace, monospace;
   --sl-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --sl-color-accent-low: #cde7ff;
-  --sl-color-accent: #0b63c8;
-  --sl-color-accent-high: #05306b;
+  --sl-color-accent-low: #d3eef9;
+  --sl-color-accent: #136b88;
+  --sl-color-accent-high: #0a3f53;
 
-  --sl-color-white: #182335;
-  --sl-color-black: #f6fbff;
+  --sl-color-white: #1a2a33;
+  --sl-color-black: #fffdf8;
 
-  --sl-color-gray-1: #ecf4ff;
-  --sl-color-gray-2: #d7e6fb;
-  --sl-color-gray-3: #b8cee9;
-  --sl-color-gray-4: #7f95b2;
-  --sl-color-gray-5: #536987;
-  --sl-color-gray-6: #344760;
-  --sl-color-gray-7: #1f2f45;
+  --sl-color-gray-1: #f4f7fb;
+  --sl-color-gray-2: #e6edf3;
+  --sl-color-gray-3: #cbd7e1;
+  --sl-color-gray-4: #96a8b8;
+  --sl-color-gray-5: #6e8599;
+  --sl-color-gray-6: #4a6071;
+  --sl-color-gray-7: #2b3f4e;
 
-  --sl-color-blue-low: #d8ebff;
-  --sl-color-blue: #1b78d0;
-  --sl-color-blue-high: #0b4175;
-  --sl-color-green-low: #d9f5eb;
-  --sl-color-green: #0f8a5f;
-  --sl-color-green-high: #0a5d42;
-  --sl-color-orange-low: #ffeccf;
-  --sl-color-orange: #c47210;
-  --sl-color-orange-high: #7c3f07;
-  --sl-color-red-low: #ffe0e0;
-  --sl-color-red: #c73846;
-  --sl-color-red-high: #7d1d2a;
-  --sl-color-purple-low: #eadfff;
-  --sl-color-purple: #7f4ad2;
-  --sl-color-purple-high: #4e2a8a;
+  --sl-color-blue-low: #d8ecff;
+  --sl-color-blue: #2172bf;
+  --sl-color-blue-high: #114477;
+  --sl-color-green-low: #d8f1e8;
+  --sl-color-green: #187f58;
+  --sl-color-green-high: #0f563a;
+  --sl-color-orange-low: #ffeacf;
+  --sl-color-orange: #be7118;
+  --sl-color-orange-high: #7c460b;
+  --sl-color-red-low: #ffe3e5;
+  --sl-color-red: #b93b45;
+  --sl-color-red-high: #7f222d;
+  --sl-color-purple-low: #eee3ff;
+  --sl-color-purple: #7651c6;
+  --sl-color-purple-high: #4a3386;
 
-  --sl-color-bg: #f6fbff;
-  --sl-color-bg-nav: #f8fbffcc;
-  --sl-color-bg-sidebar: #f2f8ff;
-  --sl-color-bg-inline-code: #e8f1ff;
+  --sl-color-bg: #fffdf8;
+  --sl-color-bg-nav: #fffcf6cc;
+  --sl-color-bg-sidebar: #faf6ef;
+  --sl-color-bg-inline-code: #edf4f9;
+  --sl-color-hairline-light: #e3ecf2;
+  --sl-color-hairline: #d4dfe8;
 
-  --sl-color-hairline-light: #d7e6fb;
-  --sl-color-hairline: #c5d8f3;
+  --docs-mesh-a: #cae8f56a;
+  --docs-mesh-b: #ffe1b454;
+  --docs-mesh-c: #d2f0e46b;
 }
 
 :root[data-theme='dark'] {
-  --sl-color-accent-low: #143153;
-  --sl-color-accent: #66aaf7;
-  --sl-color-accent-high: #c5e2ff;
+  --sl-color-accent-low: #173948;
+  --sl-color-accent: #7ec6df;
+  --sl-color-accent-high: #c6ebf8;
 
-  --sl-color-white: #f0f5ff;
-  --sl-color-black: #0b1321;
+  --sl-color-white: #e8f0f5;
+  --sl-color-black: #0e1720;
 
-  --sl-color-gray-1: #132137;
-  --sl-color-gray-2: #1b2d47;
-  --sl-color-gray-3: #2b4262;
-  --sl-color-gray-4: #607896;
-  --sl-color-gray-5: #8da6c6;
-  --sl-color-gray-6: #bfd2ea;
-  --sl-color-gray-7: #e2ecfa;
+  --sl-color-gray-1: #151f29;
+  --sl-color-gray-2: #1e2b37;
+  --sl-color-gray-3: #2f4252;
+  --sl-color-gray-4: #7390a5;
+  --sl-color-gray-5: #97b1c5;
+  --sl-color-gray-6: #bad1e3;
+  --sl-color-gray-7: #dbeaf5;
 
-  --sl-color-blue-low: #18344d;
-  --sl-color-blue: #71b6ff;
-  --sl-color-blue-high: #cde8ff;
-  --sl-color-green-low: #123f32;
-  --sl-color-green: #5dd9a6;
-  --sl-color-green-high: #baf5de;
-  --sl-color-orange-low: #4a3215;
-  --sl-color-orange: #ffbf6a;
-  --sl-color-orange-high: #ffe2ba;
-  --sl-color-red-low: #4f1f2c;
-  --sl-color-red: #ff8a98;
-  --sl-color-red-high: #ffc6d0;
-  --sl-color-purple-low: #31234e;
-  --sl-color-purple: #b995ff;
-  --sl-color-purple-high: #e2d1ff;
+  --sl-color-blue-low: #16334d;
+  --sl-color-blue: #79b8ee;
+  --sl-color-blue-high: #c9e7ff;
+  --sl-color-green-low: #183b31;
+  --sl-color-green: #67d3af;
+  --sl-color-green-high: #b9f1dd;
+  --sl-color-orange-low: #4a3218;
+  --sl-color-orange: #f6bf78;
+  --sl-color-orange-high: #ffe2bc;
+  --sl-color-red-low: #4b2228;
+  --sl-color-red: #f39aa1;
+  --sl-color-red-high: #ffd0d4;
+  --sl-color-purple-low: #35284c;
+  --sl-color-purple: #b9a0e9;
+  --sl-color-purple-high: #e2d7f7;
 
-  --sl-color-bg: #0b1321;
-  --sl-color-bg-nav: #0d1728d9;
-  --sl-color-bg-sidebar: #0f1b2d;
-  --sl-color-bg-inline-code: #1a2a42;
+  --sl-color-bg: #0e1720;
+  --sl-color-bg-nav: #0f1b25d9;
+  --sl-color-bg-sidebar: #121f2a;
+  --sl-color-bg-inline-code: #1d3140;
+  --sl-color-hairline-light: #243647;
+  --sl-color-hairline: #304556;
 
-  --sl-color-hairline-light: #213754;
-  --sl-color-hairline: #2c4464;
-}
-
-:root {
-  --docs-mesh-a: #8dc4ff2e;
-  --docs-mesh-b: #ffd18b2e;
-  --docs-mesh-c: #95ffd02b;
-}
-
-:root[data-theme='dark'] {
-  --docs-mesh-a: #3f83d62b;
-  --docs-mesh-b: #ad7f3624;
-  --docs-mesh-c: #3c966f2b;
+  --docs-mesh-a: #3f7f9a3d;
+  --docs-mesh-b: #8f64332e;
+  --docs-mesh-c: #3e7f6830;
 }
 
 html,
@@ -106,9 +100,9 @@ body {
 
 body {
   background-image:
-    radial-gradient(1100px 430px at 8% -6%, var(--docs-mesh-a), transparent 58%),
-    radial-gradient(900px 410px at 89% 2%, var(--docs-mesh-b), transparent 56%),
-    radial-gradient(1000px 440px at 62% 112%, var(--docs-mesh-c), transparent 60%);
+    radial-gradient(980px 380px at 10% -8%, var(--docs-mesh-a), transparent 56%),
+    radial-gradient(860px 360px at 92% 0%, var(--docs-mesh-b), transparent 54%),
+    radial-gradient(920px 390px at 56% 112%, var(--docs-mesh-c), transparent 58%);
 }
 
 .header {
@@ -117,155 +111,168 @@ body {
 }
 
 header .header {
-  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 65%, transparent 35%);
+  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 70%, transparent 30%);
+}
+
+.site-title span {
+  font-family: 'Sora', sans-serif;
+  letter-spacing: 0.01em;
+  font-weight: 650;
 }
 
 .sidebar-pane {
-  border-right: 1px solid color-mix(in srgb, var(--sl-color-hairline) 62%, transparent 38%);
+  border-right: 1px solid color-mix(in srgb, var(--sl-color-hairline) 74%, transparent 26%);
 }
 
 .sidebar-content a {
-  border-radius: 0.55rem;
-  transition: background-color 150ms ease, transform 150ms ease;
+  border-radius: 0.58rem;
+  transition: background-color 140ms ease, transform 140ms ease;
 }
 
 .sidebar-content a:hover {
-  background: color-mix(in srgb, var(--sl-color-accent-low) 60%, transparent 40%);
   transform: translateX(2px);
+  background: color-mix(in srgb, var(--sl-color-accent-low) 58%, transparent 42%);
 }
 
 .hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.2rem;
-  border: 1px solid color-mix(in srgb, var(--sl-color-accent) 24%, var(--sl-color-hairline) 76%);
+  border-radius: 1.12rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-accent) 18%, var(--sl-color-hairline) 82%);
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--sl-color-accent-low) 55%, transparent 45%) 0%, transparent 55%),
-    linear-gradient(105deg, color-mix(in srgb, var(--sl-color-orange-low) 46%, transparent 54%) 0%, transparent 60%),
-    color-mix(in srgb, var(--sl-color-bg) 60%, var(--sl-color-black) 40%);
-  box-shadow: 0 14px 44px color-mix(in srgb, var(--sl-color-black) 12%, transparent 88%);
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(color-mix(in srgb, var(--sl-color-hairline) 55%, transparent 45%) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--sl-color-hairline) 55%, transparent 45%) 1px, transparent 1px);
-  background-size: 42px 42px;
-  opacity: 0.18;
-  pointer-events: none;
-}
-
-.hero .copy,
-.hero .actions {
-  position: relative;
-  z-index: 1;
+    linear-gradient(130deg, color-mix(in srgb, var(--sl-color-accent-low) 58%, transparent 42%) 0%, transparent 52%),
+    linear-gradient(115deg, color-mix(in srgb, var(--sl-color-orange-low) 48%, transparent 52%) 0%, transparent 60%),
+    color-mix(in srgb, var(--sl-color-black) 76%, var(--sl-color-bg) 24%);
+  box-shadow: 0 12px 34px color-mix(in srgb, var(--sl-color-black) 7%, transparent 93%);
 }
 
 .hero h1 {
-  font-family: 'Chakra Petch', sans-serif;
-  letter-spacing: -0.018em;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 1.06;
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2rem, 3.8vw, 3.1rem);
+  line-height: 1.05;
+  letter-spacing: -0.012em;
 }
 
 .hero .tagline {
-  font-size: clamp(1rem, 1.8vw, 1.2rem);
+  font-size: clamp(1.02rem, 1.7vw, 1.18rem);
   max-width: 62ch;
-  font-weight: 500;
-}
-
-.hero .actions {
-  gap: 0.55rem;
+  color: color-mix(in srgb, var(--sl-color-white) 82%, var(--sl-color-gray-5) 18%);
 }
 
 .sl-link-button.primary {
-  background: linear-gradient(120deg, color-mix(in srgb, var(--sl-color-accent) 90%, #ffffff 10%) 0%, color-mix(in srgb, var(--sl-color-blue) 82%, #ffffff 18%) 100%);
-  border-color: color-mix(in srgb, var(--sl-color-accent-high) 50%, var(--sl-color-accent) 50%);
-  color: #f8fbff;
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--sl-color-accent) 28%, transparent 72%);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--sl-color-accent) 90%, #fff 10%) 0%, color-mix(in srgb, var(--sl-color-blue) 86%, #fff 14%) 100%);
+  border-color: color-mix(in srgb, var(--sl-color-accent-high) 60%, var(--sl-color-accent) 40%);
+  color: #f8fcff;
 }
 
 .sl-link-button.primary:hover {
-  transform: translateY(-1px);
   color: #ffffff;
-}
-
-.sl-link-button.minimal {
-  color: var(--sl-color-accent-high);
-  text-decoration: underline;
-  text-underline-offset: 0.16em;
-}
-
-:root[data-theme='dark'] .sl-link-button.minimal {
-  color: var(--sl-color-accent-high);
+  transform: translateY(-1px);
 }
 
 .card-grid .card {
-  background: color-mix(in srgb, var(--sl-color-black) 58%, var(--sl-color-bg) 42%);
+  background: color-mix(in srgb, var(--sl-color-black) 76%, var(--sl-color-bg) 24%);
   border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 74%, transparent 26%);
   border-radius: 0.95rem;
-  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-  box-shadow: 0 6px 24px color-mix(in srgb, var(--sl-color-black) 6%, transparent 94%);
+  box-shadow: 0 5px 20px color-mix(in srgb, var(--sl-color-black) 5%, transparent 95%);
+  transition: transform 170ms ease, border-color 170ms ease, box-shadow 170ms ease;
 }
 
 .card-grid .card:hover {
   transform: translateY(-4px);
-  border-color: color-mix(in srgb, var(--sl-color-accent) 34%, var(--sl-color-hairline) 66%);
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--sl-color-accent) 14%, transparent 86%);
+  border-color: color-mix(in srgb, var(--sl-color-accent) 33%, var(--sl-color-hairline) 67%);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--sl-color-accent) 12%, transparent 88%);
 }
 
 .card-grid .card .title {
-  font-family: 'Chakra Petch', sans-serif;
-  letter-spacing: 0.015em;
-}
-
-.card-grid .card .body {
-  font-size: 1rem;
+  font-family: 'Sora', sans-serif;
+  letter-spacing: 0.01em;
 }
 
 .sl-markdown-content h2,
 .sl-markdown-content h3,
 .sl-markdown-content h4 {
-  font-family: 'Chakra Petch', sans-serif;
+  font-family: 'Sora', sans-serif;
   letter-spacing: 0.01em;
 }
 
 .sl-markdown-content h2 {
-  margin-top: 2.8rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 70%, transparent 30%);
-  padding-bottom: 0.5rem;
-}
-
-.sl-markdown-content a {
-  text-decoration-thickness: 0.11em;
-  text-underline-offset: 0.17em;
-  text-decoration-color: color-mix(in srgb, var(--sl-color-accent) 58%, transparent 42%);
+  margin-top: 2.6rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--sl-color-hairline) 72%, transparent 28%);
 }
 
 .sl-markdown-content code:not(pre code) {
   font-size: 0.88em;
-  padding: 0.13rem 0.36rem;
-  border-radius: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 80%, transparent 20%);
+  padding: 0.13rem 0.34rem;
+  border-radius: 0.34rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 74%, transparent 26%);
+}
+
+.sl-markdown-content a {
+  text-underline-offset: 0.16em;
+  text-decoration-thickness: 0.1em;
 }
 
 .expressive-code {
-  border-radius: 0.95rem;
+  border-radius: 0.9rem;
+}
+
+.table-wrap,
+.sl-markdown-content table {
+  border-radius: 0.8rem;
+}
+
+/* Inline examples cards on /examples/by-topic */
+.example-card {
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline) 75%, transparent 25%);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--sl-color-black) 70%, var(--sl-color-bg) 30%);
+  margin: 0.95rem 0 1.15rem;
+  overflow: hidden;
+}
+
+.example-card summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  padding: 0.8rem 0.9rem;
+  background: color-mix(in srgb, var(--sl-color-accent-low) 50%, transparent 50%);
+  border-bottom: 1px solid transparent;
+}
+
+.example-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.example-card[open] summary {
+  border-bottom-color: color-mix(in srgb, var(--sl-color-hairline) 76%, transparent 24%);
+}
+
+.example-card > :not(summary) {
+  padding-left: 0.9rem;
+  padding-right: 0.9rem;
+}
+
+.example-card p {
+  margin: 0.7rem 0;
+}
+
+.example-card .expressive-code,
+.example-card pre {
+  margin: 0.7rem 0 0.95rem;
 }
 
 @media (max-width: 50rem) {
   .hero {
-    border-radius: 0.9rem;
-  }
-
-  .hero .actions {
-    gap: 0.42rem;
+    border-radius: 0.95rem;
   }
 
   .card-grid .card {
-    border-radius: 0.8rem;
+    border-radius: 0.82rem;
+  }
+
+  .example-card {
+    border-radius: 0.72rem;
   }
 }
