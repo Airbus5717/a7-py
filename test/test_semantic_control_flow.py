@@ -431,7 +431,6 @@ class TestMatchStatements:
         """
         assert expect_error(source, "type mismatch")
 
-    @pytest.mark.skip(reason="Match as expression parsing not yet implemented")
     def test_match_as_expression(self):
         """Test match as expression."""
         source = """

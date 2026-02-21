@@ -1,11 +1,12 @@
 # A7 Programming Language Specification
 
-> **Implementation Status**: ✅ **PARSER COMPLETE!** This specification describes the complete A7 language design. The current Python implementation (`a7-py`) implements:
-> - ✅ **Tokenizer/Lexer**: 100% complete - all token types, escape sequences, number formats
-> - ✅ **Parser**: 100% complete - all language constructs including variadic functions, type sets, generic constraints, labeled loops, builtin intrinsics, and all import variants
-> - ✅ **AST**: Complete AST generation for entire language
-> - 🚧 **Semantic Analysis**: Not yet implemented (next phase)
-> - 🚧 **Code Generation**: Not yet implemented (next phase)
+> **Implementation Status (2026-02-21)**: This specification describes the complete A7 language design. The current Python implementation (`a7-py`) provides:
+> - ✅ **Tokenizer/Lexer**: implemented
+> - ✅ **Parser**: implemented
+> - ✅ **AST generation**: implemented
+> - ✅ **Semantic pipeline**: implemented (name resolution, type checking, semantic validation), with known generic/match-expression gaps
+> - ✅ **Zig code generation**: implemented
+> - 📊 **Current tests**: `1039 passed, 7 failed, 0 skipped` after unskipping previously deferred semantic tests
 >
 > See `MISSING_FEATURES.md` for detailed feature status and `CLAUDE.md` for development guide.
 
@@ -850,8 +851,9 @@ Result :: union {
 
 ### 7.3 Type Sets and Constraints
 
-> **Implementation Status**: Type sets can be declared and parsed, but constraint enforcement
-> in generic functions is a planned semantic analysis feature.
+> **Implementation Status**: Type-set syntax is partially implemented. Current known gaps are:
+> top-level `@type_set(...)` expression parsing in declarations, and constraint-aware
+> checking for generic arithmetic.
 
 Type sets are defined using the `@type_set()` builtin function:
 
@@ -2020,8 +2022,9 @@ p := Pair(i32, string){42, "answer"}
 
 ### 7.3 Type Sets and Constraints
 
-> **Implementation Status**: Type sets can be declared and parsed, but constraint enforcement
-> in generic functions is a planned semantic analysis feature.
+> **Implementation Status**: Type-set syntax is partially implemented. Current known gaps are:
+> top-level `@type_set(...)` expression parsing in declarations, and constraint-aware
+> checking for generic arithmetic.
 
 Type sets are defined using the `@type_set()` builtin function:
 
@@ -2828,131 +2831,35 @@ A7 supports the full ASCII character set (0-127) only. Characters outside this r
 
 ## Appendix E: Implementation Status (a7-py)
 
-The **a7-py** implementation (Python-based A7 compiler) currently provides a fully functional tokenizer and recursive descent parser with comprehensive AST generation.
+Status snapshot (2026-02-21), based on running `PYTHONPATH=. uv run pytest` after unskipping deferred semantic tests:
 
-### E.1 Completed Features ✅
+- ✅ Full compiler pipeline exists (tokenizer, parser, semantic passes, AST preprocessing, Zig backend).
+- ✅ Examples continue to pass end-to-end verification.
+- 📊 Test status: **1039 passed, 7 failed, 0 skipped**.
 
-**Lexical Analysis (Complete):**
-- Complete tokenizer with all A7 token types (~765 lines, fully implemented)
-- Support for all literal types (integer, float, char, string, boolean, nil)
-- Proper handling of character escape sequences including hex escapes (`\x41`)
-- Generic type parameter tokenization with `$` prefix (`$T`, `$U`)
-- Comprehensive error reporting with 17+ specific error types and helpful advice
-- Length validation (identifiers: 100 chars, numbers: 100 chars)
-- Tab detection with specific error messages
-- Nested multi-line comments and single-line comments
+### E.1 Current Open Gaps
 
-**Syntax Analysis (Implemented):**
-- **Recursive descent parser** with precedence climbing for expressions (~1137 lines)
-- **Complete AST generation** with 79 different node types covering all A7 constructs
-- **Function declarations** with parameters, return types, and generic support
-- **Control flow statements** (if/else, while, for loops, match/case)
-- **Expression parsing** with proper operator precedence and associativity
-- **Type system** parsing (primitive types, arrays, slices, pointers, function types)
-- **Memory management** constructs (new, del, defer statements)
-- **Composite types** (struct, enum, union declarations with full field parsing)
+1. **Match expressions in semantic type checking**
+   - `MATCH_EXPR` nodes are parsed but not yet handled by `TypeCheckingPass`.
 
-**Currently Working A7 Language Constructs:**
-- ✅ **Function declarations**: `name :: fn(params) return_type { body }`
-- ✅ **Variable/constant declarations**: `name := value`, `name :: value`, `name: type = value`
-- ✅ **Control flow**: if/else statements, while loops, simple for loops
-- ✅ **Expressions**: arithmetic, comparison, logical, function calls, field access
-- ✅ **Type parsing**: primitive types, arrays `[N]T`, slices `[]T`, pointers `ref T`
-- ✅ **Basic literals**: integers, floats, strings, characters, booleans, nil
-- ✅ **Struct declarations**: `Name :: struct { fields... }`
-- ✅ **Enum declarations**: `Name :: enum { variants... }`
-- ✅ **Union declarations**: `Name :: union { fields... }`
-- ✅ **Array literals**: `[1, 2, 3]`
-- ✅ **Struct initialization**: `Person{name: "John", age: 30}`
-- ✅ **Match statements**: basic parsing with case branches
-- ✅ **Defer statements**: `defer statement`
-- ✅ **Generic parameters**: `fn($T, ...)`
-- ✅ **Cast expressions**: `cast(type, value)` fully implemented
+2. **Type-set builtin in declaration expression context**
+   - `@type_set(...)` currently fails in top-level constant declarations due to expression parsing path for type arguments.
 
-**Developer Tools:**
-- Rich console output with syntax highlighting and AST tree visualization
-- JSON output mode (`--format json`) with stable schema metadata
-- Mode-based analysis CLI: `--mode tokens|ast|semantic|pipeline|compile|doc`
-- Comprehensive test suite with 301 tests (264 passing, 37 skipped)
-- CLI with verbose and error recovery options
+3. **Constraint-aware generic arithmetic**
+   - Generic functions using arithmetic on `$T` fail without constraint propagation/type knowledge.
 
-### E.2 Parser Success Rate 📊
+4. **Generic struct field substitution**
+   - Struct literal/type checks still compare against unresolved `$T/$U` fields in some paths.
 
-**A7 Example Analysis:**
-- **Current Success Rate**: ~6/22 examples (27%) parse completely successfully
-- **Successful Examples**: 000_empty.a7, basic function declarations, simple control flow
-- **Partially Working**: Struct/enum keywords recognized, basic syntax parsing works
+5. **Field access on instantiated generic structs**
+   - `Box(i32)`/`Node(i32)` remain `GenericInstanceType` in field-access checks instead of being resolved to concrete struct field layouts.
 
-**Major Missing Parser Features** (7 areas causing example failures):
+6. **Literal initialization for generic locals**
+   - Initializers like `total: $T = 0` need inference/coercion strategy for generic numeric contexts.
 
-1. **Named Import Statements** (`examples/001_hello.a7`, `002_var.a7`):
-   - `io :: import "std/io"` syntax not supported
-   - Field access on imported modules `io.println()` not implemented
-   - Module namespace resolution missing
+7. **Recursive generic instantiation**
+   - Recursive generic structs need cycle-safe type resolution and substitution.
 
-2. **Advanced For Loop Variants** (`examples/005_for_loop.a7`):
-   - Range-based loops: `for value in arr` not implemented
-   - Indexed iteration: `for i, value in arr` not implemented
-   - Only simple `for { ... }` infinite loops currently work
+### E.2 Source Of Truth
 
-3. **Complex Match/Switch Patterns** (`examples/008_switch.a7`):
-   - Range patterns `case 6..10:` not supported
-   - Multiple case values `case 3, 4, 5:` not supported
-   - `fall` (fallthrough) statement parsing incomplete
-
-4. **Complex Struct Features** (`examples/009_struct.a7`):
-   - Anonymous struct initialization: `Token{1, [10, 20, 30]}` fails
-   - Nested struct declarations inside function bodies fail
-   - Array field initialization in struct literals fails
-
-5. **Enum Value Access** (`examples/010_enum.a7`):
-   - Scoped enum access: `TknType.Id` not supported  
-   - Explicit enum values: `Ok = 200` parsing works but access patterns fail
-
-6. **Memory Management Expressions** (`examples/011_memory.a7`):
-   - `new` expressions for allocation not implemented
-   - Pointer dereference: `ptr.val` syntax not fully integrated
-   - Complex defer statement integration needs work
-
-7. **Advanced Type Annotations**:
-   - Function types in parameters not fully supported
-   - Complex array type expressions with initialization fail
-   - Generic type constraints parsing incomplete
-
-### E.3 Architecture & Quality ⚙️
-
-**Parser Architecture:**
-- **Error Recovery**: Robust synchronization prevents cascade failures
-- **Context-Aware Parsing**: Sophisticated disambiguation between struct literals and statement blocks
-- **Safety Mechanisms**: Infinite loop prevention, position tracking, maximum iteration limits
-- **Source Locations**: Precise error locations with line/column tracking for all AST nodes
-
-**Error Handling Quality:**
-Production-quality error messages with source context:
-
-```
-error: Expected declaration (constant, variable, or function), line: 2, col: 15
-help: Use :: for constants or := for variables
-  1 │ fn main() {
-  2 │     invalid syntax here
-    │               ^
-```
-
-### E.4 Current Limitations 🚧
-
-1. **Complex Language Features**: Named imports, advanced for loops, complex match patterns
-2. **Expression Context**: Some struct literal vs. statement block disambiguation edge cases
-3. **Code Generation**: No backend implementation yet (AST-to-Zig not implemented)
-4. **Semantic Analysis**: Type checking, lifetime analysis, scope resolution not implemented
-5. **Standard Library**: Built-in functions referenced but not implemented
-
-### E.5 Development Status Summary
-
-The **a7-py** implementation has successfully moved **beyond tokenization** to provide a **working recursive descent parser** that generates complete ASTs for significant portions of the A7 language. While complex language features still need implementation, the foundation is solid with ~1900 lines of parser/AST code and comprehensive error handling.
-
-**Next Development Priorities:**
-1. Named import statement parsing
-2. Advanced for loop variants (range-based, indexed)
-3. Complex match pattern support
-4. Expression context disambiguation improvements
-5. AST-to-Zig code generation backend
+- `MISSING_FEATURES.md` tracks these gaps with failing test references and required implementation work.

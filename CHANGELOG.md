@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Semantic Coverage Expansion**
+  - Unskipped 9 previously skipped semantic tests across `test/test_semantic_generics.py` and `test/test_semantic_control_flow.py`.
+  - Converted deferred coverage into active failing tests to track implementation work directly in CI.
+
+- **Error Stage Verifier**
+  - Added `scripts/verify_error_stages.py` to audit tokenizer/parse/semantic/codegen/I-O/usage errors across all CLI modes and both human/JSON formats.
+  - Added `test/test_error_stage_matrix.py` (53 checks) for stage-by-stage error contract coverage.
+
 - **Examples End-to-End Verifier**
   - Added `scripts/verify_examples_e2e.py` to enforce compile → `zig ast-check` → `zig build-exe` → runtime output verification.
   - Added golden fixtures for all examples in `test/fixtures/golden_outputs/*.out`.
@@ -31,6 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Populated by preprocessor, read by backends
 
 ### Changed
+- **Current Test Baseline**
+  - `PYTHONPATH=. uv run pytest` now reports `1039 passed, 7 failed, 0 skipped`.
+  - Remaining failures are documented in `MISSING_FEATURES.md` and mirrored in docs/site status pages.
+
+- **Error Reporting Contract Tightening**
+  - Removed duplicate human-side codegen failure printing in `src/compile.py`.
+  - JSON payload now reports `artifacts.output_path` / `artifacts.doc_path` only when files actually exist.
+
 - **Examples Stabilized for E2E Verification**
   - Updated `examples/*.a7` so all 36 compile, build, run, and produce deterministic output for golden checks.
   - Updated status docs to reflect `36/36` end-to-end verified examples.
