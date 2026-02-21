@@ -14,3 +14,9 @@ examples/*.zig
 
 # Compiled Zig binaries (from zig build-exe)
 /[0-9][0-9][0-9]_*
+
+# Local agent configs/instructions
+.agents/
+.claude/
+AGENTS.md
+CLAUDE.md
