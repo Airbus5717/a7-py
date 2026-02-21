@@ -1,0 +1,65 @@
+---
+title: Modes and Output
+description: Execution modes, output formats, and exit-code contract.
+---
+
+## Execution modes
+
+| Mode | Stages run | Writes `.zig` file | Typical use |
+| --- | --- | --- | --- |
+| `tokens` | Tokenizer only | No | Lexer debugging |
+| `ast` | Tokenizer + parser | No | Syntax tree inspection |
+| `semantic` | Through semantic passes | No | Semantic correctness checks |
+| `pipeline` | Full pipeline incl. codegen | No | Validate all stages without writing output |
+| `compile` | Full pipeline incl. codegen | Yes | Standard compilation |
+| `doc` | Full pipeline + doc generation intent | No | Generate markdown report output |
+
+## Output formats
+
+### Human format (`--format human`)
+
+Designed for terminal users:
+
+- Rich error formatting with source context
+- Stage summaries in verbose mode
+- Success lines for compile/pipeline/doc modes
+
+### JSON format (`--format json`)
+
+Designed for tooling integration:
+
+- Stable `schema_version: "2.0"`
+- Stage-level objects (`tokenize`, `parse`, `semantic`, `codegen`)
+- Optional `error` envelope on failure
+- Artifact paths only when files exist
+
+## Exit code contract
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `2` | Usage error |
+| `3` | I/O error |
+| `4` | Tokenization failure |
+| `5` | Parse failure |
+| `6` | Semantic failure |
+| `7` | Codegen failure |
+| `8` | Internal compiler failure |
+
+## Documentation output behavior
+
+`--doc-out` can be combined with successful pipeline runs:
+
+```bash
+uv run python main.py examples/001_hello.a7 --mode compile --doc-out auto
+```
+
+This can produce both:
+
+- Zig output (`.zig`) in compile mode
+- Markdown pipeline report (`.md`)
+
+## Compatibility notes
+
+- `--output` with non-compile modes is rejected at argument-parse time.
+- `--doc-out` outside `compile`, `pipeline`, or `doc` is rejected.

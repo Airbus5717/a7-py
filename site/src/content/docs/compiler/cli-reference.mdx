@@ -1,0 +1,80 @@
+---
+title: CLI Reference
+description: Complete command-line reference for main.py.
+---
+
+## Command shape
+
+```bash
+uv run python main.py [OPTIONS] <file.a7>
+```
+
+## Positional argument
+
+- `file`: required A7 source file path (must end with `.a7`)
+
+## Options
+
+- `--mode {compile,tokens,ast,semantic,pipeline,doc}`
+- `--format {human,json}`
+- `-o, --output <path>`
+- `--doc-out <path|auto>`
+- `--backend <name>`
+- `-v, --verbose`
+
+## Option details
+
+### `--mode`
+
+Controls which compilation stages execute.
+
+Default: `compile`.
+
+### `--format`
+
+Output format for CLI responses.
+
+- `human`: Rich human-readable output
+- `json`: machine-readable JSON payload (schema `2.0`)
+
+Default: `human`.
+
+### `--output`
+
+Output file for compile mode only.
+
+If omitted in compile mode, output path defaults to replacing `.a7` with `.zig`.
+
+### `--doc-out`
+
+Write markdown documentation report. Valid with `compile`, `pipeline`, and `doc` modes.
+
+- `--doc-out auto` writes `<input>.md`
+- `--doc-out out/report.md` writes to a custom path
+
+### `--backend`
+
+Target backend name. Current default backend: `zig`.
+
+### `--verbose`
+
+Shows full pipeline details in human mode.
+
+## Examples
+
+```bash
+uv run python main.py examples/001_hello.a7
+uv run python main.py --mode tokens examples/006_if.a7
+uv run python main.py --mode ast examples/004_func.a7
+uv run python main.py --mode semantic examples/009_struct.a7
+uv run python main.py --mode pipeline examples/014_generics.a7
+uv run python main.py --format json examples/014_generics.a7
+uv run python main.py examples/001_hello.a7 --mode compile --doc-out auto
+uv run python main.py --mode doc examples/001_hello.a7
+```
+
+## Constraints and validation
+
+- `--output` is only valid in `compile` mode.
+- `--doc-out` is only valid in `compile`, `pipeline`, or `doc` modes.
+- Input file must exist and use `.a7` extension.

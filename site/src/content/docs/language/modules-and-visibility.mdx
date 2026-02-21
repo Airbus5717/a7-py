@@ -1,0 +1,47 @@
+---
+title: Modules and Visibility
+description: File-based modules, import forms, and visibility rules.
+---
+
+## File-based module system
+
+Every `.a7` file is a module. There is no explicit module keyword.
+
+```txt
+// vector.a7
+pub Vec3 :: struct {
+    x: f32
+    y: f32
+    z: f32
+}
+```
+
+## Import forms
+
+```txt
+math :: import "math"
+vec :: import "vector"
+import "vector" { Vec3, dot }
+using import "vector"
+sibling :: import "./sibling"
+```
+
+## Visibility rules
+
+- Public export uses `pub` on top-level declarations.
+- Non-public declarations are file-private.
+- Struct fields follow file/module visibility rules in current implementation.
+- Locals and parameters cannot be marked `pub`.
+
+## Standard library files
+
+Current registry includes modules under `src/stdlib/` such as:
+
+- `io`
+- `math`
+- `string`
+- `mem`
+
+## Resolution behavior
+
+Module and import handling occurs during semantic/pipeline stages via module resolver and symbol registration.

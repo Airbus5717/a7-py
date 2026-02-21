@@ -1,0 +1,45 @@
+---
+title: Diagnostics and Limits
+description: Error categories, messages, and implementation boundaries.
+---
+
+## Error categories
+
+A7 compiler failures are grouped by stage:
+
+- Tokenization
+- Parse
+- Semantic
+- Code generation
+- I/O and internal failures
+
+## Diagnostic surfaces
+
+- Rich human-readable output with context snippets
+- JSON output (`--format json`) with structured `error.details`
+- Consistent stage-to-exit-code mapping
+
+## Tokenizer and semantic error types
+
+Representative typed error families in code:
+
+- `TokenizerErrorType`
+- `SemanticErrorType`
+- `TypeErrorType`
+
+These enums are defined in `src/errors.py` and used to map messages/advice.
+
+## Current implementation limits
+
+Known practical limits and caveats:
+
+- Parser and compiler architecture is optimized around iterative traversals.
+- Some advanced language/runtime features remain deferred to roadmap work.
+- Certain spec sections describe future standard library surface beyond current implementation depth.
+
+## Recommended debugging workflow
+
+1. Reproduce with smallest source snippet.
+2. Run with focused mode (`tokens`, `ast`, `semantic`).
+3. Switch to JSON output for machine inspection.
+4. Compare behavior with nearby examples in `examples/`.

@@ -58,6 +58,7 @@ PYTHONPATH=. uv run pytest                         # All tests
 PYTHONPATH=. uv run pytest test/test_tokenizer.py  # Specific test file
 PYTHONPATH=. uv run pytest -k "generic" -v         # Targeted tests
 uv run python scripts/verify_examples_e2e.py       # Compile/build/run + output checks for all examples
+uv run python scripts/verify_error_stages.py       # Error-stage audit across modes and formats
 ```
 
 ## Compilation Pipeline
@@ -96,11 +97,20 @@ All AST traversals are iterative (no recursion) — the pipeline works with Pyth
 
 ## Learn More
 
+- Documentation website: `https://airbus5717.github.io/a7-py/`
 - `docs/SPEC.md` - Language specification
 - `examples/` - 36 sample programs
 - `CLAUDE.md` - Development guide
 - `MISSING_FEATURES.md` - Feature status and roadmap
 - `CHANGELOG.md` - Change history
+
+## Docs Development
+
+```bash
+cd site
+npm install
+npm run dev
+```
 
 ---
 

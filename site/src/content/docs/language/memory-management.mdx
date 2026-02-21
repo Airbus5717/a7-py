@@ -1,0 +1,42 @@
+---
+title: Memory Management
+description: Stack allocation, heap allocation, defer, and safety checks.
+---
+
+## Stack allocation
+
+Local values are stack-allocated by default.
+
+```txt
+point: Vec2 = Vec2{ x: 1.0, y: 2.0 }
+```
+
+## Heap allocation
+
+Use `new` and `del` with reference types.
+
+```txt
+node: ref Node = new Node
+// ... use node ...
+del node
+```
+
+## Defer
+
+`defer` schedules cleanup at scope exit.
+
+```txt
+buffer: ref Buffer = new Buffer
+defer del buffer
+```
+
+## Safety rules enforced by semantic checks
+
+- Detect invalid `del` usage on non-reference values
+- Detect `nil` misuse on non-reference types
+- Validate defer placement and scoping
+- Flag selected memory misuse patterns
+
+## Pointer helpers and lowering
+
+Property-style forms (`.adr` and `.val`) are lowered during AST preprocessing before code generation.

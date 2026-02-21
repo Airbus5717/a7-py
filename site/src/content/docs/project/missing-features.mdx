@@ -1,0 +1,35 @@
+---
+title: Missing Features
+description: Current gaps and deferred roadmap features.
+---
+
+## Source
+
+Canonical roadmap snapshot is maintained in `MISSING_FEATURES.md`.
+
+## Current status summary
+
+- Full compiler pipeline is operational.
+- Parser coverage is effectively complete for the implemented language surface.
+- Remaining work is focused on language/runtime depth and ecosystem breadth.
+
+## Deferred feature areas
+
+### Labeled loops
+
+Reserved in AST design but deferred due to syntax ambiguity in current grammar.
+
+### Array programming library depth
+
+Spec-level tensor and AI-oriented operations are roadmap items primarily at stdlib/runtime layer.
+
+### Alternative backends
+
+Architecture supports pluggable backends; non-Zig backends are future work.
+
+## Priority direction
+
+1. Semantic depth and richer generic/type-function validation
+2. Expanded stdlib implementation surface
+3. Additional backend targets
+4. Broader behavior-level test coverage

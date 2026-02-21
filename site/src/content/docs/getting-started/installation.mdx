@@ -1,0 +1,40 @@
+---
+title: Installation
+description: Install a7-py and all required tools.
+---
+
+## Requirements
+
+- Python `3.13+`
+- [`uv`](https://docs.astral.sh/uv/) for dependency and environment management
+- Zig (optional, only needed when building generated `.zig` code)
+
+## Clone and setup
+
+```bash
+git clone https://github.com/airbus5717/a7-py.git
+cd a7-py
+uv sync
+```
+
+## Verify installation
+
+Run one example through compile mode:
+
+```bash
+uv run python main.py examples/001_hello.a7
+```
+
+Expected result: generated file `examples/001_hello.zig`.
+
+## Docs development requirements
+
+To run this documentation site locally, install Node.js `18+` (Node `22` recommended) and then:
+
+```bash
+cd site
+npm install
+npm run dev
+```
+
+Site URL during local development is typically `http://localhost:4321/a7-py/`.

@@ -1,0 +1,55 @@
+---
+title: Generics
+description: Generic parameters, constraints, type sets, and specialization model.
+---
+
+## Generic type parameters
+
+A7 uses `$T` syntax to declare generic parameters.
+
+```txt
+identity :: fn($T: type, value: T) T {
+    ret value
+}
+```
+
+## Generic structs
+
+```txt
+Pair :: struct($A: type, $B: type) {
+    first: A
+    second: B
+}
+```
+
+## Type sets and constraints
+
+Constraints can be expressed using predefined or inline type sets.
+
+```txt
+Numeric :: @type_set(i8, i16, i32, i64, f32, f64)
+
+clamp :: fn($T: Numeric, value: T, lo: T, hi: T) T {
+    if value < lo { ret lo }
+    if value > hi { ret hi }
+    ret value
+}
+```
+
+Inline constraint form:
+
+```txt
+parse_small :: fn($T: @type_set(i32, i64), x: T) T {
+    ret x
+}
+```
+
+## Generic specialization (compiler view)
+
+The compiler tracks generic argument matching and validates constraint satisfaction during semantic analysis.
+
+## Practical advice
+
+- Use constraints to improve error quality.
+- Prefer explicit concrete instantiations in boundary code.
+- Keep generic APIs minimal and orthogonal.

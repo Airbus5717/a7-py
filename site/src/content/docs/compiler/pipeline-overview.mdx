@@ -1,0 +1,78 @@
+---
+title: Pipeline Overview
+description: Internal stages from source text to generated Zig code.
+---
+
+## Pipeline graph
+
+```text
+Source (.a7)
+  -> Tokenizer
+  -> Parser
+  -> Semantic Analysis (3 passes)
+  -> AST Preprocessor
+  -> Zig Code Generator
+  -> Output (.zig in compile mode)
+```
+
+## Stage 1: Tokenizer
+
+Source text is transformed into token stream entries with line/column metadata.
+
+Highlights:
+
+- Generic token forms like `$T`
+- Numeric literal variants
+- Comment handling including nested block comments
+
+## Stage 2: Parser
+
+Parser consumes tokens and builds AST nodes.
+
+Highlights:
+
+- Recursive-descent parsing with precedence handling
+- Support for declarations, statements, expressions, imports, generics
+- Parse errors include source spans where possible
+
+## Stage 3: Semantic analysis
+
+Three ordered passes run on the AST:
+
+1. Name resolution
+2. Type checking and inference
+3. Semantic validation (control flow, memory-related checks)
+
+If semantic errors are present, compiler returns exit code `6`.
+
+## Stage 4: AST preprocessing
+
+Before backend emission, AST preprocessing lowers and annotates nodes.
+
+Current preprocessing responsibilities include:
+
+- `.adr` / `.val` lowering
+- Usage and mutation annotations
+- Type and symbol metadata bridging for codegen
+- Constant folding and naming hygiene prep
+
+## Stage 5: Zig code generation
+
+Backend emits target code from the processed AST.
+
+Highlights:
+
+- A7-to-Zig type mapping
+- Statement and expression lowering
+- Minimal preamble generation based on used constructs
+
+## Debugging stages
+
+Use CLI mode switches for focused inspection:
+
+```bash
+uv run python main.py --mode tokens examples/006_if.a7
+uv run python main.py --mode ast examples/004_func.a7
+uv run python main.py --mode semantic examples/009_struct.a7
+uv run python main.py --mode pipeline examples/014_generics.a7
+```
