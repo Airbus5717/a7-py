@@ -1,12 +1,8 @@
 # A7 Documentation Site
 
-This site is a custom Astro static site.
+React + TypeScript + Vite docs frontend for the A7 compiler repository.
 
-It does not use a docs template.
-
-Routes are flat and direct.
-
-## Local development
+## Local Development
 
 ```bash
 cd site
@@ -14,24 +10,38 @@ npm install
 npm run dev
 ```
 
+The site uses `HashRouter`, so routes resolve as `#/path` locally and on GitHub Pages.
+
 ## Build
 
 ```bash
 cd site
 npm run build
+npm run preview
 ```
 
-## Check
+## Quality Checks
 
 ```bash
 cd site
-npm run check
+npm run lint
 ```
+
+Repository-level docs style checks:
+
+```bash
+uv run python scripts/check_docs_style.py
+```
+
+## Styling System
+
+Design tokens and shared interface styles live in:
+
+- `site/src/styles/tokens.css`
+- `site/src/index.css`
+
+Primary shared UI primitives live in `site/src/components/`.
 
 ## Deployment
 
-GitHub Actions deploys `site/dist` to GitHub Pages.
-
-Workflow file: `.github/workflows/deploy-docs.yml`
-
-Production URL: `https://airbus5717.github.io/a7-py/`
+GitHub Pages deploy runs from `.github/workflows/deploy-docs.yml` when docs-related files change on `main`/`master`.

@@ -1,0 +1,233 @@
+import CodeBlock from '../components/CodeBlock'
+import DataTable from '../components/DataTable'
+import PageHeader from '../components/PageHeader'
+import SectionPanel from '../components/SectionPanel'
+
+const stages = [
+  { label: 'Tokenizer', file: 'tokens.py' },
+  { label: 'Parser', file: 'parser.py' },
+  { label: 'Semantic', file: 'passes/' },
+  { label: 'Preprocessor', file: 'ast_preprocessor.py' },
+  { label: 'Codegen', file: 'backends/zig.py' },
+]
+
+const dataLabels = ['tokens', 'AST', 'symbols + types', 'annotated AST', 'Zig']
+
+const subPasses = [
+  { num: 1, name: '.adr/.val lowering' },
+  { num: 2, name: 'Stdlib resolution' },
+  { num: 3, name: 'Struct init normalization' },
+  { num: 4, name: 'Mutation analysis' },
+  { num: 5, name: 'Usage analysis' },
+  { num: 6, name: 'Type inference' },
+  { num: 7, name: 'Shadowing resolution' },
+  { num: 8, name: 'Function hoisting' },
+  { num: 9, name: 'Constant folding' },
+]
+
+const annotationList = [
+  { name: 'is_mutable', desc: 'var vs const emission' },
+  { name: 'is_used', desc: 'dead code elimination' },
+  { name: 'emit_name', desc: 'shadow-safe names' },
+  { name: 'resolved_type', desc: 'backend type mapping' },
+  { name: 'hoisted', desc: 'nested fn → module level' },
+  { name: 'stdlib_canonical', desc: 'builtin mapping' },
+]
+
+export default function Internals() {
+  return (
+    <div className="page">
+      <PageHeader
+        title="Internals"
+        summary="How the compiler is structured, file by file."
+      />
+
+      {/* ── Pipeline flow ── */}
+      <section className="section-panel">
+        <h2 className="section-title">Pipeline</h2>
+        <div className="flow-strip">
+          {stages.map((s, i) => (
+            <div key={s.label} className="flow-strip-item">
+              <div className="flow-strip-node">
+                <span className="flow-strip-label">{s.label}</span>
+                <code className="flow-strip-file">src/{s.file}</code>
+              </div>
+              {i < dataLabels.length && (
+                <span className="flow-strip-edge">{dataLabels[i]}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-tertiary" style={{ marginTop: 'var(--space-2)', fontSize: '0.88rem' }}>
+          All traversals are iterative. The full pipeline works at <code className="doc-inline-code">sys.setrecursionlimit(100)</code>.
+        </p>
+      </section>
+
+      {/* ── Core modules ── */}
+      <SectionPanel title="Modules">
+        <DataTable
+          headers={['File', 'Role']}
+          rows={[
+            [<code className="doc-inline-code" key="t">src/tokens.py</code>, 'Tokenizer — generics ($T), nested comments, all number formats'],
+            [<code className="doc-inline-code" key="p">src/parser.py</code>, 'Recursive descent with precedence climbing'],
+            [<code className="doc-inline-code" key="a">src/ast_nodes.py</code>, 'ASTNode dataclass + NodeKind enum (44 kinds)'],
+            [<code className="doc-inline-code" key="c">src/compile.py</code>, 'Pipeline driver, stage sequencing, exit codes'],
+            [<code className="doc-inline-code" key="e">src/errors.py</code>, '77 error codes, SourceSpan, Rich formatting'],
+            [<code className="doc-inline-code" key="ty">src/types.py</code>, '13 type classes, all frozen/hashable'],
+            [<code className="doc-inline-code" key="pp">src/ast_preprocessor.py</code>, '9 iterative sub-passes annotating AST for backend'],
+            [<code className="doc-inline-code" key="st">src/symbol_table.py</code>, 'Symbol + Scope + ModuleTable (hierarchical lookup)'],
+            [<code className="doc-inline-code" key="bb">src/backends/base.py</code>, 'Abstract backend contract (generate + visit)'],
+            [<code className="doc-inline-code" key="bz">src/backends/zig.py</code>, 'Zig code generator, reads all annotations'],
+          ]}
+        />
+      </SectionPanel>
+
+      {/* ── Semantic analysis ── */}
+      <SectionPanel title="Semantic analysis">
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-2)' }}>
+          Three sequential passes. Each is gated — downstream only runs if upstream succeeds.
+          Errors within a pass are collected, not thrown.
+        </p>
+        <div className="pass-cards">
+          <div className="pass-card">
+            <span className="pass-card-num">1</span>
+            <div>
+              <strong>Name resolution</strong>
+              <p className="text-tertiary" style={{ margin: '2px 0 0' }}>Builds SymbolTable with hierarchical scopes</p>
+              <code className="flow-strip-file">src/passes/name_resolution.py</code>
+            </div>
+          </div>
+          <div className="pass-card">
+            <span className="pass-card-num">2</span>
+            <div>
+              <strong>Type checking</strong>
+              <p className="text-tertiary" style={{ margin: '2px 0 0' }}>Inference, checking, produces node_types map</p>
+              <code className="flow-strip-file">src/passes/type_checker.py</code>
+            </div>
+          </div>
+          <div className="pass-card">
+            <span className="pass-card-num">3</span>
+            <div>
+              <strong>Semantic validation</strong>
+              <p className="text-tertiary" style={{ margin: '2px 0 0' }}>Control flow, memory, defer, match exhaustiveness</p>
+              <code className="flow-strip-file">src/passes/semantic_validator.py</code>
+            </div>
+          </div>
+        </div>
+      </SectionPanel>
+
+      {/* ── Preprocessor ── */}
+      <SectionPanel title="Preprocessor">
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-2)' }}>
+          Runs after semantic analysis. Nine sub-passes, all iterative.
+          Passes 1-3 run bottom-up on the whole tree. Passes 4-9 run per function.
+        </p>
+        <div className="subpass-grid">
+          {subPasses.map((sp) => (
+            <div key={sp.num} className="subpass-item">
+              <span className="subpass-num">{sp.num}</span>
+              <span className="subpass-name">{sp.name}</span>
+            </div>
+          ))}
+        </div>
+      </SectionPanel>
+
+      {/* ── Annotations ── */}
+      <SectionPanel title="Annotations">
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-2)' }}>
+          Set by the preprocessor, consumed by the backend. This is how stages talk without recomputation.
+        </p>
+        <div className="annotation-grid">
+          {annotationList.map((a) => (
+            <div key={a.name} className="annotation-card">
+              <code className="doc-inline-code">{a.name}</code>
+              <span className="text-tertiary" style={{ fontSize: '0.84rem' }}>{a.desc}</span>
+            </div>
+          ))}
+        </div>
+      </SectionPanel>
+
+      {/* ── AST design ── */}
+      <SectionPanel title="AST design">
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-2)' }}>
+          Flat union pattern: one <code className="doc-inline-code">ASTNode</code> dataclass, ~40 optional fields,
+          discriminated by <code className="doc-inline-code">NodeKind</code> enum (44 kinds).
+        </p>
+        <DataTable
+          headers={['Group', 'Kinds']}
+          rows={[
+            [<strong key="tl">Top-level</strong>, 'PROGRAM, IMPORT, FUNCTION, STRUCT, UNION, ENUM, TYPE_ALIAS, CONST, VAR'],
+            [<strong key="ty">Types</strong>, 'TYPE_PRIMITIVE, TYPE_IDENTIFIER, TYPE_GENERIC, TYPE_POINTER, TYPE_ARRAY, TYPE_SLICE, TYPE_FUNCTION'],
+            [<strong key="ex">Expressions</strong>, 'LITERAL, IDENTIFIER, BINARY, UNARY, CALL, INDEX, FIELD_ACCESS, DEREF, CAST, IF_EXPR, NEW_EXPR'],
+            [<strong key="st">Statements</strong>, 'BLOCK, IF_STMT, WHILE, FOR, FOR_IN, MATCH, BREAK, CONTINUE, RETURN, DEFER, DEL, ASSIGNMENT'],
+          ]}
+        />
+        <div style={{ marginTop: 'var(--space-2)' }}>
+          <h3 className="section-subtitle" style={{ marginBottom: 'var(--space-1)' }}>Critical attribute names</h3>
+          <DataTable
+            headers={['Correct', 'Wrong', 'Nodes']}
+            rows={[
+              [<code className="doc-inline-code" key="op">node.operator</code>, <code className="doc-inline-code" key="opw">node.op</code>, 'Binary, Unary, Assignment'],
+              [<code className="doc-inline-code" key="lv">node.literal_value</code>, <code className="doc-inline-code" key="lvw">node.value</code>, 'Literal nodes'],
+              [<code className="doc-inline-code" key="pt">node.parameter_types</code>, <code className="doc-inline-code" key="ptw">node.param_types</code>, 'Function type nodes'],
+              [<code className="doc-inline-code" key="tt">node.target_type</code>, <span className="text-muted" key="ttw">n/a</span>, 'NEW_EXPR, TYPE_POINTER, CAST'],
+            ]}
+          />
+        </div>
+      </SectionPanel>
+
+      {/* ── Type system ── */}
+      <SectionPanel title="Type system">
+        <p className="text-secondary" style={{ marginBottom: 'var(--space-2)' }}>
+          Frozen dataclasses — immutable and hashable. Used as dict keys in type maps.
+        </p>
+        <DataTable
+          headers={['Class', 'What it represents']}
+          rows={[
+            [<code className="doc-inline-code" key="pr">PrimitiveType</code>, 'i8..i64, u8..u64, f32, f64, bool, char, string'],
+            [<code className="doc-inline-code" key="ar">ArrayType</code>, '[N]T — fixed-size'],
+            [<code className="doc-inline-code" key="sl">SliceType</code>, '[]T — dynamic view'],
+            [<code className="doc-inline-code" key="po">PointerType / ReferenceType</code>, 'ptr T and ref T (only ref allows nil)'],
+            [<code className="doc-inline-code" key="fn">FunctionType</code>, 'fn(params) return, optional variadic'],
+            [<code className="doc-inline-code" key="sr">StructType / EnumType / UnionType</code>, 'Named composite types with fields/variants'],
+            [<code className="doc-inline-code" key="gp">GenericParamType</code>, '$T with optional TypeSet constraint'],
+            [<code className="doc-inline-code" key="gi">GenericInstanceType</code>, 'Monomorphized generic — List(i32)'],
+          ]}
+        />
+      </SectionPanel>
+
+      {/* ── Backend + errors + symbols ── */}
+      <SectionPanel title="Backend lifecycle">
+        <CodeBlock code={`# 1. reset()  — clear state
+# 2. scan     — iterative walk to detect new/del/io usage
+# 3. preamble — emit imports + allocator setup
+# 4. walk     — visit() dispatches on NodeKind
+# 5. output   — return accumulated Zig source
+
+# Zig backend reads preprocessor annotations AND
+# re-analyzes mutations/usage locally (dual analysis)`} />
+      </SectionPanel>
+
+      <SectionPanel title="Errors and symbols">
+        <div className="stack-2">
+          <div>
+            <h3 className="section-subtitle">Error system</h3>
+            <p className="text-secondary">
+              77 error codes across 3 enums: <code className="doc-inline-code">TokenizerErrorType</code> (18),{' '}
+              <code className="doc-inline-code">SemanticErrorType</code> (26),{' '}
+              <code className="doc-inline-code">TypeErrorType</code> (33).
+              Every error carries a <code className="doc-inline-code">SourceSpan</code> with line/column for precise underlines.
+            </p>
+          </div>
+          <div>
+            <h3 className="section-subtitle">Symbol table</h3>
+            <p className="text-secondary">
+              Hierarchical scopes with parent lookup. 10 symbol kinds.{' '}
+              <code className="doc-inline-code">ModuleTable</code> tracks imports — qualified names, using imports, named imports.
+            </p>
+          </div>
+        </div>
+      </SectionPanel>
+    </div>
+  )
+}

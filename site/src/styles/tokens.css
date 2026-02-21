@@ -1,69 +1,148 @@
 :root {
-  --atlas-font-display: 'Fraunces', 'Times New Roman', serif;
-  --atlas-font-body: 'Manrope', 'Segoe UI', sans-serif;
-  --atlas-font-mono: 'JetBrains Mono', 'SFMono-Regular', monospace;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-body: "Manrope", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
 
-  --atlas-canvas: #f3eee4;
-  --atlas-mesh-a: rgba(26, 124, 145, 0.14);
-  --atlas-mesh-b: rgba(201, 133, 61, 0.12);
-  --atlas-mesh-c: rgba(67, 132, 103, 0.11);
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-7: 56px;
 
-  --atlas-panel: #fffdf8;
-  --atlas-panel-strong: #f7f1e5;
-  --atlas-panel-inset: #ede6d8;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
 
-  --atlas-text: #1f1a14;
-  --atlas-text-soft: #5f5446;
-  --atlas-text-mute: #827664;
+  /* ── Light palette ── */
+  --paper-0: #fbf8ef;
+  --paper-1: #f5f0e2;
+  --paper-2: #ece5d3;
+  --paper-3: #e3dac4;
 
-  --atlas-border: rgba(31, 26, 20, 0.12);
-  --atlas-border-strong: rgba(31, 26, 20, 0.24);
+  --ink-900: #1d2522;
+  --ink-700: #33413d;
+  --ink-500: #53625d;
+  --ink-400: #6f7d77;
 
-  --atlas-accent: #0e6e85;
-  --atlas-accent-soft: rgba(14, 110, 133, 0.12);
-  --atlas-signal: #8b5f1f;
-  --atlas-signal-soft: rgba(139, 95, 31, 0.14);
-  --atlas-success: #2c6b49;
-  --atlas-warning: #a55a21;
-  --atlas-danger: #9f3333;
+  --oxide-700: #0f6f6a;
+  --oxide-600: #118a84;
+  --oxide-500: #21a299;
+  --oxide-200: #b8ddd8;
 
-  --space-1: 0.5rem;
-  --space-2: 0.75rem;
-  --space-3: 1rem;
-  --space-4: 1.5rem;
-  --space-5: 2rem;
-  --space-6: 2.75rem;
-  --space-7: 3.5rem;
+  --brass-700: #7f5626;
+  --brass-600: #9c6d2f;
+  --brass-200: #ead6b8;
 
-  --radius-sm: 0.55rem;
-  --radius-md: 0.9rem;
-  --radius-lg: 1.25rem;
+  --moss-700: #3f5e45;
+  --moss-600: #4f7656;
+  --moss-200: #ccdccf;
+
+  /* ── Semantic aliases (light) ── */
+  --bg-canvas: var(--paper-0);
+  --bg-panel: var(--paper-1);
+  --bg-raised: var(--paper-2);
+  --bg-inset: var(--paper-3);
+
+  --fg-primary: var(--ink-900);
+  --fg-secondary: var(--ink-700);
+  --fg-tertiary: var(--ink-500);
+  --fg-muted: var(--ink-400);
+
+  --border-soft: color-mix(in srgb, var(--ink-700) 12%, transparent);
+  --border-default: color-mix(in srgb, var(--ink-700) 18%, transparent);
+  --border-emphasis: color-mix(in srgb, var(--oxide-700) 36%, transparent);
+  --border-focus: color-mix(in srgb, var(--oxide-600) 62%, transparent);
+
+  --accent-700: var(--oxide-700);
+  --accent-600: var(--oxide-600);
+  --accent-500: var(--oxide-500);
+  --accent-soft: color-mix(in srgb, var(--oxide-500) 16%, var(--paper-1));
+
+  --signal-success: var(--moss-700);
+  --signal-success-soft: color-mix(in srgb, var(--moss-200) 55%, var(--paper-1));
+  --signal-warning: var(--brass-700);
+  --signal-warning-soft: color-mix(in srgb, var(--brass-200) 48%, var(--paper-1));
+
+  /* ── Gradient overlays (light) ── */
+  --gradient-tl: rgba(17, 138, 132, 0.18);
+  --gradient-tr: rgba(156, 109, 47, 0.14);
+
+  /* ── Selection (light) ── */
+  --selection-bg: color-mix(in srgb, var(--accent-500) 28%, white);
+
+  /* ── Scrollbar (light) ── */
+  --scrollbar-thumb: color-mix(in srgb, var(--ink-400) 52%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--ink-500) 62%, transparent);
+
+  /* ── Code head (light) ── */
+  --code-head-bg: color-mix(in srgb, var(--bg-inset) 70%, white);
+
+  /* ── Sidebar bg (light) ── */
+  --sidebar-bg: color-mix(in srgb, var(--bg-canvas) 70%, var(--bg-panel));
+
+  /* ── Mobile header (light) ── */
+  --mobile-header-bg: color-mix(in srgb, var(--bg-canvas) 92%, white);
+
+  /* ── Overlay ── */
+  --overlay-bg: rgba(20, 24, 24, 0.38);
+
+  color-scheme: light dark;
 }
 
+/* ── Dark mode ── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --atlas-canvas: #18130f;
-    --atlas-mesh-a: rgba(94, 211, 235, 0.18);
-    --atlas-mesh-b: rgba(222, 164, 98, 0.15);
-    --atlas-mesh-c: rgba(120, 196, 155, 0.15);
+    --paper-0: #0e1513;
+    --paper-1: #151d1b;
+    --paper-2: #1c2523;
+    --paper-3: #232d2b;
 
-    --atlas-panel: #231c17;
-    --atlas-panel-strong: #2d251e;
-    --atlas-panel-inset: #19140f;
+    --ink-900: #e4e0d8;
+    --ink-700: #c0bcb2;
+    --ink-500: #908c84;
+    --ink-400: #6e6a64;
 
-    --atlas-text: #f2e8d9;
-    --atlas-text-soft: #c8b9a2;
-    --atlas-text-mute: #a28f74;
+    --oxide-700: #34c4bd;
+    --oxide-600: #28aba5;
+    --oxide-500: #21a299;
+    --oxide-200: #1a4d4a;
 
-    --atlas-border: rgba(242, 232, 217, 0.14);
-    --atlas-border-strong: rgba(242, 232, 217, 0.3);
+    --brass-700: #d4a05c;
+    --brass-600: #b8893e;
+    --brass-200: #3d2e1a;
 
-    --atlas-accent: #63cce6;
-    --atlas-accent-soft: rgba(99, 204, 230, 0.17);
-    --atlas-signal: #e6b77d;
-    --atlas-signal-soft: rgba(230, 183, 125, 0.18);
-    --atlas-success: #9bd4b1;
-    --atlas-warning: #efb37a;
-    --atlas-danger: #ef9a9a;
+    --moss-700: #72b07a;
+    --moss-600: #5a9862;
+    --moss-200: #1e3222;
+
+    --border-soft: color-mix(in srgb, var(--ink-500) 16%, transparent);
+    --border-default: color-mix(in srgb, var(--ink-500) 24%, transparent);
+    --border-emphasis: color-mix(in srgb, var(--oxide-700) 42%, transparent);
+    --border-focus: color-mix(in srgb, var(--oxide-600) 68%, transparent);
+
+    --accent-soft: color-mix(in srgb, var(--oxide-500) 14%, var(--paper-1));
+
+    --signal-success: var(--moss-700);
+    --signal-success-soft: color-mix(in srgb, var(--moss-200) 60%, var(--paper-1));
+    --signal-warning: var(--brass-700);
+    --signal-warning-soft: color-mix(in srgb, var(--brass-200) 55%, var(--paper-1));
+
+    --gradient-tl: rgba(17, 138, 132, 0.10);
+    --gradient-tr: rgba(156, 109, 47, 0.08);
+
+    --selection-bg: color-mix(in srgb, var(--accent-500) 32%, transparent);
+
+    --scrollbar-thumb: color-mix(in srgb, var(--ink-400) 48%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--ink-500) 58%, transparent);
+
+    --code-head-bg: color-mix(in srgb, var(--bg-inset) 80%, black);
+
+    --sidebar-bg: color-mix(in srgb, var(--bg-canvas) 80%, var(--bg-panel));
+
+    --mobile-header-bg: color-mix(in srgb, var(--bg-canvas) 92%, black);
+
+    --overlay-bg: rgba(0, 0, 0, 0.55);
   }
 }
