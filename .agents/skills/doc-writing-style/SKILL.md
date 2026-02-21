@@ -1,36 +1,40 @@
 ---
 name: doc-writing-style
-description: Enforce plain, direct documentation writing. Short sentences. No filler. No hype. Data-oriented examples.
+description: Apply a professional documentation standard with clear, concise, and human tone.
 ---
 
-# Doc Writing Style
+# Documentation Style Standard
 
-Write like a real person.
-Use short sentences.
-Use a direct tone.
-Cut filler.
+Write in clear, professional language.
+Keep the tone human, direct, and precise.
+Use short to medium sentences.
+Remove filler and promotional wording.
 
-## Style rules
+## Core Rules
 
-- Start with conjunctions when it helps flow.
-- No rhetorical questions.
-- No dashes in sentences.
-- Prefer data-oriented code.
+- Prefer active voice and concrete wording.
+- Use exact terms, values, and file paths when relevant.
+- Keep examples data-oriented and runnable.
+- Keep paragraphs brief and focused.
+- Avoid rhetorical questions.
+- Avoid sentence punctuation dashes.
 
-## Avoid these patterns
+## Avoid
 
-- Hype phrases: `dive into`, `unleash`, `game changing`
-- Journey or invitation phrases: `let us take a look`, `join me`
-- Filler words at sentence edges: `basically`, `clearly`, `interestingly`
-- Redundant structures: `X and also Y`
+- Hype phrases such as `dive into`, `unleash`, and `game changing`.
+- Invitation phrasing such as `let us take a look` or `join me`.
+- Edge filler words such as `basically`, `clearly`, or `interestingly`.
+- Redundant structures such as `X and also Y`.
+- Slang or informal commentary.
 
-## Rewrite rules
+## Rewrite Requirements
 
 - Preserve original meaning.
 - Match content type.
 - Keep required details.
+- Improve clarity without changing technical behavior.
 
-## Quality check
+## Review Check
 
-Read the result aloud.
-If it sounds stiff or promotional, revise it.
+Read the result aloud once.
+If the text sounds casual, promotional, or stiff, revise it.

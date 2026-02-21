@@ -8,7 +8,7 @@ This site is built from scratch.
 
 It uses one design system.
 
-It follows one writing style.
+It follows a consistent professional tone.
 
 <div class="kpi-grid">
   <section class="kpi">
