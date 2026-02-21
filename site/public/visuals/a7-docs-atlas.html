@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A7 Docs Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Literata:opsz,wght@7..72,500;7..72,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-head: 'Chakra Petch', system-ui, sans-serif;
+      --font-body: 'Literata', Georgia, serif;
+      --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+      --bg: #f6fbff;
+      --surface: #ffffff;
+      --surface2: #edf4ff;
+      --surface3: #e5efff;
+      --border: rgba(13, 40, 72, 0.13);
+      --border-strong: rgba(13, 40, 72, 0.24);
+      --text: #1a2a3e;
+      --text-dim: #5a6d84;
+      --accent: #0b63c8;
+      --accent-dim: rgba(11, 99, 200, 0.11);
+      --mint: #0d8f66;
+      --mint-dim: rgba(13, 143, 102, 0.11);
+      --amber: #b26915;
+      --amber-dim: rgba(178, 105, 21, 0.12);
+      --rose: #af3a58;
+      --rose-dim: rgba(175, 58, 88, 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1320;
+        --surface: #121d2e;
+        --surface2: #18263b;
+        --surface3: #1e3048;
+        --border: rgba(179, 206, 241, 0.18);
+        --border-strong: rgba(179, 206, 241, 0.34);
+        --text: #e9f2ff;
+        --text-dim: #9eb2cc;
+        --accent: #78bbff;
+        --accent-dim: rgba(120, 187, 255, 0.15);
+        --mint: #67ddb2;
+        --mint-dim: rgba(103, 221, 178, 0.15);
+        --amber: #ffc47e;
+        --amber-dim: rgba(255, 196, 126, 0.16);
+        --rose: #ff95ab;
+        --rose-dim: rgba(255, 149, 171, 0.15);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(900px 360px at 8% -2%, var(--accent-dim), transparent 62%),
+        radial-gradient(860px 340px at 94% 2%, var(--amber-dim), transparent 56%),
+        radial-gradient(940px 360px at 60% 112%, var(--mint-dim), transparent 58%),
+        var(--bg);
+      line-height: 1.62;
+      padding: 28px 40px 64px;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
+      gap: 0 36px;
+    }
+
+    .main { min-width: 0; }
+
+    .toc {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+      background: color-mix(in srgb, var(--surface) 72%, transparent 28%);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 10px;
+      max-height: calc(100dvh - 32px);
+      overflow: auto;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .toc-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 2px 8px 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+
+    .toc a {
+      display: block;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.32;
+      padding: 7px 8px;
+      border-left: 2px solid transparent;
+      border-radius: 6px;
+      transition: color .16s ease, background-color .16s ease, border-color .16s ease;
+    }
+
+    .toc a:hover {
+      color: var(--text);
+      background: color-mix(in srgb, var(--surface2) 62%, transparent 38%);
+    }
+
+    .toc a.active {
+      color: var(--text);
+      border-left-color: var(--accent);
+      background: color-mix(in srgb, var(--accent-dim) 70%, transparent 30%);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-head);
+      font-size: clamp(2.1rem, 4vw, 3.3rem);
+      line-height: 1.03;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      margin: 10px 0 24px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .hero {
+      background: linear-gradient(125deg, color-mix(in srgb, var(--accent-dim) 70%, transparent 30%) 0%, transparent 52%),
+                  linear-gradient(140deg, color-mix(in srgb, var(--amber-dim) 66%, transparent 34%) 0%, transparent 58%),
+                  var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      padding: 22px 22px 18px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: .26;
+    }
+
+    .hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero p {
+      margin: 12px 0 2px;
+      max-width: 70ch;
+      color: var(--text-dim);
+    }
+
+    .kpis {
+      margin: 16px 0 10px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 11px 12px;
+      background: color-mix(in srgb, var(--surface) 80%, var(--surface2) 20%);
+    }
+
+    .kpi strong {
+      display: block;
+      font-family: var(--font-head);
+      font-size: 1.25rem;
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      margin-bottom: 3px;
+    }
+
+    .kpi span {
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+    }
+
+    .sec-head {
+      margin: 28px 0 10px;
+      padding: 9px 12px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      font-family: var(--font-head);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      background: color-mix(in srgb, var(--surface2) 68%, transparent 32%);
+      scroll-margin-top: 24px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      background: var(--surface);
+      padding: 16px;
+      margin-bottom: 10px;
+      min-width: 0;
+      overflow-wrap: break-word;
+    }
+
+    .panel p { margin: 0 0 10px; }
+
+    .system-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .node {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--surface2);
+      min-width: 0;
+    }
+
+    .node b {
+      font-family: var(--font-head);
+      font-size: 1.02rem;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .node small {
+      display: block;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      margin-top: 6px;
+      overflow-wrap: break-word;
+    }
+
+    .mermaid-wrap {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      padding: 32px 22px 18px;
+      overflow: auto;
+      margin-top: 8px;
+    }
+
+    .mermaid-wrap .mermaid {
+      display: flex;
+      justify-content: center;
+      transition: transform .2s ease;
+      transform-origin: top center;
+      min-width: 640px;
+    }
+
+    .zoom-controls {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 8;
+      display: flex;
+      gap: 2px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+      background: color-mix(in srgb, var(--surface) 82%, transparent 18%);
+    }
+
+    .zoom-controls button {
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .zoom-controls button:hover {
+      background: var(--surface3);
+      color: var(--text);
+    }
+
+    .mermaid-wrap.is-zoomed { cursor: grab; }
+    .mermaid-wrap.is-panning { cursor: grabbing; user-select: none; }
+
+    .mermaid .nodeLabel {
+      color: var(--text) !important;
+      font-family: var(--font-head) !important;
+      font-size: 16px !important;
+    }
+
+    .mermaid .edgeLabel {
+      color: var(--text-dim) !important;
+      background-color: var(--bg) !important;
+      font-family: var(--font-mono) !important;
+      font-size: 12px !important;
+    }
+
+    .mermaid .edgeLabel rect {
+      fill: var(--bg) !important;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .table-scroll { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 840px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface2);
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border-strong);
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(even) {
+      background: color-mix(in srgb, var(--surface2) 48%, transparent 52%);
+    }
+
+    tbody tr:hover {
+      background: color-mix(in srgb, var(--accent-dim) 38%, transparent 62%);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+
+    .status--done {
+      background: var(--mint-dim);
+      color: var(--mint);
+      border-color: color-mix(in srgb, var(--mint) 32%, transparent 68%);
+    }
+
+    .status--partial {
+      background: var(--amber-dim);
+      color: var(--amber);
+      border-color: color-mix(in srgb, var(--amber) 32%, transparent 68%);
+    }
+
+    .status--planned {
+      background: var(--rose-dim);
+      color: var(--rose);
+      border-color: color-mix(in srgb, var(--rose) 32%, transparent 68%);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 4px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: color-mix(in srgb, var(--border-strong) 70%, transparent 30%);
+    }
+
+    .milestone {
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: var(--surface2);
+    }
+
+    .milestone::before {
+      content: '';
+      position: absolute;
+      left: -18px;
+      top: 14px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      background: var(--surface);
+    }
+
+    .milestone b {
+      font-family: var(--font-head);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .milestone small {
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .callout {
+      margin-top: 12px;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      padding: 10px 12px;
+      background: color-mix(in srgb, var(--accent-dim) 62%, transparent 38%);
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    @media (max-width: 1000px) {
+      body { padding: 0 20px 42px; }
+      .wrap {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+
+      .toc {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        border: 0;
+        border-radius: 0;
+        max-height: none;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        background: color-mix(in srgb, var(--bg) 94%, transparent 6%);
+        border-bottom: 1px solid var(--border);
+        margin: 0 -20px;
+        padding: 10px 20px;
+      }
+
+      .toc-title { display: none; }
+
+      .toc a {
+        white-space: nowrap;
+        flex-shrink: 0;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 6px 6px 0 0;
+        padding: 6px 10px;
+      }
+
+      .toc a.active {
+        border-left: none;
+        border-bottom-color: var(--accent);
+      }
+
+      .main { padding-top: 16px; }
+      .sec-head { scroll-margin-top: 58px; }
+
+      .kpis,
+      .system-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="toc" id="toc">
+      <div class="toc-title">Contents</div>
+      <a href="#s1">1. Docs Snapshot</a>
+      <a href="#s2">2. Compiler Pipeline</a>
+      <a href="#s3">3. Docs Architecture</a>
+      <a href="#s4">4. Coverage Matrix</a>
+      <a href="#s5">5. Next Iteration</a>
+    </nav>
+
+    <main class="main">
+      <section class="hero">
+        <h1>A7 Docs Atlas</h1>
+        <div class="subtitle">Visual reference for the compiler pipeline, information architecture, and content coverage.</div>
+        <p>This atlas is designed for contributors who need fast orientation: what exists, how docs map to source truth, and where the next UI/content upgrades should focus.</p>
+        <div class="kpis">
+          <div class="kpi"><strong>21</strong><span>Published Docs Pages</span></div>
+          <div class="kpi"><strong>36</strong><span>Runnable Examples</span></div>
+          <div class="kpi"><strong>6</strong><span>CLI Modes Documented</span></div>
+          <div class="kpi"><strong>5</strong><span>Primary Nav Sections</span></div>
+        </div>
+      </section>
+
+      <div id="s1" class="sec-head">1 — Docs Snapshot</div>
+      <section class="panel">
+        <p>The docs are structured as a contributor-ready reference, not a marketing site. Primary paths: quick onboarding, command/mode lookup, language behavior lookup, and example-driven learning.</p>
+        <div class="callout">Principle: one page per task type. Readers should land once, act immediately, and avoid context-switching to source files unless they want deeper detail.</div>
+      </section>
+
+      <div id="s2" class="sec-head">2 — Compiler Pipeline</div>
+      <section class="panel">
+        <p>Execution flow represented as a topology-first diagram. Use zoom controls for readability on high-density displays.</p>
+        <div class="mermaid-wrap" id="pipeline-wrap">
+          <div class="zoom-controls" aria-label="Diagram zoom controls">
+            <button type="button" data-zoom="in">+</button>
+            <button type="button" data-zoom="out">−</button>
+            <button type="button" data-zoom="reset">↺</button>
+          </div>
+          <pre class="mermaid">
+graph LR
+  S["Source (.a7)"] --> L["Tokenizer"]
+  L --> P["Parser"]
+  P --> NR["Name Resolution"]
+  NR --> TC["Type Checker"]
+  TC --> SV["Semantic Validator"]
+  SV --> AP["AST Preprocessor"]
+  AP --> ZB["Zig Backend"]
+  ZB --> OUT[".zig Output"]
+  AP -. optional .-> DOC["Markdown Report"]
+
+  classDef io fill:#b2691526,stroke:#b26915,stroke-width:1.4px
+  classDef stage fill:#0b63c826,stroke:#0b63c8,stroke-width:1.4px
+  classDef semantic fill:#0d8f6626,stroke:#0d8f66,stroke-width:1.4px
+  classDef out fill:#af3a5826,stroke:#af3a58,stroke-width:1.4px
+
+  class S io
+  class L,P,AP stage
+  class NR,TC,SV semantic
+  class ZB,OUT,DOC out
+          </pre>
+        </div>
+      </section>
+
+      <div id="s3" class="sec-head">3 — Docs Architecture</div>
+      <section class="panel">
+        <div class="system-grid">
+          <article class="node">
+            <b>Get Started</b>
+            Installation and first-run commands for quick contributor onboarding.
+            <small>Source: README + setup commands</small>
+          </article>
+          <article class="node">
+            <b>Compiler Usage</b>
+            Full CLI contract: flags, modes, output formats, and exit-code semantics.
+            <small>Source: main.py + src/compile.py</small>
+          </article>
+          <article class="node">
+            <b>Language Guide</b>
+            Curated spec pages split by concern (types, control flow, memory, grammar).
+            <small>Source: docs/SPEC.md (curated)</small>
+          </article>
+          <article class="node">
+            <b>Examples</b>
+            Runnable corpus with by-topic navigation and inline source display.
+            <small>Source: examples/*.a7</small>
+          </article>
+          <article class="node">
+            <b>Project Status</b>
+            Changelog and roadmap context for contributors and reviewers.
+            <small>Source: CHANGELOG.md + MISSING_FEATURES.md</small>
+          </article>
+          <article class="node">
+            <b>Visual Layer</b>
+            Dedicated visual explainer artifacts for architecture and audits.
+            <small>Source: /visuals/*.html</small>
+          </article>
+        </div>
+      </section>
+
+      <div id="s4" class="sec-head">4 — Coverage Matrix</div>
+      <section class="panel">
+        <div class="table-wrap">
+          <div class="table-scroll">
+            <table aria-label="Documentation coverage matrix">
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Canonical Source</th>
+                  <th>Published Page(s)</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>CLI + Modes</td>
+                  <td><code>main.py</code>, <code>src/compile.py</code></td>
+                  <td><code>compiler/cli-reference</code>, <code>compiler/modes-and-output</code></td>
+                  <td><span class="status status--done">Done</span></td>
+                  <td>Includes mode constraints and exit-code mapping.</td>
+                </tr>
+                <tr>
+                  <td>Pipeline Internals</td>
+                  <td><code>src/compile.py</code>, passes, backend</td>
+                  <td><code>compiler/pipeline-overview</code></td>
+                  <td><span class="status status--done">Done</span></td>
+                  <td>Stage-level responsibilities documented.</td>
+                </tr>
+                <tr>
+                  <td>Language Behavior</td>
+                  <td><code>docs/SPEC.md</code></td>
+                  <td><code>language/*</code></td>
+                  <td><span class="status status--done">Done</span></td>
+                  <td>Curated split with practical framing.</td>
+                </tr>
+                <tr>
+                  <td>Examples Learning Path</td>
+                  <td><code>examples/*.a7</code></td>
+                  <td><code>examples/examples-index</code>, <code>examples/by-topic</code></td>
+                  <td><span class="status status--partial">In Progress</span></td>
+                  <td>Inline code added; can still add per-example output previews.</td>
+                </tr>
+                <tr>
+                  <td>Visual References</td>
+                  <td>Derived from docs + source</td>
+                  <td><code>project/visual-atlas</code> + static visual files</td>
+                  <td><span class="status status--planned">Planned</span></td>
+                  <td>Formalize recurring visual artifacts for major releases.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <div id="s5" class="sec-head">5 — Next Iteration</div>
+      <section class="panel">
+        <div class="timeline">
+          <article class="milestone">
+            <b>Example Runtime Snapshots</b>
+            Add expected output panels next to each inline example for immediate feedback.
+            <small>Priority: High</small>
+          </article>
+          <article class="milestone">
+            <b>Spec Drift Guardrail</b>
+            Add CI check that highlights differences between curated language pages and <code>docs/SPEC.md</code> anchors.
+            <small>Priority: High</small>
+          </article>
+          <article class="milestone">
+            <b>Release Visual Recap</b>
+            Publish one visual dashboard per release summarizing tests, examples, and feature deltas.
+            <small>Priority: Medium</small>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    import elkLayouts from 'https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk/dist/mermaid-layout-elk.esm.min.mjs';
+
+    mermaid.registerLayoutLoaders(elkLayouts);
+
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      look: 'classic',
+      layout: 'elk',
+      themeVariables: {
+        primaryColor: isDark ? '#1e3048' : '#edf4ff',
+        primaryBorderColor: isDark ? '#78bbff' : '#0b63c8',
+        primaryTextColor: isDark ? '#e9f2ff' : '#1a2a3e',
+        secondaryColor: isDark ? '#1f3b36' : '#eaf9f2',
+        secondaryBorderColor: isDark ? '#67ddb2' : '#0d8f66',
+        secondaryTextColor: isDark ? '#e9f2ff' : '#1a2a3e',
+        tertiaryColor: isDark ? '#3c2d1a' : '#fff4e4',
+        tertiaryBorderColor: isDark ? '#ffc47e' : '#b26915',
+        tertiaryTextColor: isDark ? '#e9f2ff' : '#1a2a3e',
+        lineColor: isDark ? '#8ea6c4' : '#5a6d84',
+        noteBkgColor: isDark ? '#1b2d47' : '#eef5ff',
+        noteBorderColor: isDark ? '#78bbff' : '#0b63c8',
+        noteTextColor: isDark ? '#e9f2ff' : '#1a2a3e',
+        fontSize: '16px',
+        fontFamily: 'Chakra Petch'
+      }
+    });
+
+    function attachZoomControls(wrap) {
+      const target = wrap.querySelector('.mermaid');
+      const controls = wrap.querySelector('.zoom-controls');
+      if (!target || !controls) return;
+
+      let scale = 1;
+      let isPanning = false;
+      let startX = 0;
+      let startY = 0;
+      let scrollLeft = 0;
+      let scrollTop = 0;
+
+      const apply = () => {
+        target.style.transform = `scale(${scale})`;
+        wrap.classList.toggle('is-zoomed', scale > 1.01);
+      };
+
+      controls.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+        const action = button.dataset.zoom;
+        if (action === 'in') scale = Math.min(3, scale + 0.15);
+        if (action === 'out') scale = Math.max(0.7, scale - 0.15);
+        if (action === 'reset') scale = 1;
+        apply();
+      });
+
+      wrap.addEventListener('wheel', (event) => {
+        if (!(event.ctrlKey || event.metaKey)) return;
+        event.preventDefault();
+        scale += event.deltaY < 0 ? 0.08 : -0.08;
+        scale = Math.min(3, Math.max(0.7, scale));
+        apply();
+      }, { passive: false });
+
+      wrap.addEventListener('mousedown', (event) => {
+        if (scale <= 1.01 || event.button !== 0) return;
+        isPanning = true;
+        wrap.classList.add('is-panning');
+        startX = event.pageX - wrap.offsetLeft;
+        startY = event.pageY - wrap.offsetTop;
+        scrollLeft = wrap.scrollLeft;
+        scrollTop = wrap.scrollTop;
+      });
+
+      window.addEventListener('mouseup', () => {
+        isPanning = false;
+        wrap.classList.remove('is-panning');
+      });
+
+      wrap.addEventListener('mousemove', (event) => {
+        if (!isPanning) return;
+        event.preventDefault();
+        const x = event.pageX - wrap.offsetLeft;
+        const y = event.pageY - wrap.offsetTop;
+        wrap.scrollLeft = scrollLeft - (x - startX);
+        wrap.scrollTop = scrollTop - (y - startY);
+      });
+
+      apply();
+    }
+
+    function setupToc() {
+      const toc = document.getElementById('toc');
+      if (!toc) return;
+      const links = toc.querySelectorAll('a');
+      const sections = [];
+
+      links.forEach((link) => {
+        const id = link.getAttribute('href')?.slice(1);
+        if (!id) return;
+        const el = document.getElementById(id);
+        if (el) sections.push({ el, link });
+      });
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          links.forEach((link) => link.classList.remove('active'));
+          const match = sections.find((section) => section.el === entry.target);
+          if (!match) return;
+          match.link.classList.add('active');
+          if (window.innerWidth <= 1000) {
+            match.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        });
+      }, { rootMargin: '-10% 0px -80% 0px' });
+
+      sections.forEach((section) => observer.observe(section.el));
+
+      links.forEach((link) => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          const id = link.getAttribute('href')?.slice(1);
+          const target = id ? document.getElementById(id) : null;
+          if (!target) return;
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', `#${id}`);
+        });
+      });
+    }
+
+    window.addEventListener('load', () => {
+      document.querySelectorAll('.mermaid-wrap').forEach(attachZoomControls);
+      setupToc();
+    });
+  </script>
+</body>
+</html>
