@@ -68,4 +68,6 @@ uv run python main.py examples/<file>.a7
 
 ## Inline Topic View
 
-Open [Topics](../topics/) for larger inline snippets.
+Open [Topics](../topics/) for curated inline examples.
+
+Open [By Topic](./by-topic/) to use the legacy route.

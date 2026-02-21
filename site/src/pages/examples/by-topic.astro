@@ -1,17 +1,14 @@
 ---
-import { withBase } from '../../data/site';
-const target = withBase('/topics');
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import ByTopicCatalog from '../../components/ByTopicCatalog.astro';
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content={`0; url=${target}`} />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Redirecting</title>
-    <link rel="canonical" href={target} />
-  </head>
-  <body>
-    <p>Redirecting to <a href={target}>{target}</a>.</p>
-  </body>
-</html>
+
+<DocsLayout
+  title="By Topic"
+  description="Legacy route with the same curated inline example catalog."
+>
+  <p>This route is kept for direct links and bookmarks.</p>
+  <p>The catalog below matches the Topics page.</p>
+
+  <ByTopicCatalog />
+</DocsLayout>
