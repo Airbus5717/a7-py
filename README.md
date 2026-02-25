@@ -1,4 +1,4 @@
-# A7 Programming Language Compiler
+# A7 Programming Language Compiler (VIBE CODED)
 
 This whole application was vibecoded using Codex and Claude Code.
 
