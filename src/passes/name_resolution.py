@@ -124,6 +124,7 @@ class NameResolutionPass:
                 name=node.alias,
                 kind=SymbolKind.MODULE,
                 type=UNKNOWN,
+                node=node,
                 is_mutable=False,
             )
             self.symbols.define(module_symbol)

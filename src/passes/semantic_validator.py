@@ -12,7 +12,7 @@ from typing import List, Optional, Set
 from src.ast_nodes import ASTNode, NodeKind, LiteralKind
 from src.symbol_table import SymbolTable
 from src.semantic_context import SemanticContext
-from src.types import Type, TypeKind, ReferenceType
+from src.types import Type, TypeKind, ReferenceType, EnumType
 from src.errors import SemanticError, SemanticErrorType, SourceSpan
 
 
@@ -408,8 +408,6 @@ class SemanticValidationPass:
                 continue
 
             if current.kind == NodeKind.MATCH:
-                if not current.else_case:
-                    return False
                 # Check all case branches
                 for case in (current.cases or []):
                     case_stmt = getattr(case, "statement", None)
@@ -423,19 +421,85 @@ class SemanticValidationPass:
                                 return False
                         else:
                             return False
-                # Check else case — tail-call into last else stmt
-                else_stmts = current.else_case or []
-                found_return = False
-                for stmt in else_stmts:
-                    if self._returns_on_all_paths(stmt):
-                        found_return = True
-                        break
-                return found_return
+                # Else branch, if present, must return as well.
+                if current.else_case:
+                    else_stmts = current.else_case or []
+                    if not else_stmts:
+                        return False
+                    return self._returns_on_all_paths(else_stmts[-1])
+
+                # Without else, only exhaustive bool/enum matches can be total.
+                return self._is_match_exhaustive(current)
 
             # Any other node kind doesn't return
             return False
 
         return False
+
+    def _is_match_exhaustive(self, node: ASTNode) -> bool:
+        """Check whether a match statement covers all values for bool/enum scrutinees."""
+        if node.else_case:
+            return True
+
+        scrutinee_type = self.get_type(node.expression) if node.expression else None
+        if scrutinee_type is None:
+            return False
+
+        bool_coverage: Set[bool] = set()
+        enum_coverage: Set[str] = set()
+
+        for case in (node.cases or []):
+            for pattern in (case.patterns or []):
+                if self._pattern_is_wildcard(pattern):
+                    return True
+
+                if scrutinee_type.is_boolean():
+                    bool_value = self._extract_bool_pattern_value(pattern)
+                    if bool_value is not None:
+                        bool_coverage.add(bool_value)
+
+                if isinstance(scrutinee_type, EnumType):
+                    variant_name = self._extract_enum_pattern_variant(pattern, scrutinee_type.name)
+                    if variant_name:
+                        enum_coverage.add(variant_name)
+
+        if scrutinee_type.is_boolean():
+            return bool_coverage == {True, False}
+
+        if isinstance(scrutinee_type, EnumType):
+            declared_variants = {variant.name for variant in scrutinee_type.variants}
+            return declared_variants.issubset(enum_coverage)
+
+        return False
+
+    def _pattern_is_wildcard(self, pattern: ASTNode) -> bool:
+        """Return True when a match pattern is a wildcard branch."""
+        if pattern.kind == NodeKind.PATTERN_WILDCARD:
+            return True
+        return pattern.kind == NodeKind.PATTERN_IDENTIFIER and (pattern.name or "") == "_"
+
+    def _extract_bool_pattern_value(self, pattern: ASTNode) -> Optional[bool]:
+        """Extract bool literal value from a match pattern, if present."""
+        if pattern.kind == NodeKind.PATTERN_LITERAL and pattern.literal:
+            literal = pattern.literal
+            if literal.kind == NodeKind.LITERAL and literal.literal_kind == LiteralKind.BOOLEAN:
+                return bool(literal.literal_value)
+
+        if pattern.kind == NodeKind.LITERAL and pattern.literal_kind == LiteralKind.BOOLEAN:
+            return bool(pattern.literal_value)
+
+        return None
+
+    def _extract_enum_pattern_variant(self, pattern: ASTNode, enum_name: str) -> Optional[str]:
+        """Extract enum variant name from a match pattern if it matches enum_name."""
+        if pattern.kind != NodeKind.PATTERN_ENUM:
+            return None
+
+        pattern_enum = pattern.enum_type or ""
+        if pattern_enum and pattern_enum != enum_name:
+            return None
+
+        return pattern.variant or None
 
     def validate_nil_usage(self, node: ASTNode, target_type: Type) -> bool:
         """

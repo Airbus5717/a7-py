@@ -1733,6 +1733,11 @@ class Parser:
 
     def parse_builtin_intrinsic(self) -> ASTNode:
         """Parse builtin intrinsic: @size_of(T), @align_of(T), @type_id(T), @unreachable(), etc."""
+        # @type_set(...) is both a type and value-level construct in tests.
+        # Reuse dedicated parser to produce a TYPE_SET AST node.
+        if self.match(TokenType.BUILTIN_ID) and self.current().value == "@type_set":
+            return self.parse_type_set()
+
         builtin_token = self.consume(TokenType.BUILTIN_ID)
         builtin_name = builtin_token.value  # Includes '@' prefix
 
@@ -2154,6 +2159,9 @@ class Parser:
             TokenType.FLOAT_LITERAL,
             TokenType.CHAR_LITERAL,
             TokenType.STRING_LITERAL,
+            TokenType.TRUE_LITERAL,
+            TokenType.FALSE_LITERAL,
+            TokenType.NIL_LITERAL,
         ):
             return ASTNode(
                 kind=NodeKind.PATTERN_LITERAL,
@@ -2182,6 +2190,11 @@ class Parser:
                     span=create_span_from_token(start_token),
                 )
             else:
+                if first_identifier.value == "_":
+                    return ASTNode(
+                        kind=NodeKind.PATTERN_WILDCARD,
+                        span=create_span_from_token(start_token),
+                    )
                 # Simple identifier pattern
                 return ASTNode(
                     kind=NodeKind.PATTERN_IDENTIFIER,

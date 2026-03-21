@@ -445,6 +445,194 @@ class TestMatchStatements:
         """
         assert expect_success(source)
 
+    def test_match_pattern_type_mismatch(self):
+        """Pattern values must be compatible with the match scrutinee type."""
+        source = """
+        main :: fn() {
+            x: i32 = 10
+            match x {
+                case "oops": y := 1
+                else: y := 0
+            }
+        }
+        """
+        assert expect_error(source, "type mismatch")
+
+    def test_bool_match_requires_exhaustive_coverage(self):
+        """Bool matches without else must handle both true and false."""
+        source = """
+        main :: fn() {
+            flag: bool = true
+            match flag {
+                case true: x := 1
+            }
+        }
+        """
+        assert expect_error(source, "non-exhaustive")
+
+    def test_bool_match_wildcard_is_exhaustive(self):
+        """Wildcard branch should satisfy match exhaustiveness."""
+        source = """
+        main :: fn() {
+            flag: bool = true
+            match flag {
+                case _: x := 1
+            }
+        }
+        """
+        assert expect_success(source)
+
+    def test_enum_match_requires_exhaustive_coverage(self):
+        """Enum matches without else must handle all variants."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+            Blue,
+        }
+
+        main :: fn() {
+            c: Color = Color.Red
+            match c {
+                case Color.Red: x := 1
+                case Color.Green: x := 2
+            }
+        }
+        """
+        assert expect_error(source, "non-exhaustive")
+
+    def test_enum_match_expression_requires_exhaustive_coverage(self):
+        """Match expressions should enforce enum exhaustiveness too."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+            Blue,
+        }
+
+        main :: fn() {
+            c: Color = Color.Red
+            x := match c {
+                case Color.Red: 1
+                case Color.Green: 2
+            }
+        }
+        """
+        assert expect_error(source, "non-exhaustive")
+
+    def test_exhaustive_enum_match_satisfies_return_paths(self):
+        """Exhaustive enum matches should satisfy non-void return path checks."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+        }
+
+        to_i32 :: fn(c: Color) i32 {
+            match c {
+                case Color.Red: ret 1
+                case Color.Green: ret 2
+            }
+        }
+        """
+        assert expect_success(source)
+
+    def test_exhaustive_bool_match_satisfies_return_paths(self):
+        """Exhaustive bool matches should satisfy non-void return path checks."""
+        source = """
+        to_i32 :: fn(flag: bool) i32 {
+            match flag {
+                case true: ret 1
+                case false: ret 0
+            }
+        }
+        """
+        assert expect_success(source)
+
+    def test_non_exhaustive_enum_match_fails_without_else(self):
+        """Non-exhaustive enum match should fail in non-void functions."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+            Blue,
+        }
+
+        to_i32 :: fn(c: Color) i32 {
+            match c {
+                case Color.Red: ret 1
+                case Color.Green: ret 2
+            }
+        }
+        """
+        assert expect_error(source, "non-exhaustive")
+
+    def test_range_pattern_requires_numeric_or_char_scrutinee(self):
+        """Range patterns should reject non-numeric/non-char scrutinee types."""
+        source = """
+        main :: fn() {
+            flag: bool = true
+            match flag {
+                case 0..1: x := 1
+                else: x := 0
+            }
+        }
+        """
+        assert expect_error(source, "range patterns require")
+
+    def test_enum_pattern_unknown_variant_reports_error(self):
+        """Unknown enum variants in patterns should produce semantic errors."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+        }
+
+        main :: fn() {
+            c: Color = Color.Red
+            match c {
+                case Color.Blue: x := 1
+                else: x := 0
+            }
+        }
+        """
+        assert expect_error(source, "has no variant")
+
+    def test_enum_pattern_wrong_enum_type_reports_error(self):
+        """Patterns must use the same enum type as the match scrutinee."""
+        source = """
+        Color :: enum {
+            Red,
+            Green,
+        }
+
+        Status :: enum {
+            Ok,
+            Err,
+        }
+
+        main :: fn() {
+            c: Color = Color.Red
+            match c {
+                case Status.Ok: x := 1
+                else: x := 0
+            }
+        }
+        """
+        assert expect_error(source, "enum type mismatch")
+
+    def test_match_expression_wildcard_case_is_exhaustive(self):
+        """Wildcard-only match expressions should be accepted as exhaustive."""
+        source = """
+        main :: fn() {
+            flag: bool = true
+            x := match flag {
+                case _: 1
+            }
+        }
+        """
+        assert expect_success(source)
+
 
 class TestDeferStatements:
     """Test defer statement validation."""

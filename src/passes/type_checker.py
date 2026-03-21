@@ -4,7 +4,7 @@ Type checking pass for A7 semantic analysis.
 Performs type inference, type checking, and type compatibility validation.
 """
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Set, Tuple
 
 from src.ast_nodes import ASTNode, NodeKind, BinaryOp, UnaryOp, AssignOp, LiteralKind
 from src.symbol_table import SymbolTable, Symbol, SymbolKind
@@ -235,6 +235,12 @@ class TypeCheckingPass:
 
         # Create struct type
         generic_params = tuple(gp.name for gp in (node.generic_params or []))
+        if not generic_params:
+            discovered: List[str] = []
+            for field in fields:
+                self._collect_generic_type_names(field.field_type, discovered)
+            # Preserve encounter order while deduplicating
+            generic_params = tuple(dict.fromkeys(discovered))
         struct_type = StructType(name=struct_name, fields=tuple(fields), generic_params=generic_params)
 
         # Update symbol
@@ -545,13 +551,35 @@ class TypeCheckingPass:
                     context=f"Variable '{var_name}'"
                 )
             elif node.value and not is_nil_value and not value_type.is_assignable_to(explicit_type):
-                self.add_type_error(
-                    TypeErrorType.TYPE_MISMATCH,
-                    node.span,
-                    expected_type=str(explicit_type),
-                    got_type=str(value_type),
-                    context=f"Variable '{var_name}'"
+                # Generic locals may be initialized from literals before call-site substitution.
+                is_generic_relaxed = (
+                    isinstance(explicit_type, GenericParamType)
+                    and (
+                        isinstance(value_type, (GenericParamType, UnknownType))
+                        or (
+                            node.value.kind == NodeKind.LITERAL
+                            and node.value.literal_kind in {
+                                LiteralKind.INTEGER,
+                                LiteralKind.FLOAT,
+                                LiteralKind.CHAR,
+                                LiteralKind.STRING,
+                                LiteralKind.BOOLEAN,
+                            }
+                        )
+                    )
                 )
+                if is_generic_relaxed:
+                    value_type = explicit_type
+                else:
+                    self.add_type_error(
+                        TypeErrorType.TYPE_MISMATCH,
+                        node.span,
+                        expected_type=str(explicit_type),
+                        got_type=str(value_type),
+                        context=f"Variable '{var_name}'"
+                    )
+            if node.value and not is_nil_value and isinstance(explicit_type, GenericParamType):
+                value_type = explicit_type
             value_type = explicit_type
         elif not node.value:
             # No value and no type - error
@@ -659,10 +687,10 @@ class TypeCheckingPass:
             bitwise_ops = {AssignOp.AND_ASSIGN, AssignOp.OR_ASSIGN, AssignOp.XOR_ASSIGN, AssignOp.SHL_ASSIGN, AssignOp.SHR_ASSIGN}
 
             if op in arithmetic_ops:
-                if not lhs_type.is_numeric():
+                if not self._is_numeric_compatible(lhs_type):
                     self.add_type_error(TypeErrorType.REQUIRES_NUMERIC_TYPE, node.span, got_type=str(lhs_type), context=f"Operator {op.name} requires numeric type")
             elif op in bitwise_ops:
-                if not lhs_type.is_integral():
+                if not self._is_integral_compatible(lhs_type):
                     self.add_type_error(TypeErrorType.REQUIRES_INTEGER_TYPE, node.span, got_type=str(lhs_type), context=f"Operator {op.name} requires integer type")
 
         # Check assignment compatibility
@@ -779,24 +807,49 @@ class TypeCheckingPass:
 
     def visit_match_stmt(self, node: ASTNode) -> None:
         """Visit a match statement."""
-        # Type check the match value
-        if node.expression:
-            self.visit_expression(node.expression)
+        scrutinee_type = self.visit_expression(node.expression) if node.expression else UNKNOWN
+        has_catch_all = bool(node.else_case)
+        bool_coverage: Set[bool] = set()
+        enum_coverage: Set[str] = set()
 
         # Visit all case branches
-        if node.cases:
-            for case in node.cases:
+        for case in (node.cases or []):
+            for pattern in (case.patterns or []):
+                pattern_kind, pattern_value = self._validate_match_pattern(pattern, scrutinee_type)
+                if pattern_kind == "wildcard":
+                    has_catch_all = True
+                elif pattern_kind == "bool":
+                    bool_coverage.add(bool(pattern_value))
+                elif pattern_kind == "enum" and isinstance(pattern_value, str):
+                    enum_coverage.add(pattern_value)
+
+            self._enter_matching_scope("match_case")
+            try:
                 case_stmt = getattr(case, "statement", None)
                 if case_stmt:
                     self.visit_statement(case_stmt)
                 elif case.statements:
                     for stmt in case.statements:
                         self.visit_statement(stmt)
+            finally:
+                self.symbols.exit_scope()
 
         # Visit else case
         if node.else_case:
-            for stmt in node.else_case:
-                self.visit_statement(stmt)
+            self._enter_matching_scope("match_else")
+            try:
+                for stmt in node.else_case:
+                    self.visit_statement(stmt)
+            finally:
+                self.symbols.exit_scope()
+
+        self._check_match_exhaustiveness(
+            span=node.span,
+            scrutinee_type=scrutinee_type,
+            has_catch_all=has_catch_all,
+            bool_coverage=bool_coverage,
+            enum_coverage=enum_coverage,
+        )
 
     def visit_return_stmt(self, node: ASTNode) -> None:
         """Visit a return statement."""
@@ -859,12 +912,16 @@ class TypeCheckingPass:
             return self.visit_cast(node)
         elif node.kind == NodeKind.IF_EXPR:
             return self.visit_if_expr(node)
+        elif node.kind == NodeKind.MATCH_EXPR:
+            return self.visit_match_expr(node)
         elif node.kind == NodeKind.STRUCT_INIT:
             return self.visit_struct_init(node)
         elif node.kind == NodeKind.ARRAY_INIT:
             return self.visit_array_init(node)
         elif node.kind == NodeKind.NEW_EXPR:
             return self.visit_new_expr(node)
+        elif node.kind == NodeKind.TYPE_SET:
+            return self.resolve_type_node(node)
         else:
             error = SemanticError.from_type(SemanticErrorType.UNEXPECTED_NODE_KIND, span=node.span, filename=self.current_file, source_lines=self.source_lines, context=f"Unknown expression kind: {node.kind}")
             self.errors.append(error)
@@ -908,11 +965,20 @@ class TypeCheckingPass:
 
         # Arithmetic operators: +, -, *, /, %
         if op in {BinaryOp.ADD, BinaryOp.SUB, BinaryOp.MUL, BinaryOp.DIV, BinaryOp.MOD}:
-            if not left_type.is_numeric() or not right_type.is_numeric():
+            if not self._is_numeric_compatible(left_type) or not self._is_numeric_compatible(right_type):
                 self.add_type_error(TypeErrorType.REQUIRES_NUMERIC_TYPE, node.span)
                 return UNKNOWN
-            # Result type is the wider of the two
-            return left_type if left_type.is_floating() else right_type
+            # Preserve generic parameters for body type-checking before monomorphization.
+            if isinstance(left_type, GenericParamType):
+                return left_type
+            if isinstance(right_type, GenericParamType):
+                return right_type
+            # Result type is the wider of the two for concrete numeric types.
+            if left_type.is_floating():
+                return left_type
+            if right_type.is_floating():
+                return right_type
+            return left_type
 
         # Comparison operators: ==, !=, <, <=, >, >=
         elif op in {BinaryOp.EQ, BinaryOp.NE, BinaryOp.LT, BinaryOp.LE, BinaryOp.GT, BinaryOp.GE}:
@@ -926,7 +992,7 @@ class TypeCheckingPass:
 
         # Bitwise operators: &, |, ^, <<, >>
         elif op in {BinaryOp.BIT_AND, BinaryOp.BIT_OR, BinaryOp.BIT_XOR, BinaryOp.BIT_SHL, BinaryOp.BIT_SHR}:
-            if not left_type.is_integral() or not right_type.is_integral():
+            if not self._is_integral_compatible(left_type) or not self._is_integral_compatible(right_type):
                 self.add_type_error(TypeErrorType.REQUIRES_INTEGER_TYPE, node.span)
                 return UNKNOWN
             return left_type
@@ -940,7 +1006,7 @@ class TypeCheckingPass:
         op = node.operator
 
         if op == UnaryOp.NEG:
-            if not operand_type.is_numeric():
+            if not self._is_numeric_compatible(operand_type):
                 self.add_type_error(TypeErrorType.REQUIRES_NUMERIC_TYPE, node.span)
             return operand_type
 
@@ -950,7 +1016,7 @@ class TypeCheckingPass:
             return BOOL
 
         elif op == UnaryOp.BIT_NOT:
-            if not operand_type.is_integral():
+            if not self._is_integral_compatible(operand_type):
                 self.add_type_error(TypeErrorType.REQUIRES_INTEGER_TYPE, node.span)
             return operand_type
 
@@ -1167,6 +1233,11 @@ class TypeCheckingPass:
                 # Module field access — return UNKNOWN since module isn't loaded
                 return UNKNOWN
 
+        if isinstance(obj_type, GenericInstanceType):
+            concrete_struct = self._resolve_generic_instance_struct(obj_type)
+            if concrete_struct is not None:
+                obj_type = concrete_struct
+
         if isinstance(obj_type, StructType):
             field = obj_type.get_field(field_name)
             if field:
@@ -1240,6 +1311,228 @@ class TypeCheckingPass:
 
         return then_type
 
+    def visit_match_expr(self, node: ASTNode) -> Type:
+        """Visit a match expression and infer a unified result type."""
+        scrutinee_type = self.visit_expression(node.expression) if node.expression else UNKNOWN
+        has_catch_all = isinstance(node.else_case, ASTNode)
+        bool_coverage: Set[bool] = set()
+        enum_coverage: Set[str] = set()
+
+        branch_types: List[Type] = []
+        for case in (node.cases or []):
+            for pattern in (case.patterns or []):
+                pattern_kind, pattern_value = self._validate_match_pattern(pattern, scrutinee_type)
+                if pattern_kind == "wildcard":
+                    has_catch_all = True
+                elif pattern_kind == "bool":
+                    bool_coverage.add(bool(pattern_value))
+                elif pattern_kind == "enum" and isinstance(pattern_value, str):
+                    enum_coverage.add(pattern_value)
+
+            case_expr = getattr(case, "expression", None)
+            if case_expr:
+                branch_types.append(self.visit_expression(case_expr))
+
+        if isinstance(node.else_case, ASTNode):
+            branch_types.append(self.visit_expression(node.else_case))
+
+        self._check_match_exhaustiveness(
+            span=node.span,
+            scrutinee_type=scrutinee_type,
+            has_catch_all=has_catch_all,
+            bool_coverage=bool_coverage,
+            enum_coverage=enum_coverage,
+        )
+
+        if not branch_types:
+            return UNKNOWN
+
+        result_type = branch_types[0]
+        for branch_type in branch_types[1:]:
+            if branch_type.equals(result_type):
+                continue
+            if branch_type.is_assignable_to(result_type):
+                continue
+            if result_type.is_assignable_to(branch_type):
+                result_type = branch_type
+                continue
+            self.add_type_error(
+                TypeErrorType.IF_EXPR_TYPE_MISMATCH,
+                node.span,
+                expected_type=str(result_type),
+                got_type=str(branch_type),
+                context="match expression branches",
+            )
+            return UNKNOWN
+
+        return result_type
+
+    def _validate_match_pattern(self, pattern: ASTNode, scrutinee_type: Type) -> Tuple[Optional[str], Optional[object]]:
+        """Type-check a match pattern against the scrutinee type.
+
+        Returns:
+            Tuple of coverage kind/value used for exhaustiveness tracking:
+            - ("wildcard", None)
+            - ("bool", True|False)
+            - ("enum", variant_name)
+            - (None, None) for patterns that do not contribute specific coverage.
+        """
+        if pattern.kind == NodeKind.PATTERN_WILDCARD:
+            return ("wildcard", None)
+
+        if pattern.kind == NodeKind.PATTERN_IDENTIFIER and (pattern.name or "") == "_":
+            return ("wildcard", None)
+
+        if pattern.kind == NodeKind.PATTERN_RANGE:
+            if scrutinee_type.kind != TypeKind.UNKNOWN and not (
+                self._is_numeric_compatible(scrutinee_type) or scrutinee_type.equals(CHAR)
+            ):
+                self.add_type_error(
+                    TypeErrorType.TYPE_MISMATCH,
+                    pattern.span,
+                    expected_type="numeric or char",
+                    got_type=str(scrutinee_type),
+                    context="Range patterns require a numeric or char match type",
+                )
+
+            for endpoint in (pattern.start, pattern.end):
+                if endpoint is None:
+                    continue
+                endpoint_type = self._resolve_pattern_type(endpoint, scrutinee_type)
+                if (
+                    endpoint_type.kind != TypeKind.UNKNOWN
+                    and scrutinee_type.kind != TypeKind.UNKNOWN
+                    and not endpoint_type.is_assignable_to(scrutinee_type)
+                ):
+                    self.add_type_error(
+                        TypeErrorType.TYPE_MISMATCH,
+                        endpoint.span,
+                        expected_type=str(scrutinee_type),
+                        got_type=str(endpoint_type),
+                        context="Range pattern endpoint type mismatch",
+                    )
+            return (None, None)
+
+        pattern_type = self._resolve_pattern_type(pattern, scrutinee_type)
+        if (
+            pattern_type.kind != TypeKind.UNKNOWN
+            and scrutinee_type.kind != TypeKind.UNKNOWN
+            and not pattern_type.is_assignable_to(scrutinee_type)
+        ):
+            self.add_type_error(
+                TypeErrorType.TYPE_MISMATCH,
+                pattern.span,
+                expected_type=str(scrutinee_type),
+                got_type=str(pattern_type),
+                context="Match pattern type mismatch",
+            )
+
+        if pattern.kind == NodeKind.PATTERN_LITERAL and pattern.literal:
+            literal = pattern.literal
+            if literal.kind == NodeKind.LITERAL and literal.literal_kind == LiteralKind.BOOLEAN:
+                return ("bool", bool(literal.literal_value))
+
+        if pattern.kind == NodeKind.LITERAL and pattern.literal_kind == LiteralKind.BOOLEAN:
+            return ("bool", bool(pattern.literal_value))
+
+        if pattern.kind == NodeKind.PATTERN_ENUM and isinstance(scrutinee_type, EnumType):
+            return ("enum", pattern.variant)
+
+        return (None, None)
+
+    def _resolve_pattern_type(self, pattern: ASTNode, scrutinee_type: Type) -> Type:
+        """Resolve the semantic type of a pattern node."""
+        if pattern.kind == NodeKind.PATTERN_LITERAL and pattern.literal:
+            return self.visit_expression(pattern.literal)
+
+        if pattern.kind == NodeKind.PATTERN_ENUM:
+            enum_name = pattern.enum_type or ""
+            variant_name = pattern.variant or ""
+
+            enum_symbol = self.symbols.lookup(enum_name)
+            if not enum_symbol or not isinstance(enum_symbol.type, EnumType):
+                self.add_type_error(
+                    TypeErrorType.UNDEFINED_TYPE,
+                    pattern.span,
+                    context=f"Enum '{enum_name}'",
+                )
+                return UNKNOWN
+
+            enum_type = enum_symbol.type
+            if not enum_type.has_variant(variant_name):
+                self.add_type_error(
+                    TypeErrorType.NO_SUCH_FIELD,
+                    pattern.span,
+                    context=f"Enum '{enum_name}' has no variant '{variant_name}'",
+                )
+                return UNKNOWN
+
+            if isinstance(scrutinee_type, EnumType) and scrutinee_type.name != enum_type.name:
+                self.add_type_error(
+                    TypeErrorType.TYPE_MISMATCH,
+                    pattern.span,
+                    expected_type=str(scrutinee_type),
+                    got_type=str(enum_type),
+                    context="Match pattern enum type mismatch",
+                )
+
+            return enum_type
+
+        if pattern.kind == NodeKind.PATTERN_IDENTIFIER:
+            pattern_name = pattern.name or ""
+            if pattern_name == "_":
+                return UNKNOWN
+
+            symbol = self.symbols.lookup(pattern_name)
+            if symbol:
+                self.symbols.mark_used(pattern_name)
+                return symbol.type
+
+            self.add_semantic_error(
+                SemanticErrorType.UNDEFINED_IDENTIFIER,
+                pattern.span,
+                context=f"Pattern identifier '{pattern_name}'",
+            )
+            return UNKNOWN
+
+        return self.visit_expression(pattern)
+
+    def _check_match_exhaustiveness(
+        self,
+        span: Optional[SourceSpan],
+        scrutinee_type: Type,
+        has_catch_all: bool,
+        bool_coverage: Set[bool],
+        enum_coverage: Set[str],
+    ) -> None:
+        """Emit non-exhaustive match diagnostics for bool and enum scrutinees."""
+        if has_catch_all or scrutinee_type.kind == TypeKind.UNKNOWN:
+            return
+
+        if scrutinee_type.equals(BOOL):
+            missing = []
+            if True not in bool_coverage:
+                missing.append("true")
+            if False not in bool_coverage:
+                missing.append("false")
+            if missing:
+                self.add_semantic_error(
+                    SemanticErrorType.NON_EXHAUSTIVE_MATCH,
+                    span,
+                    context=f"Missing bool case(s): {', '.join(missing)}",
+                )
+            return
+
+        if isinstance(scrutinee_type, EnumType):
+            declared_variants = {variant.name for variant in scrutinee_type.variants}
+            missing = sorted(declared_variants - enum_coverage)
+            if missing:
+                self.add_semantic_error(
+                    SemanticErrorType.NON_EXHAUSTIVE_MATCH,
+                    span,
+                    context=f"Enum '{scrutinee_type.name}' missing case(s): {', '.join(missing)}",
+                )
+
     def visit_struct_init(self, node: ASTNode) -> Type:
         """Visit a struct initialization."""
         # Resolve struct type
@@ -1254,6 +1547,12 @@ class TypeCheckingPass:
 
         if not isinstance(struct_type, StructType):
             return UNKNOWN
+
+        # Generic struct instantiation: Pair(i32, string){...}
+        type_arg_nodes = getattr(node, "type_arguments", None) or []
+        if type_arg_nodes:
+            type_args = [self.resolve_type_node(arg) for arg in type_arg_nodes]
+            struct_type = self._instantiate_struct_type(struct_type, type_args)
 
         # Type check field initializers
         if node.field_inits:
@@ -1295,3 +1594,59 @@ class TypeCheckingPass:
         # new T returns ref T
         alloc_type = self.resolve_type_node(node.target_type) if node.target_type else UNKNOWN
         return ReferenceType(referent_type=alloc_type)
+
+    # Generic/type helpers
+
+    def _is_numeric_compatible(self, type_: Type) -> bool:
+        return type_.is_numeric() or isinstance(type_, (GenericParamType, UnknownType))
+
+    def _is_integral_compatible(self, type_: Type) -> bool:
+        return type_.is_integral() or isinstance(type_, (GenericParamType, UnknownType))
+
+    def _collect_generic_type_names(self, type_: Type, out: List[str]) -> None:
+        """Collect GenericParamType names reachable from a semantic Type object."""
+        stack: List[Type] = [type_]
+        while stack:
+            current = stack.pop()
+            if isinstance(current, GenericParamType):
+                out.append(current.name)
+            elif isinstance(current, ReferenceType):
+                stack.append(current.referent_type)
+            elif isinstance(current, PointerType):
+                stack.append(current.pointee_type)
+            elif isinstance(current, ArrayType):
+                stack.append(current.element_type)
+            elif isinstance(current, SliceType):
+                stack.append(current.element_type)
+            elif isinstance(current, FunctionType):
+                if current.return_type is not None:
+                    stack.append(current.return_type)
+                stack.extend(current.param_types)
+            elif isinstance(current, GenericInstanceType):
+                stack.extend(list(current.type_args))
+            elif isinstance(current, StructType):
+                for field in current.fields:
+                    stack.append(field.field_type)
+
+    def _instantiate_struct_type(self, struct_type: StructType, type_args: List[Type]) -> StructType:
+        """Instantiate a generic struct with concrete type arguments."""
+        params = list(struct_type.generic_params or ())
+        if not params:
+            return struct_type
+        if len(params) != len(type_args):
+            # Keep original type for error reporting paths.
+            return struct_type
+
+        mapping: Dict[str, Type] = {name: arg for name, arg in zip(params, type_args)}
+        new_fields = tuple(
+            StructField(name=field.name, field_type=self._substitute_generic(field.field_type, mapping))
+            for field in struct_type.fields
+        )
+        return StructType(name=struct_type.name, fields=new_fields, generic_params=())
+
+    def _resolve_generic_instance_struct(self, instance: GenericInstanceType) -> Optional[StructType]:
+        """Resolve GenericInstanceType(base, args) to a concrete StructType if base is a struct."""
+        symbol = self.symbols.lookup(instance.base_name)
+        if not symbol or not isinstance(symbol.type, StructType):
+            return None
+        return self._instantiate_struct_type(symbol.type, list(instance.type_args))

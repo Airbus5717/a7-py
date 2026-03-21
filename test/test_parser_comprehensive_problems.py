@@ -9,7 +9,7 @@ missing language constructs.
 import pytest
 from src.parser import parse_a7
 from src.errors import ParseError
-from src.ast_nodes import NodeKind
+from src.ast_nodes import NodeKind, LiteralKind
 
 
 class TestIncompleteExpressionHandling:
@@ -163,10 +163,10 @@ class TestBraceMatchingProblems:
 
 
 class TestForLoopLimitationsAndRangeBasedLoops:
-    """Test for loop parsing limitations and missing range-based syntax."""
+    """Test for loop parsing behavior, including currently unsupported forms."""
 
     def test_range_based_for_loop_simple(self):
-        """Test simple range-based for loop (not yet supported)."""
+        """Test simple range-based for-in loop over iterables."""
         source = """
         test_func :: fn() {
             arr := [1, 2, 3, 4, 5]
@@ -255,11 +255,10 @@ class TestImportAndFieldAccessProblems:
 
 
 class TestMatchStatementPatternProblems:
-    """Test match statement pattern limitations."""
+    """Test match statement pattern parsing behavior."""
 
-    # @pytest.mark.skip(reason="Range patterns in match statements not yet implemented")
     def test_range_patterns_in_match(self):
-        """Test range patterns in match statements (not yet supported)."""
+        """Range patterns should parse into PATTERN_RANGE nodes."""
         source = """
         test_match :: fn(x: i32) {
             match x {
@@ -272,14 +271,23 @@ class TestMatchStatementPatternProblems:
             }
         }
         """
-        
-        # TODO: Should parse successfully and generate proper AST nodes for range patterns
-        ast = parse_a7(source)
-        assert ast is not None
 
-    # @pytest.mark.skip(reason="Multiple values in case statements not yet implemented")
+        ast = parse_a7(source)
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[0]
+        assert match_stmt.kind == NodeKind.MATCH
+        assert len(match_stmt.cases) == 2
+        first_pattern = match_stmt.cases[0].patterns[0]
+        second_pattern = match_stmt.cases[1].patterns[0]
+        assert first_pattern.kind == NodeKind.PATTERN_RANGE
+        assert second_pattern.kind == NodeKind.PATTERN_RANGE
+        assert first_pattern.start.kind == NodeKind.PATTERN_LITERAL
+        assert first_pattern.end.kind == NodeKind.PATTERN_LITERAL
+        assert second_pattern.start.kind == NodeKind.PATTERN_LITERAL
+        assert second_pattern.end.kind == NodeKind.PATTERN_LITERAL
+
     def test_multiple_values_in_case(self):
-        """Test multiple values in case statement (not yet supported)."""
+        """Multiple comma-separated patterns should parse per case."""
         source = """
         test_match :: fn(x: i32) {
             match x {
@@ -293,13 +301,18 @@ class TestMatchStatementPatternProblems:
         }
         """
 
-        # TODO: Should parse successfully and generate proper AST nodes for multiple case values
         ast = parse_a7(source)
-        assert ast is not None
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[0]
+        assert match_stmt.kind == NodeKind.MATCH
+        assert len(match_stmt.cases) == 2
+        assert len(match_stmt.cases[0].patterns) == 3
+        assert len(match_stmt.cases[1].patterns) == 3
+        assert all(p.kind == NodeKind.PATTERN_LITERAL for p in match_stmt.cases[0].patterns)
+        assert all(p.kind == NodeKind.PATTERN_LITERAL for p in match_stmt.cases[1].patterns)
 
-    # @pytest.mark.skip(reason="Fall (fallthrough) statements not yet implemented")
     def test_fall_statement(self):
-        """Test fall (fallthrough) statement in match (not yet supported)."""
+        """`fall` tokens should parse as FALL statements inside match case blocks."""
         source = """
         test_match :: fn(x: i32) {
             match x {
@@ -314,17 +327,65 @@ class TestMatchStatementPatternProblems:
         }
         """
 
-        # TODO: Should parse successfully and generate proper AST nodes for fall statements
         ast = parse_a7(source)
-        assert ast is not None
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[0]
+        first_case_body = match_stmt.cases[0].statement
+        assert first_case_body.kind == NodeKind.BLOCK
+        assert len(first_case_body.statements) == 2
+        assert first_case_body.statements[1].kind == NodeKind.FALL
+
+    def test_boolean_literal_patterns(self):
+        """Boolean literals in case patterns should parse as literal patterns."""
+        source = """
+        test_match :: fn(flag: bool) {
+            match flag {
+                case true: {
+                    print("T")
+                }
+                case false: {
+                    print("F")
+                }
+            }
+        }
+        """
+        ast = parse_a7(source)
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[0]
+        first = match_stmt.cases[0].patterns[0]
+        second = match_stmt.cases[1].patterns[0]
+        assert first.kind == NodeKind.PATTERN_LITERAL
+        assert second.kind == NodeKind.PATTERN_LITERAL
+        assert first.literal.literal_kind == LiteralKind.BOOLEAN
+        assert second.literal.literal_kind == LiteralKind.BOOLEAN
+
+    def test_nil_literal_pattern(self):
+        """Nil literals in case patterns should parse as literal patterns."""
+        source = """
+        test_match :: fn(ptr: ref i32) {
+            match ptr {
+                case nil: {
+                    print("nil")
+                }
+                else: {
+                    print("value")
+                }
+            }
+        }
+        """
+        ast = parse_a7(source)
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[0]
+        nil_pattern = match_stmt.cases[0].patterns[0]
+        assert nil_pattern.kind == NodeKind.PATTERN_LITERAL
+        assert nil_pattern.literal.literal_kind == LiteralKind.NIL
 
 
 class TestEnumAccessPatternProblems:
-    """Test enum access pattern limitations."""
+    """Test enum access parsing behavior."""
 
-    # @pytest.mark.skip(reason="Scoped enum access not yet implemented")
     def test_scoped_enum_access(self):
-        """Test scoped enum access (not yet supported)."""
+        """Scoped enum access should parse as field access expressions."""
         source = """
         Color :: enum {
             Red,
@@ -337,13 +398,17 @@ class TestEnumAccessPatternProblems:
         }
         """
 
-        # TODO: Should parse successfully and generate proper AST nodes for scoped enum access
         ast = parse_a7(source)
-        assert ast is not None
+        func_decl = ast.declarations[1]
+        var_decl = func_decl.body.statements[0]
+        expr = var_decl.value
+        assert expr.kind == NodeKind.FIELD_ACCESS
+        assert expr.object.kind == NodeKind.IDENTIFIER
+        assert expr.object.name == "Color"
+        assert expr.field == "Red"
 
-    # @pytest.mark.skip(reason="Enum with explicit values and cast expressions not yet implemented")
     def test_enum_with_explicit_values_access(self):
-        """Test enum with explicit values and access (not fully supported)."""
+        """Enum access with explicit values and cast expressions should parse."""
         source = """
         Status :: enum {
             Ok = 200,
@@ -357,13 +422,16 @@ class TestEnumAccessPatternProblems:
         }
         """
 
-        # TODO: Should parse successfully and generate proper AST nodes for enum values and cast expressions
         ast = parse_a7(source)
-        assert ast is not None
+        func_decl = ast.declarations[1]
+        first_var = func_decl.body.statements[0]
+        second_var = func_decl.body.statements[1]
+        assert first_var.value.kind == NodeKind.FIELD_ACCESS
+        assert second_var.value.kind == NodeKind.CAST
 
 
 class TestMemoryManagementSyntaxProblems:
-    """Test memory management syntax that's not yet implemented."""
+    """Test memory management syntax parsing behavior."""
 
     def test_new_expression(self):
         """Test new expressions for allocation (now implemented)."""

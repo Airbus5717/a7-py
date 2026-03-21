@@ -17,8 +17,11 @@ from rich.columns import Columns
 class ConsoleFormatter:
     """Formats compilation results for Rich console display."""
 
-    def __init__(self, mode: str = "compile"):
+    _ANONYMOUS_MARKERS = {"<anonymous>", "<unknown>", "__inline__", "", "anonymous"}
+
+    def __init__(self, mode: str = "compile", backend: str = "zig"):
         self.mode = mode
+        self.backend = backend
         self.console = Console()
 
     def display_compilation(self, tokens: list, ast, source_code: str, input_path: str):
@@ -59,6 +62,24 @@ class ConsoleFormatter:
         self._display_stage_header("4", "CODE GENERATION", "magenta")
         self._display_codegen(codegen_result)
         self._display_pipeline_summary(tokens, ast, semantic_results, codegen_result, input_path)
+
+    def display_through_semantic(
+        self,
+        input_path: str,
+        source_code: str,
+        tokens: list,
+        ast,
+        semantic_results: dict,
+    ):
+        """Display stages 1-3 (tokenize, parse, semantic) with visuals."""
+        self._display_source_panel(source_code, input_path)
+        self._display_stage_header("1", "LEXICAL ANALYSIS", "cyan")
+        self._display_tokens(tokens)
+        self._display_stage_header("2", "SYNTACTIC ANALYSIS", "green")
+        self._display_ast(ast)
+        self._display_stage_header("3", "SEMANTIC ANALYSIS", "yellow")
+        self._display_semantic(semantic_results)
+        self._display_pipeline_summary(tokens, ast, semantic_results, {}, input_path)
 
     def _display_stage_header(self, number: str, title: str, color: str):
         """Display a stage header with number and title."""
@@ -135,22 +156,27 @@ class ConsoleFormatter:
         output_code = result.get("output_code", "")
         output_path = result.get("output_path", "")
         byte_count = result.get("bytes", len(output_code))
+        output_label = output_path or "(not written; in-memory)"
+        backend_name = result.get("language", self.backend.capitalize())
+        syntax_name = result.get("syntax", self.backend)
 
         # Summary line
-        self.console.print(f"  Backend: [cyan]Zig[/cyan]  Output: [green]{output_path}[/green]  Size: [dim]{byte_count} bytes[/dim]")
+        self.console.print(
+            f"  Backend: [cyan]{backend_name}[/cyan]  Output: [green]{output_label}[/green]  Size: [dim]{byte_count} bytes[/dim]"
+        )
 
-        # Show the generated code with Zig syntax highlighting
+        # Show generated code with backend-specific syntax highlighting
         if output_code:
             try:
-                zig_syntax = Syntax(
+                code_syntax = Syntax(
                     output_code.rstrip(),
-                    "zig",
+                    syntax_name,
                     theme="monokai",
                     line_numbers=True,
                 )
                 code_panel = Panel(
-                    zig_syntax,
-                    title=f"Generated Zig: {output_path}",
+                    code_syntax,
+                    title=f"Generated {backend_name}: {output_path or 'in-memory'}",
                     border_style="magenta",
                     padding=(0, 1),
                 )
@@ -168,6 +194,7 @@ class ConsoleFormatter:
         error_count = len(errors)
         output_path = codegen_result.get("output_path", "") if codegen_result else ""
         byte_count = codegen_result.get("bytes", 0) if codegen_result else 0
+        output_code = codegen_result.get("output_code", "") if codegen_result else ""
 
         summary = Table(show_header=False, box=None, pad_edge=False, show_edge=False)
         summary.add_column("Stage", style="bold", width=20)
@@ -181,6 +208,8 @@ class ConsoleFormatter:
             summary.add_row("Semantic", "[green]✓[/green] clean")
         if output_path:
             summary.add_row("Codegen", f"[green]✓[/green] {output_path} ({byte_count} bytes)")
+        elif output_code:
+            summary.add_row("Codegen", f"[green]✓[/green] generated in-memory ({byte_count} bytes)")
         else:
             summary.add_row("Codegen", "[dim]skipped[/dim]")
 
@@ -217,13 +246,99 @@ class ConsoleFormatter:
             sym_dict = getattr(current, 'symbols', {})
             for name, sym in sym_dict.items():
                 kind_str = sym.kind.name if hasattr(sym, 'kind') and hasattr(sym.kind, 'name') else "?"
-                type_str = str(sym.type) if hasattr(sym, 'type') and sym.type else "?"
-                symbols.append({"name": name, "kind": kind_str, "type": type_str, "scope": cur_name})
+                display_name = self._format_symbol_name(sym, name, cur_name)
+                type_str = self._format_symbol_type(sym, cur_name)
+                symbols.append({"name": display_name, "kind": kind_str, "type": type_str, "scope": cur_name})
 
             children = getattr(current, 'children', [])
             for i, child in enumerate(reversed(children)):
                 child_name = getattr(child, 'name', f"scope_{len(children) - 1 - i}")
                 stack.append((child, child_name))
+
+    def _is_unknown_symbol_type(self, sym) -> bool:
+        """Check whether a symbol currently has an unresolved/unknown type."""
+        sym_type = getattr(sym, "type", None)
+        if sym_type is None:
+            return True
+
+        kind = getattr(sym_type, "kind", None)
+        if getattr(kind, "name", None) == "UNKNOWN":
+            return True
+
+        try:
+            return str(sym_type) == "unknown type"
+        except Exception:
+            return True
+
+    def _is_anonymous_marker(self, value: str) -> bool:
+        text = (value or "").strip().lower()
+        return text in self._ANONYMOUS_MARKERS
+
+    def _format_symbol_name(self, sym, fallback_name: str, scope_name: str) -> str:
+        """Create a readable symbol name, including anonymous/inline forms."""
+        raw_name = getattr(sym, "name", None) or fallback_name or ""
+        kind_name = getattr(getattr(sym, "kind", None), "name", "?")
+
+        if not self._is_anonymous_marker(raw_name):
+            return raw_name
+
+        if kind_name == "STRUCT":
+            return "(anonymous struct)"
+        if kind_name == "ENUM":
+            return "(anonymous enum)"
+        if kind_name == "UNION":
+            return "(anonymous union)"
+        if kind_name == "FUNCTION":
+            return "(anonymous function)"
+        if kind_name == "TYPE":
+            return "(anonymous type)"
+        if kind_name == "ENUM_VARIANT":
+            return "(anonymous enum variant)"
+        if kind_name == "CONSTANT":
+            return "(anonymous constant)"
+        if kind_name == "MODULE":
+            return "(anonymous module)"
+        if kind_name == "VARIABLE":
+            if scope_name.startswith("struct_") or scope_name.startswith("union_"):
+                return "(anonymous field)"
+            return "(anonymous variable)"
+        return "(anonymous symbol)"
+
+    def _format_symbol_type(self, sym, scope_name: str) -> str:
+        """Render symbol type in a user-facing, kind-aware format."""
+        kind_name = getattr(getattr(sym, "kind", None), "name", "?")
+        raw_name = getattr(sym, "name", "") or ""
+        anonymous = self._is_anonymous_marker(raw_name)
+
+        if not self._is_unknown_symbol_type(sym):
+            try:
+                return str(sym.type)
+            except Exception:
+                return "unresolved"
+
+        if kind_name == "MODULE":
+            return "module"
+        if kind_name == "FUNCTION":
+            return "fn (anonymous)" if anonymous else "fn(...)"
+        if kind_name == "STRUCT":
+            return "struct (anonymous)" if anonymous else f"struct {raw_name}"
+        if kind_name == "ENUM":
+            return "enum (anonymous)" if anonymous else f"enum {raw_name}"
+        if kind_name == "UNION":
+            return "union (anonymous)" if anonymous else f"union {raw_name}"
+        if kind_name == "TYPE":
+            return "type (anonymous)" if anonymous else f"type {raw_name}"
+        if kind_name == "GENERIC_PARAM":
+            return "generic parameter"
+        if kind_name == "ENUM_VARIANT":
+            return "enum variant"
+        if kind_name == "CONSTANT":
+            return "unresolved constant"
+        if kind_name == "VARIABLE":
+            if scope_name.startswith("struct_") or scope_name.startswith("union_"):
+                return "unresolved field"
+            return "unresolved variable"
+        return "unresolved"
 
     def _display_source_panel(self, source_code: str, input_path: str):
         """Display source code with syntax highlighting."""

@@ -76,6 +76,7 @@ class SemanticErrorType(Enum):
     DOUBLE_FREE = "double_free"
     DELETE_NON_REFERENCE = "delete_non_reference"
     NIL_NOT_REFERENCE_TYPE = "nil_not_reference_type"
+    MISSING_TYPE_ANNOTATION = "missing_type_annotation"
     NON_EXHAUSTIVE_MATCH = "non_exhaustive_match"
 
     # Import errors
@@ -224,6 +225,8 @@ def get_semantic_error_message(error_type: SemanticErrorType) -> str:
         SemanticErrorType.INVALID_DEFER_SCOPE: "Invalid defer scope",
         SemanticErrorType.MEMORY_LEAK: "Potential memory leak",
         SemanticErrorType.DOUBLE_FREE: "Potential double free",
+        SemanticErrorType.MISSING_TYPE_ANNOTATION: "Missing type annotation",
+        SemanticErrorType.NON_EXHAUSTIVE_MATCH: "Non-exhaustive match",
 
         # Import errors
         SemanticErrorType.CIRCULAR_IMPORT: "Circular import detected",
@@ -263,6 +266,8 @@ def get_semantic_error_advice(error_type: SemanticErrorType) -> str:
         SemanticErrorType.INVALID_DEFER_SCOPE: "Defer statements must be used carefully with scoping rules",
         SemanticErrorType.MEMORY_LEAK: "Ensure all allocated memory is freed",
         SemanticErrorType.DOUBLE_FREE: "Ensure memory is only freed once",
+        SemanticErrorType.MISSING_TYPE_ANNOTATION: "Add a type annotation or an initializer for this declaration",
+        SemanticErrorType.NON_EXHAUSTIVE_MATCH: "Add missing cases or an else/wildcard branch to cover remaining values",
 
         # Import errors
         SemanticErrorType.CIRCULAR_IMPORT: "Reorganize modules to remove circular dependencies",

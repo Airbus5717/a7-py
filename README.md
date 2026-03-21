@@ -4,7 +4,7 @@ This whole application was vibecoded using Codex and Claude Code.
 
 A Python-based compiler for A7, a statically-typed systems programming language. A7 combines the simplicity of C-style syntax with modern features like generics, type inference, and property-based pointer operations.
 
-The compiler features a complete pipeline: tokenizer, parser, 3-pass semantic analysis, AST preprocessing, and Zig code generation.
+The compiler features a complete pipeline: tokenizer, parser, 3-pass semantic analysis, AST preprocessing, and pluggable code generation backends (Zig and C).
 
 ## Inspired By
 
@@ -30,10 +30,16 @@ uv sync
 
 ## Usage
 
-Compile an A7 program to Zig:
+Compile an A7 program to Zig (default backend):
 ```bash
 uv run python main.py examples/001_hello.a7
 # Output: examples/001_hello.zig
+```
+
+Compile an A7 program to C:
+```bash
+uv run python main.py --backend c examples/001_hello.a7
+# Output: examples/001_hello.c
 ```
 
 Modes and output formats:
@@ -60,20 +66,21 @@ PYTHONPATH=. uv run pytest                         # All tests
 PYTHONPATH=. uv run pytest test/test_tokenizer.py  # Specific test file
 PYTHONPATH=. uv run pytest -k "generic" -v         # Targeted tests
 uv run python scripts/verify_examples_e2e.py       # Compile/build/run + output checks for all examples
+uv run python scripts/verify_examples_e2e_c.py     # Same flow via C backend + zig cc
 uv run python scripts/verify_error_stages.py       # Error-stage audit across modes and formats
 ```
 
 ## Compilation Pipeline
 
 ```
-Source (.a7) → Tokenizer → Parser → Semantic Analysis (3-pass) → AST Preprocessing → Zig Codegen → Output (.zig)
+Source (.a7) → Tokenizer → Parser → Semantic Analysis (3-pass) → AST Preprocessing → Backend Codegen (Zig/C) → Output (.zig/.c)
 ```
 
 1. **Tokenizer**. Lexes source into tokens. Handles single-token generics (`$T`), nested comments, and number formats.
 2. **Parser**. Uses recursive descent with precedence climbing. Parses all A7 constructs.
 3. **Semantic Analysis**. Runs name resolution, type checking with inference, and control flow validation.
 4. **AST Preprocessing**. Runs 9 sub-passes: sugar lowering, stdlib resolution, mutation and usage analysis, type inference, shadowing resolution, function hoisting, and constant folding.
-5. **Zig Code Generation**. Translates AST to valid Zig source code.
+5. **Backend Code Generation**. Translates AST to valid Zig or C source code.
 
 All AST traversals are iterative with no recursion. The pipeline works with Python's recursion limit set to 100.
 
@@ -86,16 +93,17 @@ All AST traversals are iterative with no recursion. The pipeline works with Pyth
 - **Memory**: Property-based pointer syntax (`.adr`, `.val`), new/delete, defer cleanup
 - **Imports**: Module system with named imports, using imports, aliased imports
 - **Generics**: Type parameters (`$T`), constraints, type sets, generic structs
-- **Code Generation**: Full A7 → Zig translation with smart var/const inference, function hoisting, shadowing prevention
+- **Code Generation**: A7 → Zig and A7 → C backends
 - **Standard Library**: Registry with io and math modules, backend-specific mappings
 - **Error Messages**: Rich formatting with source context and structured error types
 
 ## Project Status
 
-- **983 tests passing**, 9 skipped
-- **36/36 examples** pass end-to-end compile + build + run + golden-output verification
+- Test status depends on current branch state. Check with `PYTHONPATH=. uv run pytest --tb=no -q`.
+- Example end-to-end verification is available via `uv run python scripts/verify_examples_e2e.py`.
 - Parser is 100% complete for the A7 specification
 - Zig backend handles all AST node types
+- C backend targets C11 and is validated with `zig cc`
 
 ## Learn More
 

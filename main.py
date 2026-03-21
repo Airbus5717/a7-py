@@ -5,10 +5,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from src.backends import list_backends
 from src.compile import A7Compiler, CompileMode, OutputFormat
 
 
 def main() -> None:
+    available_backends = ", ".join(list_backends())
+
     parser = argparse.ArgumentParser(
         description="A7 Programming Language Compiler/Interpreter",
         prog="a7-py",
@@ -50,7 +53,7 @@ def main() -> None:
     parser.add_argument(
         "--backend",
         default="zig",
-        help="Target backend name (default: zig)",
+        help=f"Target backend name (default: zig). Available: {available_backends}",
     )
 
     parser.add_argument(

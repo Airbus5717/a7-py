@@ -102,7 +102,7 @@ class A7Compiler:
         self.doc_path = doc_path
 
         self.json_formatter = JSONFormatter(backend=backend)
-        self.console_formatter = ConsoleFormatter(mode=self.mode.value)
+        self.console_formatter = ConsoleFormatter(mode=self.mode.value, backend=backend)
 
     # Public API compatibility: bool-returning compile method
     def compile_file(self, input_path: str, output_path: Optional[str] = None) -> bool:
@@ -325,12 +325,11 @@ class A7Compiler:
                     target_code = codegen.generate(
                         ast, type_map=type_map, symbol_table=symbol_table
                     )
+                    language_name = codegen.language_name
+                    syntax = self.backend
                 except Exception as e:
-                    if self.output_format == OutputFormat.HUMAN:
-                        if self.verbose:
-                            traceback.print_exc()
-                        else:
-                            console.print(f"[red]✗[/red] Code generation failed: {e}")
+                    if self.output_format == OutputFormat.HUMAN and self.verbose:
+                        traceback.print_exc()
                     return self._finish_with_failure(
                         result,
                         ExitCode.CODEGEN,
@@ -345,6 +344,9 @@ class A7Compiler:
                     "output_path": result.output_path,
                     "bytes": len(target_code),
                     "changes": preprocessor.changes_made,
+                    "backend": self.backend,
+                    "language": language_name,
+                    "syntax": syntax,
                 }
                 result.stages["codegen"] = {
                     "ok": True,
@@ -433,6 +435,23 @@ class A7Compiler:
             self.console_formatter.display_compilation(
                 result.tokens or [], result.ast, result.source_code, result.input_path
             )
+        elif self.mode == CompileMode.SEMANTIC:
+            self.console_formatter.display_through_semantic(
+                result.input_path,
+                result.source_code,
+                result.tokens or [],
+                result.ast,
+                result.semantic_results or {},
+            )
+        elif self.mode in {CompileMode.PIPELINE, CompileMode.DOC, CompileMode.COMPILE}:
+            self.console_formatter.display_full_pipeline(
+                result.input_path,
+                result.source_code,
+                result.tokens or [],
+                result.ast,
+                result.semantic_results or {},
+                result.codegen_result or {},
+            )
         elif self.verbose:
             self.console_formatter.display_full_pipeline(
                 result.input_path,
@@ -442,19 +461,6 @@ class A7Compiler:
                 result.semantic_results,
                 result.codegen_result,
             )
-        elif self.mode == CompileMode.COMPILE and result.output_path:
-            console.print(f"[green]✓[/green] {result.input_path} → {result.output_path}")
-        elif self.mode == CompileMode.PIPELINE:
-            console.print(
-                f"[green]✓[/green] Pipeline complete for {result.input_path} (no file written)"
-            )
-        elif self.mode == CompileMode.SEMANTIC:
-            pass_count = len(result.semantic_results.get("passes", [])) if result.semantic_results else 0
-            console.print(
-                f"[green]✓[/green] Semantic analysis passed ({pass_count} pass(es))"
-            )
-        elif self.mode == CompileMode.DOC and result.doc_path:
-            console.print(f"[green]✓[/green] Documentation generated for {result.input_path}")
 
         if result.doc_path:
             console.print(f"[blue]📄[/blue] Documentation written to {result.doc_path}")
@@ -569,9 +575,9 @@ class A7Compiler:
                 "output_code": result.codegen_result.get("output_code", ""),
             }
 
-        if result.output_path:
+        if result.output_path and Path(result.output_path).exists():
             payload["artifacts"]["output_path"] = result.output_path
-        if result.doc_path:
+        if result.doc_path and Path(result.doc_path).exists():
             payload["artifacts"]["doc_path"] = result.doc_path
 
         if not result.ok and result.failure is not None:
@@ -620,9 +626,10 @@ class A7Compiler:
             print(f"Found {len(a7_files)} source files")
 
         success_count = 0
+        extension = self._get_backend_extension()
         for a7_file in a7_files:
             rel_path = a7_file.relative_to(project_path)
-            output_path = Path(output_dir) / rel_path.with_suffix(".zig")
+            output_path = Path(output_dir) / rel_path.with_suffix(extension)
             if self.compile_file(str(a7_file), str(output_path)):
                 success_count += 1
 
@@ -638,7 +645,15 @@ class A7Compiler:
         return False
 
     def _generate_output_path(self, input_path: str) -> str:
-        return input_path.replace(".a7", ".zig")
+        extension = self._get_backend_extension()
+        return input_path.replace(".a7", extension)
+
+    def _get_backend_extension(self) -> str:
+        try:
+            return get_backend(self.backend).file_extension
+        except Exception:
+            # Keep compile-mode output-path generation resilient for invalid backends.
+            return ".out"
 
 
 def compile_a7_file(
@@ -674,4 +689,3 @@ def compile_a7_project(
     """
     compiler = A7Compiler(verbose=verbose, mode=CompileMode.COMPILE)
     return compiler.compile_project(project_root, output_dir)
-

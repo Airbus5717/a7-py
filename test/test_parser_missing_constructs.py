@@ -97,7 +97,7 @@ class TestMissingEnums:
 
 
 class TestMissingUnions:
-    """Test union declarations - CURRENTLY NOT IMPLEMENTED."""
+    """Test union declaration parsing behavior."""
 
     # @pytest.mark.skip(reason="Union declarations not yet implemented")
     def test_simple_union_declaration(self):
@@ -176,9 +176,27 @@ class TestMissingMatchStatements:
         ast = parse_a7(code)
         # Should parse match with multiple patterns and ranges
 
+    def test_match_wildcard_pattern(self):
+        """Test parsing wildcard pattern '_' in match statements."""
+        code = """
+        main :: fn() {
+            value :: 3
+            match value {
+                case _: {
+                    print("Any")
+                }
+            }
+        }
+        """
+        ast = parse_a7(code)
+        func_decl = ast.declarations[0]
+        match_stmt = func_decl.body.statements[1]
+        case_branch = match_stmt.cases[0]
+        assert case_branch.patterns[0].kind == NodeKind.PATTERN_WILDCARD
+
 
 class TestMissingDeferStatements:
-    """Test defer statements - CURRENTLY NOT IMPLEMENTED."""
+    """Test defer statement parsing behavior."""
 
     # @pytest.mark.skip(reason="Defer statements not yet implemented")
     def test_defer_statement(self):

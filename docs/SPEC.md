@@ -1,12 +1,12 @@
 # A7 Programming Language Specification
 
-> **Implementation Status (2026-02-21)**: This specification describes the complete A7 language design. The current Python implementation (`a7-py`) provides:
+> **Implementation Status (2026-02-24)**: This specification describes the complete A7 language design. The current Python implementation (`a7-py`) provides:
 > - ✅ **Tokenizer/Lexer**: implemented
 > - ✅ **Parser**: implemented
 > - ✅ **AST generation**: implemented
-> - ✅ **Semantic pipeline**: implemented (name resolution, type checking, semantic validation), with known generic/match-expression gaps
+> - ✅ **Semantic pipeline**: implemented (name resolution, type checking, semantic validation), including match expressions, pattern type checks, and bool/enum exhaustiveness checks
 > - ✅ **Zig code generation**: implemented
-> - 📊 **Current tests**: `1039 passed, 7 failed, 0 skipped` after unskipping previously deferred semantic tests
+> - 📊 **Current tests**: `1067 passed, 0 failed, 0 skipped`
 >
 > See `MISSING_FEATURES.md` for detailed feature status and `CLAUDE.md` for development guide.
 
@@ -534,7 +534,7 @@ match color {
     }
     case Color.Green: {
         print("Green")
-        fall  // Explicit fallthrough
+        fall  // Parsed; full semantic/codegen fallthrough behavior is still being finalized
     }
     case Color.Blue: {
         print("Green or Blue")
@@ -1787,7 +1787,7 @@ match color {
     }
     case Color.Green: {
         print("Green")
-        fall  // Explicit fallthrough
+        fall  // Parsed; full semantic/codegen fallthrough behavior is still being finalized
     }
     case Color.Blue: {
         print("Green or Blue")
@@ -2831,34 +2831,28 @@ A7 supports the full ASCII character set (0-127) only. Characters outside this r
 
 ## Appendix E: Implementation Status (a7-py)
 
-Status snapshot (2026-02-21), based on running `PYTHONPATH=. uv run pytest` after unskipping deferred semantic tests:
+Status snapshot (2026-02-24), based on running `PYTHONPATH=. uv run pytest -q`:
 
 - ✅ Full compiler pipeline exists (tokenizer, parser, semantic passes, AST preprocessing, Zig backend).
 - ✅ Examples continue to pass end-to-end verification.
-- 📊 Test status: **1039 passed, 7 failed, 0 skipped**.
+- 📊 Test status: **1067 passed, 0 failed, 0 skipped**.
 
 ### E.1 Current Open Gaps
 
-1. **Match expressions in semantic type checking**
-   - `MATCH_EXPR` nodes are parsed but not yet handled by `TypeCheckingPass`.
+1. **`fall` semantic/codegen behavior**
+   - `fall` parses, but full semantic validation and backend lowering are still pending.
 
-2. **Type-set builtin in declaration expression context**
-   - `@type_set(...)` currently fails in top-level constant declarations due to expression parsing path for type arguments.
+2. **Advanced match diagnostics**
+   - Exhaustiveness for bool/enum is implemented, but overlap/redundancy diagnostics are still incomplete.
 
-3. **Constraint-aware generic arithmetic**
-   - Generic functions using arithmetic on `$T` fail without constraint propagation/type knowledge.
+3. **Memory/lifetime model depth**
+   - Basic `new`/`del` validation exists; full ownership/lifetime analysis is not complete.
 
-4. **Generic struct field substitution**
-   - Struct literal/type checks still compare against unresolved `$T/$U` fields in some paths.
+4. **Generic constraint internals**
+   - Some generic-constraint helper internals remain placeholder-level and need completion.
 
-5. **Field access on instantiated generic structs**
-   - `Box(i32)`/`Node(i32)` remain `GenericInstanceType` in field-access checks instead of being resolved to concrete struct field layouts.
-
-6. **Literal initialization for generic locals**
-   - Initializers like `total: $T = 0` need inference/coercion strategy for generic numeric contexts.
-
-7. **Recursive generic instantiation**
-   - Recursive generic structs need cycle-safe type resolution and substitution.
+5. **Backend semantic parity hardening**
+   - Differential parity checks across backends should continue expanding for new language features.
 
 ### E.2 Source Of Truth
 

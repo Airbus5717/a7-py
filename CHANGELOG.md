@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Populated by preprocessor, read by backends
 
 ### Changed
+- **Language Documentation Completion (Site)**
+  - Expanded `site/src/pages/Language.tsx` into a full reference covering lexical rules, literals, declarations, expressions, control flow, functions, memory, generics, modules, intrinsics, operators, and grammar quick-reference.
+  - Added explicit implementation-state callouts linking language docs to current semantic gaps tracked in `MISSING_FEATURES.md` / site status.
+
 - **Current Test Baseline**
   - `PYTHONPATH=. uv run pytest` now reports `1039 passed, 7 failed, 0 skipped`.
   - Remaining failures are documented in `MISSING_FEATURES.md` and mirrored in docs/site status pages.
