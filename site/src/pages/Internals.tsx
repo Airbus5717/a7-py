@@ -8,10 +8,10 @@ const stages = [
   { label: 'Parser', file: 'parser.py' },
   { label: 'Semantic', file: 'passes/' },
   { label: 'Preprocessor', file: 'ast_preprocessor.py' },
-  { label: 'Codegen', file: 'backends/zig.py' },
+  { label: 'Codegen', file: 'backends/' },
 ]
 
-const dataLabels = ['tokens', 'AST', 'symbols + types', 'annotated AST', 'Zig']
+const dataLabels = ['tokens', 'AST', 'symbols + types', 'annotated AST', 'Zig / C']
 
 const subPasses = [
   { num: 1, name: '.adr/.val lowering' },
@@ -78,6 +78,7 @@ export default function Internals() {
             [<code className="doc-inline-code" key="st">src/symbol_table.py</code>, 'Symbol + Scope + ModuleTable (hierarchical lookup)'],
             [<code className="doc-inline-code" key="bb">src/backends/base.py</code>, 'Abstract backend contract (generate + visit)'],
             [<code className="doc-inline-code" key="bz">src/backends/zig.py</code>, 'Zig code generator, reads all annotations'],
+            [<code className="doc-inline-code" key="bc">src/backends/c.py</code>, 'C11 code generator, labeled loops via goto, slice structs'],
           ]}
         />
       </SectionPanel>
@@ -204,8 +205,9 @@ export default function Internals() {
 # 4. walk     — visit() dispatches on NodeKind
 # 5. output   — return accumulated Zig source
 
-# Zig backend reads preprocessor annotations AND
-# re-analyzes mutations/usage locally (dual analysis)`} />
+# Both backends read preprocessor annotations AND
+# re-analyze mutations/usage locally (dual analysis)
+# --backend c selects C11 output (validated with zig cc)`} />
       </SectionPanel>
 
       <SectionPanel title="Errors and symbols">

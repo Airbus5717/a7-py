@@ -88,7 +88,7 @@ All AST traversals are iterative with no recursion. The pipeline works with Pyth
 
 - **Types**: Primitives, arrays, slices, pointers, generics, function types, inline structs
 - **Declarations**: Functions, structs, enums, unions, variables, constants, type aliases
-- **Control Flow**: if/else, while, for loops, for-in, match statements, defer
+- **Control Flow**: if/else, while, for loops, for-in, labeled loops with break/continue, match statements, defer
 - **Expressions**: All operators with proper precedence, casts, if-expressions, struct/array literals
 - **Memory**: Property-based pointer syntax (`.adr`, `.val`), new/delete, defer cleanup
 - **Imports**: Module system with named imports, using imports, aliased imports

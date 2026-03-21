@@ -902,6 +902,8 @@ class TypeCheckingPass:
             return self.visit_call_expr(node)
         elif node.kind == NodeKind.INDEX:
             return self.visit_index_expr(node)
+        elif node.kind == NodeKind.SLICE:
+            return self.visit_slice_expr(node)
         elif node.kind == NodeKind.FIELD_ACCESS:
             return self.visit_field_access(node)
         elif node.kind == NodeKind.ADDRESS_OF:
@@ -1210,6 +1212,10 @@ class TypeCheckingPass:
     def visit_index_expr(self, node: ASTNode) -> Type:
         """Visit an index expression."""
         obj_type = self.visit_expression(node.object) if node.object else UNKNOWN
+        index_type = self.visit_expression(node.index) if node.index else UNKNOWN
+
+        if node.index and not index_type.is_integral():
+            self.add_type_error(TypeErrorType.INDEX_NOT_INTEGER, node.index.span, got_type=str(index_type))
 
         if isinstance(obj_type, ArrayType):
             return obj_type.element_type
@@ -1220,6 +1226,28 @@ class TypeCheckingPass:
         else:
             self.add_type_error(TypeErrorType.CANNOT_INDEX_TYPE, node.span, got_type=str(obj_type))
             return UNKNOWN
+
+    def visit_slice_expr(self, node: ASTNode) -> Type:
+        """Visit a slice expression."""
+        obj_type = self.visit_expression(node.object) if node.object else UNKNOWN
+
+        if node.start:
+            start_type = self.visit_expression(node.start)
+            if not start_type.is_integral():
+                self.add_type_error(TypeErrorType.INDEX_NOT_INTEGER, node.start.span, got_type=str(start_type))
+
+        if node.end:
+            end_type = self.visit_expression(node.end)
+            if not end_type.is_integral():
+                self.add_type_error(TypeErrorType.INDEX_NOT_INTEGER, node.end.span, got_type=str(end_type))
+
+        if isinstance(obj_type, ArrayType):
+            return SliceType(obj_type.element_type)
+        if isinstance(obj_type, SliceType):
+            return SliceType(obj_type.element_type)
+
+        self.add_type_error(TypeErrorType.REQUIRES_ARRAY_OR_SLICE, node.span, got_type=str(obj_type))
+        return UNKNOWN
 
     def visit_field_access(self, node: ASTNode) -> Type:
         """Visit a field access expression."""

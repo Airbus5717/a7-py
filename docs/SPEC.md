@@ -6,7 +6,8 @@
 > - ✅ **AST generation**: implemented
 > - ✅ **Semantic pipeline**: implemented (name resolution, type checking, semantic validation), including match expressions, pattern type checks, and bool/enum exhaustiveness checks
 > - ✅ **Zig code generation**: implemented
-> - 📊 **Current tests**: `1067 passed, 0 failed, 0 skipped`
+> - ✅ **C code generation**: implemented (C11, validated with `zig cc`)
+> - 📊 **Current tests**: check with `PYTHONPATH=. uv run pytest --tb=no -q`
 >
 > See `MISSING_FEATURES.md` for detailed feature status and `CLAUDE.md` for development guide.
 
@@ -32,7 +33,7 @@
 
 ### 1.1 Language Overview
 
-A7 is a statically-typed, procedural programming language that currently compiles to Zig, with plans for C and native machine code targets.
+A7 is a statically-typed, procedural programming language that compiles to Zig and C, with plans for native machine code targets.
 It features:
 - **Static typing** with type inference
 - **Compile-time generics** via monomorphization

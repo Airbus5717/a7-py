@@ -184,7 +184,7 @@ class CCodeGenerator(CodeGenerator):
         self._main_has_return = False
 
         self._defer_scopes: list[list[str]] = []
-        self._loop_scope_markers: list[int] = []
+        self._loop_frames: list[dict[str, object]] = []
 
     @property
     def file_extension(self) -> str:
@@ -228,7 +228,7 @@ class CCodeGenerator(CodeGenerator):
         self._main_has_return = False
 
         self._defer_scopes = []
-        self._loop_scope_markers = []
+        self._loop_frames = []
 
         self._scan_features(ast)
         self.output.write(self._emit_preamble())
@@ -323,6 +323,11 @@ class CCodeGenerator(CodeGenerator):
             if node.kind == NodeKind.TYPE_SLICE:
                 self._needs_stddef = True
                 self._register_slice_type(node)
+
+            result_type = self._type_map.get(id(node))
+            if isinstance(result_type, SliceType):
+                self._needs_stddef = True
+                self._semantic_type_to_c(result_type)
 
             if node.kind in {NodeKind.NEW_EXPR, NodeKind.DEL}:
                 self._needs_stdlib = True
@@ -735,26 +740,38 @@ class CCodeGenerator(CodeGenerator):
                 self._emit_stmt_or_block(node.else_stmt)
 
     def _visit_while(self, node: ASTNode) -> None:
+        if node.label:
+            self._visit_labeled_while(node)
+            return
+
         self._write_indent()
         cond = self._emit_expr(node.condition) if node.condition else "1"
         self.output.write(f"while ({cond}) ")
         marker = len(self._defer_scopes)
-        self._loop_scope_markers.append(marker)
+        self._push_loop_frame(label=None, unwind_depth=marker)
         self._emit_stmt_or_block(node.body)
-        self._loop_scope_markers.pop()
+        self._pop_loop_frame()
 
     def _visit_for(self, node: ASTNode) -> None:
+        if node.label:
+            self._visit_labeled_for(node)
+            return
+
         init = self._emit_for_clause(node.init)
         cond = self._emit_expr(node.condition) if node.condition else "1"
         update = self._emit_for_clause(node.update)
         self._write_indent()
         self.output.write(f"for ({init}; {cond}; {update}) ")
         marker = len(self._defer_scopes)
-        self._loop_scope_markers.append(marker)
+        self._push_loop_frame(label=None, unwind_depth=marker)
         self._emit_stmt_or_block(node.body)
-        self._loop_scope_markers.pop()
+        self._pop_loop_frame()
 
     def _visit_for_in(self, node: ASTNode) -> None:
+        if node.label:
+            self._visit_labeled_for_in(node, indexed=False)
+            return
+
         iterable_expr = self._emit_expr(node.iterable)
         iterable_type = self._type_map.get(id(node.iterable)) if node.iterable else None
         elem_type = self._iterable_element_type(iterable_type)
@@ -771,16 +788,18 @@ class CCodeGenerator(CodeGenerator):
         self.indent()
         self._defer_scopes.append([])
         self._write_indent()
-        self.output.write(f"{elem_type} {iter_name} = {iterable_expr}[{idx_name}];\n")
+        self.output.write(
+            f"{elem_type} {iter_name} = {self._emit_iterable_element_expr(node.iterable, iterable_expr, iterable_type, idx_name)};\n"
+        )
 
         marker = len(self._defer_scopes) - 1
-        self._loop_scope_markers.append(marker)
+        self._push_loop_frame(label=None, unwind_depth=marker)
         if node.body and node.body.kind == NodeKind.BLOCK:
             for stmt in (node.body.statements or []):
                 self.visit(stmt)
         elif node.body:
             self.visit(node.body)
-        self._loop_scope_markers.pop()
+        self._pop_loop_frame()
 
         self._emit_current_scope_defers()
         self._defer_scopes.pop()
@@ -789,6 +808,10 @@ class CCodeGenerator(CodeGenerator):
         self.output.write("}\n")
 
     def _visit_for_in_indexed(self, node: ASTNode) -> None:
+        if node.label:
+            self._visit_labeled_for_in(node, indexed=True)
+            return
+
         iterable_expr = self._emit_expr(node.iterable)
         iterable_type = self._type_map.get(id(node.iterable)) if node.iterable else None
         elem_type = self._iterable_element_type(iterable_type)
@@ -808,16 +831,18 @@ class CCodeGenerator(CodeGenerator):
         self._write_indent()
         self.output.write(f"size_t {index_var} = {idx_name};\n")
         self._write_indent()
-        self.output.write(f"{elem_type} {iter_name} = {iterable_expr}[{idx_name}];\n")
+        self.output.write(
+            f"{elem_type} {iter_name} = {self._emit_iterable_element_expr(node.iterable, iterable_expr, iterable_type, idx_name)};\n"
+        )
 
         marker = len(self._defer_scopes) - 1
-        self._loop_scope_markers.append(marker)
+        self._push_loop_frame(label=None, unwind_depth=marker)
         if node.body and node.body.kind == NodeKind.BLOCK:
             for stmt in (node.body.statements or []):
                 self.visit(stmt)
         elif node.body:
             self.visit(node.body)
-        self._loop_scope_markers.pop()
+        self._pop_loop_frame()
 
         self._emit_current_scope_defers()
         self._defer_scopes.pop()
@@ -842,34 +867,23 @@ class CCodeGenerator(CodeGenerator):
                     self.output.write("default:\n")
                 else:
                     self.output.write(f"case {pattern_code}:\n")
-            self.indent()
             stmt = getattr(case, "statement", None)
-            if stmt:
-                if stmt.kind == NodeKind.BLOCK:
-                    for s in (stmt.statements or []):
-                        self.visit(s)
-                else:
-                    self.visit(stmt)
+            self._emit_stmt_or_block(stmt)
             self._write_indent()
             self.output.write("break;\n")
-            self.dedent()
 
         if node.else_case:
             self._write_indent()
             self.output.write("default:\n")
-            self.indent()
             if isinstance(node.else_case, list):
-                for stmt in node.else_case:
-                    if stmt.kind == NodeKind.BLOCK:
-                        for s in (stmt.statements or []):
-                            self.visit(s)
-                    else:
-                        self.visit(stmt)
+                stmt = node.else_case[0] if node.else_case else None
+                self._emit_stmt_or_block(stmt)
             elif isinstance(node.else_case, ASTNode):
-                self.visit(node.else_case)
+                self._emit_stmt_or_block(node.else_case)
+            else:
+                self._emit_stmt_or_block(None)
             self._write_indent()
             self.output.write("break;\n")
-            self.dedent()
 
         self.dedent()
         self._write_indent()
@@ -894,16 +908,26 @@ class CCodeGenerator(CodeGenerator):
         self.output.write(f"return {value_expr};\n")
 
     def _visit_break(self, node: ASTNode) -> None:
-        keep_depth = self._loop_scope_markers[-1] if self._loop_scope_markers else 0
+        frame = self._resolve_loop_frame(node.label)
+        keep_depth = int(frame["unwind_depth"]) if frame else 0
         self._emit_deferred_unwind(keep_depth)
         self._write_indent()
-        self.output.write("break;\n")
+        break_target = frame.get("break_target") if frame else None
+        if break_target:
+            self.output.write(f"goto {break_target};\n")
+        else:
+            self.output.write("break;\n")
 
     def _visit_continue(self, node: ASTNode) -> None:
-        keep_depth = self._loop_scope_markers[-1] if self._loop_scope_markers else 0
+        frame = self._resolve_loop_frame(node.label)
+        keep_depth = int(frame["unwind_depth"]) if frame else 0
         self._emit_deferred_unwind(keep_depth)
         self._write_indent()
-        self.output.write("continue;\n")
+        continue_target = frame.get("continue_target") if frame else None
+        if continue_target:
+            self.output.write(f"goto {continue_target};\n")
+        else:
+            self.output.write("continue;\n")
 
     def _visit_defer(self, node: ASTNode) -> None:
         if not self._defer_scopes:
@@ -960,9 +984,9 @@ class CCodeGenerator(CodeGenerator):
         if kind == NodeKind.INDEX:
             obj = self._emit_expr(node.object)
             idx = self._emit_expr(node.index)
-            return f"{obj}[(size_t)({idx})]"
+            return f"{self._emit_index_base_expr(node.object, obj)}[(size_t)({idx})]"
         if kind == NodeKind.SLICE:
-            raise CodegenError("C backend: slice expressions are not implemented", node.span)
+            return self._emit_slice_expr(node)
         if kind == NodeKind.FIELD_ACCESS:
             return self._emit_field_access(node)
         if kind == NodeKind.ADDRESS_OF:
@@ -1592,6 +1616,163 @@ class CCodeGenerator(CodeGenerator):
                 self._write_indent()
                 self.output.write(f"{stmt};\n")
 
+    def _push_loop_frame(
+        self,
+        *,
+        label: Optional[str],
+        unwind_depth: int,
+        break_target: Optional[str] = None,
+        continue_target: Optional[str] = None,
+    ) -> None:
+        self._loop_frames.append(
+            {
+                "label": label,
+                "unwind_depth": unwind_depth,
+                "break_target": break_target,
+                "continue_target": continue_target,
+            }
+        )
+
+    def _pop_loop_frame(self) -> None:
+        if self._loop_frames:
+            self._loop_frames.pop()
+
+    def _resolve_loop_frame(self, label: Optional[str]) -> Optional[dict[str, object]]:
+        if not self._loop_frames:
+            return None
+        if label is None:
+            return self._loop_frames[-1]
+        for frame in reversed(self._loop_frames):
+            if frame["label"] == label:
+                return frame
+        return None
+
+    def _visit_labeled_while(self, node: ASTNode) -> None:
+        cond_label = self._unique_name("a7_loop_cond")
+        continue_label = self._unique_name("a7_loop_continue")
+        break_label = self._unique_name("a7_loop_break")
+        cond = self._emit_expr(node.condition) if node.condition else "1"
+
+        self._write_indent()
+        self.output.write(f"{cond_label}:\n")
+        self._write_indent()
+        self.output.write(f"if (!({cond})) goto {break_label};\n")
+        marker = len(self._defer_scopes)
+        self._push_loop_frame(
+            label=node.label,
+            unwind_depth=marker,
+            break_target=break_label,
+            continue_target=continue_label,
+        )
+        self._emit_stmt_or_block(node.body)
+        self._pop_loop_frame()
+        self._write_indent()
+        self.output.write(f"{continue_label}:\n")
+        self._write_indent()
+        self.output.write(f"goto {cond_label};\n")
+        self._write_indent()
+        self.output.write(f"{break_label}:\n")
+
+    def _visit_labeled_for(self, node: ASTNode) -> None:
+        cond_label = self._unique_name("a7_loop_cond")
+        continue_label = self._unique_name("a7_loop_continue")
+        break_label = self._unique_name("a7_loop_break")
+
+        self._write_indent()
+        self.output.write("{\n")
+        self.indent()
+        if node.init:
+            self.visit(node.init)
+        cond = self._emit_expr(node.condition) if node.condition else "1"
+        self._write_indent()
+        self.output.write(f"{cond_label}:\n")
+        self._write_indent()
+        self.output.write(f"if (!({cond})) goto {break_label};\n")
+        marker = len(self._defer_scopes)
+        self._push_loop_frame(
+            label=node.label,
+            unwind_depth=marker,
+            break_target=break_label,
+            continue_target=continue_label,
+        )
+        self._emit_stmt_or_block(node.body)
+        self._pop_loop_frame()
+        self._write_indent()
+        self.output.write(f"{continue_label}:\n")
+        update = self._emit_for_clause(node.update)
+        if update:
+            self._write_indent()
+            self.output.write(f"{update};\n")
+        self._write_indent()
+        self.output.write(f"goto {cond_label};\n")
+        self._write_indent()
+        self.output.write(f"{break_label}:\n")
+        self.dedent()
+        self._write_indent()
+        self.output.write("}\n")
+
+    def _visit_labeled_for_in(self, node: ASTNode, *, indexed: bool) -> None:
+        cond_label = self._unique_name("a7_loop_cond")
+        continue_label = self._unique_name("a7_loop_continue")
+        break_label = self._unique_name("a7_loop_break")
+        idx_name = self._unique_name("__a7_i")
+        iterable_expr = self._emit_expr(node.iterable)
+        iterable_type = self._type_map.get(id(node.iterable)) if node.iterable else None
+        elem_type = self._iterable_element_type(iterable_type)
+        length_expr = self._iterable_length_expr(node.iterable, iterable_expr, iterable_type)
+        iter_name = self._sanitize_name(node.iterator or "item")
+
+        self._write_indent()
+        self.output.write("{\n")
+        self.indent()
+        self._write_indent()
+        self.output.write(f"size_t {idx_name} = 0;\n")
+        self._write_indent()
+        self.output.write(f"{cond_label}:\n")
+        self._write_indent()
+        self.output.write(f"if (!({idx_name} < {length_expr})) goto {break_label};\n")
+        self._write_indent()
+        self.output.write("{\n")
+        self.indent()
+        self._defer_scopes.append([])
+        if indexed:
+            index_var = self._sanitize_name(node.index_var or "index")
+            self._write_indent()
+            self.output.write(f"size_t {index_var} = {idx_name};\n")
+        self._write_indent()
+        self.output.write(
+            f"{elem_type} {iter_name} = {self._emit_iterable_element_expr(node.iterable, iterable_expr, iterable_type, idx_name)};\n"
+        )
+        marker = len(self._defer_scopes) - 1
+        self._push_loop_frame(
+            label=node.label,
+            unwind_depth=marker,
+            break_target=break_label,
+            continue_target=continue_label,
+        )
+        if node.body and node.body.kind == NodeKind.BLOCK:
+            for stmt in (node.body.statements or []):
+                self.visit(stmt)
+        elif node.body:
+            self.visit(node.body)
+        self._pop_loop_frame()
+        self._emit_current_scope_defers()
+        self._defer_scopes.pop()
+        self.dedent()
+        self._write_indent()
+        self.output.write("}\n")
+        self._write_indent()
+        self.output.write(f"{continue_label}:\n")
+        self._write_indent()
+        self.output.write(f"++{idx_name};\n")
+        self._write_indent()
+        self.output.write(f"goto {cond_label};\n")
+        self._write_indent()
+        self.output.write(f"{break_label}:\n")
+        self.dedent()
+        self._write_indent()
+        self.output.write("}\n")
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -1636,6 +1817,23 @@ class CCodeGenerator(CodeGenerator):
             return self._emit_expr(node)
         return ""
 
+    def _emit_index_base_expr(self, object_node: Optional[ASTNode], object_expr: str) -> str:
+        object_type = self._type_map.get(id(object_node)) if object_node is not None else None
+        if isinstance(object_type, SliceType):
+            return f"({object_expr}).data"
+        return object_expr
+
+    def _emit_iterable_element_expr(
+        self,
+        iterable_node: Optional[ASTNode],
+        iterable_expr: str,
+        iterable_type,
+        idx_name: str,
+    ) -> str:
+        if isinstance(iterable_type, SliceType):
+            return f"({iterable_expr}).data[{idx_name}]"
+        return f"{iterable_expr}[{idx_name}]"
+
     def _iterable_element_type(self, iterable_type) -> str:
         if isinstance(iterable_type, ArrayType):
             return self._semantic_type_to_c(iterable_type.element_type) or "int32_t"
@@ -1655,6 +1853,32 @@ class CCodeGenerator(CodeGenerator):
             "C backend: for-in iteration currently requires an array or slice value",
             iterable_node.span if iterable_node else None,
         )
+
+    def _emit_slice_expr(self, node: ASTNode) -> str:
+        source_type = self._type_map.get(id(node.object)) if node.object else None
+        if not isinstance(source_type, (ArrayType, SliceType)):
+            raise CodegenError(
+                "C backend: slice expressions currently require an array or slice value",
+                node.span,
+            )
+
+        result_type = self._type_map.get(id(node))
+        if not isinstance(result_type, SliceType):
+            result_type = SliceType(source_type.element_type)
+
+        slice_c_type = self._semantic_type_to_c(result_type) or "void*"
+        object_expr = self._emit_expr(node.object)
+        start_expr = self._emit_expr(node.start) if node.start else "0"
+
+        if isinstance(source_type, ArrayType):
+            end_expr = self._emit_expr(node.end) if node.end else str(source_type.size)
+            data_expr = f"&({object_expr})[(size_t)({start_expr})]"
+        else:
+            end_expr = self._emit_expr(node.end) if node.end else f"({object_expr}).len"
+            data_expr = f"({object_expr}).data + (size_t)({start_expr})"
+
+        len_expr = f"((size_t)({end_expr}) - (size_t)({start_expr}))"
+        return f"(({slice_c_type}){{ .data = {data_expr}, .len = {len_expr} }})"
 
     def _emit_pattern(self, node: ASTNode) -> str:
         if node is None:

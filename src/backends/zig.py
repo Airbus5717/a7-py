@@ -34,6 +34,7 @@ class ZigCodeGenerator(CodeGenerator):
         self._rename_map: Dict[str, str] = {}  # original -> renamed
         # Track if we're inside a function body
         self._in_function = False
+        self._loop_label_stack: list[tuple[Optional[str], Optional[str]]] = []
 
     @property
     def file_extension(self) -> str:
@@ -59,6 +60,7 @@ class ZigCodeGenerator(CodeGenerator):
         self._scope_stack = []
         self._rename_map = {}
         self._in_function = False
+        self._loop_label_stack = []
 
         # First pass: scan for features that need preamble items
         self._scan_features(ast)
@@ -698,12 +700,16 @@ class ZigCodeGenerator(CodeGenerator):
     def _visit_while(self, node: ASTNode) -> None:
         """Visit while statement."""
         self._write_indent()
+        emitted_label = self._loop_label_name(node.label)
+        if emitted_label:
+            self.output.write(f"{emitted_label}: ")
         if node.condition:
             cond = self._emit_expr(node.condition)
             self.output.write(f"while ({cond}) ")
         else:
             self.output.write("while (true) ")
 
+        self._loop_label_stack.append((node.label, emitted_label))
         if node.body and node.body.kind == NodeKind.BLOCK:
             self._visit_block_inline(node.body)
         elif node.body:
@@ -713,6 +719,7 @@ class ZigCodeGenerator(CodeGenerator):
             self.dedent()
             self._write_indent()
             self.output.write("}\n")
+        self._loop_label_stack.pop()
 
     def _visit_for(self, node: ASTNode) -> None:
         """Visit for statement (C-style or infinite)."""
@@ -720,9 +727,21 @@ class ZigCodeGenerator(CodeGenerator):
 
         # Infinite loop: for { ... }
         if not node.init and not node.condition and not node.update:
+            emitted_label = self._loop_label_name(node.label)
+            if emitted_label:
+                self.output.write(f"{emitted_label}: ")
             self.output.write("while (true) ")
+            self._loop_label_stack.append((node.label, emitted_label))
             if node.body and node.body.kind == NodeKind.BLOCK:
                 self._visit_block_inline(node.body)
+            elif node.body:
+                self.output.write("{\n")
+                self.indent()
+                self.visit(node.body)
+                self.dedent()
+                self._write_indent()
+                self.output.write("}\n")
+            self._loop_label_stack.pop()
             return
 
         # C-style for: for i := 0; i < 10; i += 1 { ... }
@@ -736,6 +755,9 @@ class ZigCodeGenerator(CodeGenerator):
 
         # While with continue expression
         self._write_indent()
+        emitted_label = self._loop_label_name(node.label)
+        if emitted_label:
+            self.output.write(f"{emitted_label}: ")
         if node.condition:
             cond = self._emit_expr(node.condition)
             self.output.write(f"while ({cond})")
@@ -749,6 +771,7 @@ class ZigCodeGenerator(CodeGenerator):
 
         self.output.write(" ")
 
+        self._loop_label_stack.append((node.label, emitted_label))
         if node.body and node.body.kind == NodeKind.BLOCK:
             self._visit_block_inline(node.body)
         elif node.body:
@@ -758,6 +781,7 @@ class ZigCodeGenerator(CodeGenerator):
             self.dedent()
             self._write_indent()
             self.output.write("}\n")
+        self._loop_label_stack.pop()
 
         self.dedent()
         self._write_indent()
@@ -768,8 +792,12 @@ class ZigCodeGenerator(CodeGenerator):
         self._write_indent()
         iterable = self._emit_expr(node.iterable) if node.iterable else "undefined"
         iter_name = node.iterator or "_"
+        emitted_label = self._loop_label_name(node.label)
+        if emitted_label:
+            self.output.write(f"{emitted_label}: ")
         self.output.write(f"for ({iterable}) |{iter_name}| ")
 
+        self._loop_label_stack.append((node.label, emitted_label))
         if node.body and node.body.kind == NodeKind.BLOCK:
             self._visit_block_inline(node.body)
         elif node.body:
@@ -779,6 +807,7 @@ class ZigCodeGenerator(CodeGenerator):
             self.dedent()
             self._write_indent()
             self.output.write("}\n")
+        self._loop_label_stack.pop()
 
     def _visit_for_in_indexed(self, node: ASTNode) -> None:
         """Visit indexed for-in: for i, val in arr → for (arr, 0..) |val, i|"""
@@ -786,9 +815,13 @@ class ZigCodeGenerator(CodeGenerator):
         iterable = self._emit_expr(node.iterable) if node.iterable else "undefined"
         iter_name = node.iterator or "_"
         index_name = node.index_var or "_"
+        emitted_label = self._loop_label_name(node.label)
+        if emitted_label:
+            self.output.write(f"{emitted_label}: ")
         # Zig: for (arr, 0..) |val, i|  (note: reversed order from A7)
         self.output.write(f"for ({iterable}, 0..) |{iter_name}, {index_name}| ")
 
+        self._loop_label_stack.append((node.label, emitted_label))
         if node.body and node.body.kind == NodeKind.BLOCK:
             self._visit_block_inline(node.body)
         elif node.body:
@@ -798,6 +831,7 @@ class ZigCodeGenerator(CodeGenerator):
             self.dedent()
             self._write_indent()
             self.output.write("}\n")
+        self._loop_label_stack.pop()
 
     def _visit_match(self, node: ASTNode) -> None:
         """Visit match statement → Zig switch."""
@@ -873,12 +907,20 @@ class ZigCodeGenerator(CodeGenerator):
     def _visit_break(self, node: ASTNode) -> None:
         """Visit break statement."""
         self._write_indent()
-        self.output.write("break;\n")
+        target = self._resolve_loop_label(node.label)
+        if target:
+            self.output.write(f"break :{target};\n")
+        else:
+            self.output.write("break;\n")
 
     def _visit_continue(self, node: ASTNode) -> None:
         """Visit continue statement."""
         self._write_indent()
-        self.output.write("continue;\n")
+        target = self._resolve_loop_label(node.label)
+        if target:
+            self.output.write(f"continue :{target};\n")
+        else:
+            self.output.write("continue;\n")
 
     def _visit_defer(self, node: ASTNode) -> None:
         """Visit defer statement."""
@@ -1466,6 +1508,20 @@ class ZigCodeGenerator(CodeGenerator):
                 result.append(s[i])
                 i += 1
         return "".join(result)
+
+    def _loop_label_name(self, label: Optional[str]) -> Optional[str]:
+        if not label:
+            return None
+        safe = label.replace("$", "_").replace(".", "_").replace("-", "_")
+        return f"a7_loop_{safe}"
+
+    def _resolve_loop_label(self, label: Optional[str]) -> Optional[str]:
+        if label is None:
+            return None
+        for original, emitted in reversed(self._loop_label_stack):
+            if original == label:
+                return emitted
+        return None
 
     # === Helper methods ===
 

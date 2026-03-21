@@ -406,6 +406,24 @@ main :: fn() {
         zig = compile_a7_to_zig(source)
         assert 'break;' in zig
 
+    def test_labeled_break_continue(self):
+        source = '''
+main :: fn() {
+    outer_break: while true {
+        break outer_break
+    }
+
+    outer_continue: for i := 0; i < 2; i += 1 {
+        continue outer_continue
+    }
+}
+'''
+        zig = compile_a7_to_zig(source)
+        assert 'a7_loop_outer_break: while' in zig
+        assert 'break :a7_loop_outer_break;' in zig
+        assert 'a7_loop_outer_continue: while' in zig
+        assert 'continue :a7_loop_outer_continue;' in zig
+
     def test_new_and_del(self):
         source = '''
 main :: fn() {
@@ -517,11 +535,23 @@ main :: fn() {
 '''
         zig = compile_a7_to_zig(source)
         ok, err = zig_ast_check(zig)
-        # May fail due to unused var, but should parse
-        # Only check if it's a syntax error vs semantic
-        if not ok:
-            assert "never mutated" in err or "unused" in err, \
-                f"Unexpected error:\n{err}\n\nGenerated:\n{zig}"
+        assert ok, f"ast-check failed:\n{err}\n\nGenerated:\n{zig}"
+
+    def test_labeled_loop_ast_check(self):
+        source = '''
+main :: fn() {
+    outer_break: while true {
+        break outer_break
+    }
+
+    outer_continue: for i := 0; i < 2; i += 1 {
+        continue outer_continue
+    }
+}
+'''
+        zig = compile_a7_to_zig(source)
+        ok, err = zig_ast_check(zig)
+        assert ok, f"ast-check failed:\n{err}\n\nGenerated:\n{zig}"
 
     def test_struct_and_enum_ast_check(self):
         source = '''

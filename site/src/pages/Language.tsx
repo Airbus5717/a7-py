@@ -483,7 +483,7 @@ type_expr :=
 
       <SectionPanel title="Implementation Notes">
         <DocCallout tone="success">
-          Parsing coverage is complete for the language surface described here. The compiler runs tokenization, parsing, semantic passes, preprocessing, and Zig code generation end-to-end.
+          Parsing coverage is complete for the language surface described here. The compiler runs tokenization, parsing, semantic passes, preprocessing, and code generation (Zig and C backends) end-to-end.
         </DocCallout>
         <DocCallout tone="warning">
           A small set of semantic features are still open. For exact pass/fail status and failing test references, see <Link to="/status">Status</Link> and <code className="doc-inline-code">MISSING_FEATURES.md</code>.

@@ -317,6 +317,27 @@ class TestSliceTypes:
         """
         assert run_analysis_expect_success(source)
 
+    def test_slice_expression_from_array(self):
+        """Test array sub-slicing produces a slice type."""
+        source = """
+        main :: fn() {
+            arr: [4]i32 = [1, 2, 3, 4]
+            slice := arr[1..3]
+            x := slice[0]
+        }
+        """
+        assert run_analysis_expect_success(source)
+
+    def test_slice_expression_rejects_non_sliceable_values(self):
+        """Only arrays and slices may be sliced."""
+        source = """
+        main :: fn() {
+            x := 42
+            y := x[0..1]
+        }
+        """
+        assert run_analysis_expect_error(source)
+
 
 class TestPointerTypes:
     """Test pointer operations."""

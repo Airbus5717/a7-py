@@ -18,7 +18,7 @@ const releases = [
         'All AST traversals converted to iterative stack-based form.',
         'Semantic errors collected without hard-stop.',
         'Backend reads preprocessor annotations instead of recomputing.',
-        'Current semantic backlog is now tracked by active failing tests (1039 pass / 7 fail, 0 skipped).',
+        'Semantic backlog tracked by active tests. Run pytest for current counts.',
       ],
       Fixed: [
         'Match/switch Zig codegen trailing comma edge cases.',

@@ -1,7 +1,7 @@
 # TODO
 
 Current backlog for the A7 compiler, organized by priority tier.
-Status as of 2026-03-21: **1074 tests passing, 0 failing**. 36/36 examples pass e2e.
+Check test status with `PYTHONPATH=. uv run pytest --tb=no -q`. 36/36 examples pass e2e.
 
 ---
 
@@ -98,6 +98,46 @@ Features that are spec'd and partially implemented, or missing from one backend.
 
 - [ ] Generic specialization (spec §7.4).
   Notes: spec'd but not implemented.
+
+### Type Checking Improvements
+
+- [ ] Infer concrete types through control flow (if/match narrowing).
+  Notes: `x: i32 | nil` should narrow to `i32` inside `if x != nil { ... }`.
+
+- [ ] Propagate generic type parameters through call chains.
+  Notes: `Vec(i32).push(x)` should infer `x: i32` without annotation.
+
+- [ ] Validate return-type consistency across all branches.
+  Notes: currently only checks the last return; divergent branches slip through.
+
+- [ ] Flag dead code after unconditional return/break/continue.
+  Notes: reachability analysis is not implemented.
+
+- [ ] Check exhaustiveness of match statements.
+  Notes: non-exhaustive matches on enums silently fall through at runtime.
+
+- [ ] Validate assignment compatibility beyond top-level type equality.
+  Notes: nested struct/array type mismatches (e.g. `[4]i32` vs `[4]f32`) are not caught.
+
+### Optimization Passes (high-leverage, low-complexity)
+
+- [ ] Constant folding: evaluate compile-time-known arithmetic, comparisons, and boolean logic.
+  Notes: `2 + 3` → `5`, `true && false` → `false`. Covers the most common redundancy.
+
+- [ ] Dead code elimination: drop unreachable statements after return/break/continue and unused local variables.
+  Notes: reachability + `is_used` annotations already exist; just need a pass that prunes the AST.
+
+- [ ] Constant propagation: substitute known-constant variables at use sites.
+  Notes: `x := 5; y := x + 1` → `y := 6` (feeds into constant folding).
+
+- [ ] Strength reduction: replace expensive ops with cheaper equivalents.
+  Notes: `x * 2` → `x << 1`, `x / 4` → `x >> 2`, `x % 2` → `x & 1`. Only for integer types.
+
+- [ ] Simple inlining: inline small leaf functions (single-expression body, no side effects).
+  Notes: avoids call overhead for trivial helpers; keep a size threshold to avoid bloat.
+
+- [ ] Loop-invariant code motion: hoist expressions that don't change across iterations.
+  Notes: `for i := 0; i < len(arr); i += 1 { f(len(arr)) }` — hoist `len(arr)`.
 
 ---
 

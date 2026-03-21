@@ -31,7 +31,7 @@ export default function Home() {
     <div className="page">
       <PageHeader
         title="A7"
-        summary="A statically typed language that compiles to Zig. Generics, manual memory, no recursive AST walks."
+        summary="A statically typed language that compiles to Zig and C. Generics, manual memory, no recursive AST walks."
       />
 
       <SectionPanel>

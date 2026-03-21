@@ -37,10 +37,10 @@ const stages = [
   {
     num: '5',
     name: 'Codegen',
-    file: 'src/backends/zig.py',
-    desc: 'Reads annotations to emit Zig. Handles names, mutability, hoisting, stdlib mapping.',
+    file: 'src/backends/',
+    desc: 'Pluggable backends read annotations to emit target code. Zig (zig.py) and C11 (c.py) are both supported.',
     input: 'Annotated AST',
-    output: 'Zig source',
+    output: 'Zig or C source',
   },
 ]
 
@@ -49,14 +49,14 @@ export default function Pipeline() {
     <div className="page">
       <PageHeader
         title="Pipeline"
-        summary="Source goes in, Zig comes out. Five stages, all iterative."
+        summary="Source goes in, Zig or C comes out. Five stages, all iterative."
       />
 
       <SectionPanel>
         <p className="text-secondary">
           <code className="doc-inline-code">Source</code> &rarr; <code className="doc-inline-code">Tokens</code> &rarr;{' '}
           <code className="doc-inline-code">AST</code> &rarr; <code className="doc-inline-code">Annotated AST</code> &rarr;{' '}
-          <code className="doc-inline-code">Zig</code>
+          <code className="doc-inline-code">Zig / C</code>
         </p>
       </SectionPanel>
 
