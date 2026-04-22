@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `visit_index_expr`: now rejects non-integer index expressions.
 
 ### Changed
+- **Documentation Site Redesign**
+  - Reworked the React/Vite docs frontend under `site/` into a cleaner editorial layout with a warm monochrome token system, flatter panels, and a top-led navigation shell.
+  - Rebuilt the home page around an image-led docs landing composition with a framed code hero, quick-start strip, feature bento, pipeline overview, and structured footer.
+  - Normalized shared docs primitives (`PageHeader`, `SectionPanel`, `MetricTile`, code/table/callout styling) so content pages inherit the same minimalist visual system.
+  - Added light, dark, and system theme support with a header theme toggle and detection for extension-driven dark mode so site styling does not stack awkwardly with tools like Dark Reader.
+
 - **Semantic Coverage Expansion**
   - Unskipped 9 previously skipped semantic tests across `test/test_semantic_generics.py` and `test/test_semantic_control_flow.py`.
   - Converted deferred coverage into active failing tests to track implementation work directly in CI.

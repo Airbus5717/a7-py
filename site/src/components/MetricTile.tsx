@@ -6,7 +6,7 @@ interface MetricTileProps {
 
 export default function MetricTile({ label, value, note }: MetricTileProps) {
   return (
-    <div className="metric-tile">
+    <div className="metric-tile" data-reveal>
       <p className="metric-label">{label}</p>
       <p className="metric-value">{value}</p>
       {note ? <p className="metric-note">{note}</p> : null}

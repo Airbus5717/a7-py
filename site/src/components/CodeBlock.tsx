@@ -10,11 +10,16 @@ export default function CodeBlock({ code, lang, title }: CodeBlockProps) {
   const html = useHighlight(code, lang)
 
   return (
-    <figure className="code-shell">
+    <figure className="code-shell" data-reveal>
       {(title || lang) && (
         <figcaption className="code-head">
-          <span>{title || lang}</span>
-          {lang && <span className="doc-chip">{lang}</span>}
+          <span className="code-head-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="code-head-title">{title || lang}</span>
+          <span className="code-head-meta">{lang ? 'A7' : ''}</span>
         </figcaption>
       )}
       {html ? (

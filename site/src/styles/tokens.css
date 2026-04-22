@@ -1,148 +1,195 @@
 :root {
-  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", serif;
-  --font-body: "Manrope", "Segoe UI", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", serif;
+  --font-body: "Instrument Sans", "Helvetica Neue", "Arial", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "SF Mono", ui-monospace, monospace;
 
   --space-1: 8px;
   --space-2: 16px;
   --space-3: 24px;
   --space-4: 32px;
-  --space-5: 40px;
-  --space-6: 48px;
-  --space-7: 56px;
+  --space-5: 48px;
+  --space-6: 64px;
+  --space-7: 88px;
+  --space-8: 120px;
 
   --radius-sm: 8px;
   --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-lg: 18px;
 
-  /* ── Light palette ── */
-  --paper-0: #fbf8ef;
-  --paper-1: #f5f0e2;
-  --paper-2: #ece5d3;
-  --paper-3: #e3dac4;
+  color-scheme: light;
+}
 
-  --ink-900: #1d2522;
-  --ink-700: #33413d;
-  --ink-500: #53625d;
-  --ink-400: #6f7d77;
+:root,
+:root[data-theme='light'] {
+  --paper-0: #fbfbfa;
+  --paper-1: #f7f6f3;
+  --paper-2: #f1efea;
+  --paper-3: #ebe8e0;
+  --paper-4: #e1ddd2;
 
-  --oxide-700: #0f6f6a;
-  --oxide-600: #118a84;
-  --oxide-500: #21a299;
-  --oxide-200: #b8ddd8;
+  --ink-900: #181716;
+  --ink-800: #242220;
+  --ink-700: #34312e;
+  --ink-600: #4d4842;
+  --ink-500: #706a63;
+  --ink-400: #8f887f;
 
-  --brass-700: #7f5626;
-  --brass-600: #9c6d2f;
-  --brass-200: #ead6b8;
+  --line-strong: #dbd6cc;
+  --line-soft: #eae5dc;
 
-  --moss-700: #3f5e45;
-  --moss-600: #4f7656;
-  --moss-200: #ccdccf;
+  --blue-soft: #e1f3fe;
+  --blue-text: #1f6c9f;
+  --green-soft: #edf3ec;
+  --green-text: #346538;
+  --yellow-soft: #fbf3db;
+  --yellow-text: #956400;
+  --red-soft: #fdebec;
+  --red-text: #9f2f2d;
 
-  /* ── Semantic aliases (light) ── */
   --bg-canvas: var(--paper-0);
-  --bg-panel: var(--paper-1);
-  --bg-raised: var(--paper-2);
-  --bg-inset: var(--paper-3);
+  --bg-panel: #ffffff;
+  --bg-raised: var(--paper-1);
+  --bg-inset: var(--paper-2);
+  --bg-quiet: rgba(255, 255, 255, 0.72);
 
   --fg-primary: var(--ink-900);
   --fg-secondary: var(--ink-700);
   --fg-tertiary: var(--ink-500);
   --fg-muted: var(--ink-400);
 
-  --border-soft: color-mix(in srgb, var(--ink-700) 12%, transparent);
-  --border-default: color-mix(in srgb, var(--ink-700) 18%, transparent);
-  --border-emphasis: color-mix(in srgb, var(--oxide-700) 36%, transparent);
-  --border-focus: color-mix(in srgb, var(--oxide-600) 62%, transparent);
+  --border-soft: var(--line-soft);
+  --border-default: var(--line-strong);
+  --border-emphasis: rgba(24, 23, 22, 0.2);
+  --border-focus: rgba(24, 23, 22, 0.36);
 
-  --accent-700: var(--oxide-700);
-  --accent-600: var(--oxide-600);
-  --accent-500: var(--oxide-500);
-  --accent-soft: color-mix(in srgb, var(--oxide-500) 16%, var(--paper-1));
+  --accent-700: var(--ink-900);
+  --accent-600: var(--ink-800);
+  --accent-500: var(--ink-700);
+  --accent-soft: var(--paper-2);
 
-  --signal-success: var(--moss-700);
-  --signal-success-soft: color-mix(in srgb, var(--moss-200) 55%, var(--paper-1));
-  --signal-warning: var(--brass-700);
-  --signal-warning-soft: color-mix(in srgb, var(--brass-200) 48%, var(--paper-1));
+  --signal-info: var(--blue-text);
+  --signal-info-soft: var(--blue-soft);
+  --signal-success: var(--green-text);
+  --signal-success-soft: var(--green-soft);
+  --signal-warning: var(--yellow-text);
+  --signal-warning-soft: var(--yellow-soft);
+  --signal-danger: var(--red-text);
+  --signal-danger-soft: var(--red-soft);
 
-  /* ── Gradient overlays (light) ── */
-  --gradient-tl: rgba(17, 138, 132, 0.18);
-  --gradient-tr: rgba(156, 109, 47, 0.14);
+  --selection-bg: rgba(24, 23, 22, 0.12);
+  --scrollbar-thumb: rgba(24, 23, 22, 0.18);
+  --scrollbar-thumb-hover: rgba(24, 23, 22, 0.28);
+  --overlay-bg: rgba(24, 23, 22, 0.18);
+  --code-head-bg: var(--paper-1);
+  --sidebar-bg: rgba(251, 251, 250, 0.94);
+  --mobile-header-bg: rgba(251, 251, 250, 0.88);
 
-  /* ── Selection (light) ── */
-  --selection-bg: color-mix(in srgb, var(--accent-500) 28%, white);
-
-  /* ── Scrollbar (light) ── */
-  --scrollbar-thumb: color-mix(in srgb, var(--ink-400) 52%, transparent);
-  --scrollbar-thumb-hover: color-mix(in srgb, var(--ink-500) 62%, transparent);
-
-  /* ── Code head (light) ── */
-  --code-head-bg: color-mix(in srgb, var(--bg-inset) 70%, white);
-
-  /* ── Sidebar bg (light) ── */
-  --sidebar-bg: color-mix(in srgb, var(--bg-canvas) 70%, var(--bg-panel));
-
-  /* ── Mobile header (light) ── */
-  --mobile-header-bg: color-mix(in srgb, var(--bg-canvas) 92%, white);
-
-  /* ── Overlay ── */
-  --overlay-bg: rgba(20, 24, 24, 0.38);
-
-  color-scheme: light dark;
+  --body-overlay-start: rgba(255, 255, 255, 0.7);
+  --body-overlay-end: rgba(255, 255, 255, 0.4);
+  --grid-line: rgba(24, 23, 22, 0.024);
+  --link-underline: rgba(24, 23, 22, 0.18);
+  --surface-72: rgba(255, 255, 255, 0.72);
+  --surface-78: rgba(255, 255, 255, 0.78);
+  --surface-80: rgba(255, 255, 255, 0.8);
+  --surface-82: rgba(255, 255, 255, 0.82);
+  --surface-84: rgba(255, 255, 255, 0.84);
+  --surface-88: rgba(255, 255, 255, 0.88);
+  --surface-92: rgba(255, 255, 255, 0.92);
+  --surface-50: rgba(255, 255, 255, 0.5);
+  --panel-gradient-start: rgba(255, 255, 255, 0.86);
+  --panel-gradient-end: rgba(255, 255, 255, 0.78);
+  --hero-image-overlay: rgba(255, 255, 255, 0.12);
+  --media-image-overlay: rgba(255, 255, 255, 0.08);
+  --elevated-shadow: 0 2px 8px rgba(24, 23, 22, 0.04);
+  --modal-overlay-strong: rgba(24, 23, 22, 0.24);
+  --button-solid-bg: #1a1918;
+  --button-solid-fg: #ffffff;
 }
 
-/* ── Dark mode ── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --paper-0: #0e1513;
-    --paper-1: #151d1b;
-    --paper-2: #1c2523;
-    --paper-3: #232d2b;
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-    --ink-900: #e4e0d8;
-    --ink-700: #c0bcb2;
-    --ink-500: #908c84;
-    --ink-400: #6e6a64;
+  --paper-0: #111110;
+  --paper-1: #171614;
+  --paper-2: #1e1c1a;
+  --paper-3: #262320;
+  --paper-4: #2d2a26;
 
-    --oxide-700: #34c4bd;
-    --oxide-600: #28aba5;
-    --oxide-500: #21a299;
-    --oxide-200: #1a4d4a;
+  --ink-900: #f3efe8;
+  --ink-800: #e6e0d6;
+  --ink-700: #cbc2b5;
+  --ink-600: #aea394;
+  --ink-500: #8f8375;
+  --ink-400: #71685d;
 
-    --brass-700: #d4a05c;
-    --brass-600: #b8893e;
-    --brass-200: #3d2e1a;
+  --line-strong: #3a352f;
+  --line-soft: #2d2823;
 
-    --moss-700: #72b07a;
-    --moss-600: #5a9862;
-    --moss-200: #1e3222;
+  --blue-soft: rgba(43, 99, 135, 0.24);
+  --blue-text: #7fc2eb;
+  --green-soft: rgba(52, 101, 56, 0.22);
+  --green-text: #9ac49b;
+  --yellow-soft: rgba(149, 100, 0, 0.24);
+  --yellow-text: #e8c76d;
+  --red-soft: rgba(159, 47, 45, 0.22);
+  --red-text: #ef9892;
 
-    --border-soft: color-mix(in srgb, var(--ink-500) 16%, transparent);
-    --border-default: color-mix(in srgb, var(--ink-500) 24%, transparent);
-    --border-emphasis: color-mix(in srgb, var(--oxide-700) 42%, transparent);
-    --border-focus: color-mix(in srgb, var(--oxide-600) 68%, transparent);
+  --bg-canvas: #12110f;
+  --bg-panel: #191715;
+  --bg-raised: #1f1c18;
+  --bg-inset: #26221d;
+  --bg-quiet: rgba(25, 23, 21, 0.78);
 
-    --accent-soft: color-mix(in srgb, var(--oxide-500) 14%, var(--paper-1));
+  --fg-primary: #f3efe8;
+  --fg-secondary: #d4ccbf;
+  --fg-tertiary: #a89e90;
+  --fg-muted: #7d7368;
 
-    --signal-success: var(--moss-700);
-    --signal-success-soft: color-mix(in srgb, var(--moss-200) 60%, var(--paper-1));
-    --signal-warning: var(--brass-700);
-    --signal-warning-soft: color-mix(in srgb, var(--brass-200) 55%, var(--paper-1));
+  --border-soft: #2b2722;
+  --border-default: #3b352e;
+  --border-emphasis: rgba(243, 239, 232, 0.16);
+  --border-focus: rgba(243, 239, 232, 0.32);
 
-    --gradient-tl: rgba(17, 138, 132, 0.10);
-    --gradient-tr: rgba(156, 109, 47, 0.08);
+  --accent-700: #f3efe8;
+  --accent-600: #e2dbcf;
+  --accent-500: #d1c7b7;
+  --accent-soft: #231f1b;
 
-    --selection-bg: color-mix(in srgb, var(--accent-500) 32%, transparent);
+  --signal-info: var(--blue-text);
+  --signal-info-soft: var(--blue-soft);
+  --signal-success: var(--green-text);
+  --signal-success-soft: var(--green-soft);
+  --signal-warning: var(--yellow-text);
+  --signal-warning-soft: var(--yellow-soft);
+  --signal-danger: var(--red-text);
+  --signal-danger-soft: var(--red-soft);
 
-    --scrollbar-thumb: color-mix(in srgb, var(--ink-400) 48%, transparent);
-    --scrollbar-thumb-hover: color-mix(in srgb, var(--ink-500) 58%, transparent);
+  --selection-bg: rgba(243, 239, 232, 0.18);
+  --scrollbar-thumb: rgba(243, 239, 232, 0.18);
+  --scrollbar-thumb-hover: rgba(243, 239, 232, 0.28);
+  --overlay-bg: rgba(0, 0, 0, 0.42);
+  --code-head-bg: #1c1916;
+  --sidebar-bg: rgba(17, 16, 15, 0.94);
+  --mobile-header-bg: rgba(17, 16, 15, 0.9);
 
-    --code-head-bg: color-mix(in srgb, var(--bg-inset) 80%, black);
-
-    --sidebar-bg: color-mix(in srgb, var(--bg-canvas) 80%, var(--bg-panel));
-
-    --mobile-header-bg: color-mix(in srgb, var(--bg-canvas) 92%, black);
-
-    --overlay-bg: rgba(0, 0, 0, 0.55);
-  }
+  --body-overlay-start: rgba(255, 255, 255, 0.02);
+  --body-overlay-end: rgba(0, 0, 0, 0);
+  --grid-line: rgba(243, 239, 232, 0.035);
+  --link-underline: rgba(243, 239, 232, 0.22);
+  --surface-72: rgba(25, 23, 21, 0.72);
+  --surface-78: rgba(25, 23, 21, 0.78);
+  --surface-80: rgba(25, 23, 21, 0.8);
+  --surface-82: rgba(25, 23, 21, 0.82);
+  --surface-84: rgba(25, 23, 21, 0.84);
+  --surface-88: rgba(25, 23, 21, 0.88);
+  --surface-92: rgba(25, 23, 21, 0.92);
+  --surface-50: rgba(25, 23, 21, 0.5);
+  --panel-gradient-start: rgba(25, 23, 21, 0.9);
+  --panel-gradient-end: rgba(25, 23, 21, 0.82);
+  --hero-image-overlay: rgba(0, 0, 0, 0.24);
+  --media-image-overlay: rgba(0, 0, 0, 0.18);
+  --elevated-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+  --modal-overlay-strong: rgba(0, 0, 0, 0.54);
+  --button-solid-bg: #f3efe8;
+  --button-solid-fg: #151412;
 }

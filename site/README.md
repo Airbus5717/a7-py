@@ -42,6 +42,16 @@ Design tokens and shared interface styles live in:
 
 Primary shared UI primitives live in `site/src/components/`.
 
+The current site direction is:
+
+- warm monochrome, paper-toned surfaces
+- editorial serif display type with a restrained sans body
+- 1px border discipline and flat panels
+- top navigation plus drawer-based full route navigation
+- image-led home page with framed media and minimal motion via reveal-on-scroll
+- built-in `light` / `dark` / `system` theme modes with persistence
+- dark-extension detection to avoid double-dark styling when browser extensions inject their own theme layer
+
 ## Deployment
 
 GitHub Pages deploy runs from `.github/workflows/deploy-docs.yml` when docs-related files change on `main`/`master`.
